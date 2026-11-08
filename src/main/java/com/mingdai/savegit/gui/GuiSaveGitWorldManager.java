@@ -8,9 +8,11 @@ import com.mingdai.savegit.snapshot.WorldSnapshotter;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
+import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
 import java.io.IOException;
@@ -39,6 +41,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
     private final Path worldDir;
     private final String worldDisplayName;
+    private final Screen returnScreen;
     private List<Commit> commits = Collections.emptyList();
     private Set<String> screenshotIds = Collections.emptySet();
     private String message;
@@ -46,8 +49,14 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
     private final SnapshotThumbnailCache thumbnails = new SnapshotThumbnailCache();
 
     public GuiSaveGitWorldManager(Path worldDir, String worldDisplayName) {
+        this(worldDir, worldDisplayName, null);
+    }
+
+    public GuiSaveGitWorldManager(Path worldDir, String worldDisplayName, Screen returnScreen) {
         this.worldDir = worldDir;
         this.worldDisplayName = worldDisplayName;
+        this.returnScreen = returnScreen;
+        this.setParent(returnScreen);
         this.setTitle("SaveGit 存档管理 - " + worldDisplayName);
     }
 
@@ -62,11 +71,28 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
         int backWidth = 100;
         this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20, "返回"),
-                (button, mouseButton) -> this.close());
+                (button, mouseButton) -> this.goBack());
+    }
+
+    private void goBack() {
+        if (this.returnScreen != null) {
+            this.mc.setScreen(this.returnScreen);
+        } else {
+            this.close();
+        }
+    }
+
+    @Override
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == KeyCodes.KEY_ESCAPE) {
+            this.goBack();
+            return true;
+        }
+        return super.onKeyTyped(keyCode, scanCode, modifiers);
     }
 
     public static void open(MinecraftClient client, Path worldDir, String worldName) {
-        client.setScreen(new GuiSaveGitWorldManager(worldDir, worldName));
+        client.setScreen(new GuiSaveGitWorldManager(worldDir, worldName, client.currentScreen));
     }
 
     @Override
@@ -372,6 +398,19 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }
 
         @Override
+        public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+            if (keyCode == KeyCodes.KEY_ESCAPE) {
+                if (this.parent != null) {
+                    GuiBase.openGui(this.parent);
+                } else {
+                    this.close();
+                }
+                return true;
+            }
+            return super.onKeyTyped(keyCode, scanCode, modifiers);
+        }
+
+        @Override
         protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
@@ -427,6 +466,19 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }
 
         @Override
+        public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+            if (keyCode == KeyCodes.KEY_ESCAPE) {
+                if (this.parent != null) {
+                    GuiBase.openGui(this.parent);
+                } else {
+                    this.close();
+                }
+                return true;
+            }
+            return super.onKeyTyped(keyCode, scanCode, modifiers);
+        }
+
+        @Override
         protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
@@ -461,7 +513,8 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                         Text.literal("删除失败：" + e.getMessage()));
             }
             // 删除后刷新并回到存档管理列表，而不是退回主菜单
-            GuiBase.openGui(new GuiSaveGitWorldManager(this.worldDir, this.parent.worldDisplayName));
+            GuiBase.openGui(new GuiSaveGitWorldManager(
+                    this.worldDir, this.parent.worldDisplayName, this.parent.returnScreen));
         }
     }
 

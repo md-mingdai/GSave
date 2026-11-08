@@ -145,16 +145,17 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                     + "  " + safe(commit.message);
             line1 = this.textRenderer.trimToWidth(line1,
                     listWidth - THUMB_WIDTH - RESTORE_BUTTON_WIDTH - DELETE_BUTTON_WIDTH
-                            - BUTTON_GAP * 2 - 48);
+                            - BUTTON_GAP * 2 - 56);
             String line2 = "父提交: " + parent;
 
-            this.drawString(drawContext, line1, listLeft + 8, rowY + 6, 0xFFFFFFFF);
-            this.drawString(drawContext, line2, listLeft + 8, rowY + 18, 0xFFA0A0A0);
+            int textX = listLeft + 8 + THUMB_WIDTH + 8;
+            this.drawString(drawContext, line1, textX, rowY + 6, 0xFFFFFFFF);
+            this.drawString(drawContext, line2, textX, rowY + 18, 0xFFA0A0A0);
 
             int buttonY = rowY + (ROW_HEIGHT - ROW_BUTTON_HEIGHT) / 2;
 
-            // 最右侧截图缩略图
-            int thumbX = listLeft + listWidth - THUMB_WIDTH - 8;
+            // 最左侧截图缩略图
+            int thumbX = listLeft + 8;
             int thumbY = rowY + (ROW_HEIGHT - THUMB_HEIGHT) / 2;
             boolean hasShot = this.screenshotIds.contains(commit.id) && this.worldDir != null;
             drawContext.fill(thumbX - 1, thumbY - 1,
@@ -185,7 +186,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                         thumbY + THUMB_HEIGHT / 2 - 4, 0xFF606060);
             }
 
-            int restoreX = thumbX - BUTTON_GAP - RESTORE_BUTTON_WIDTH;
+            int restoreX = listLeft + listWidth - RESTORE_BUTTON_WIDTH - 8;
             boolean restoreHovered = mouseX >= restoreX && mouseX < restoreX + RESTORE_BUTTON_WIDTH
                     && mouseY >= buttonY && mouseY < buttonY + ROW_BUTTON_HEIGHT;
             drawContext.fill(restoreX, buttonY,
@@ -251,9 +252,9 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             if (rowY + ROW_HEIGHT <= LIST_TOP || rowY >= listBottom) {
                 continue;
             }
-            int thumbX = listLeft + listWidth - THUMB_WIDTH - 8;
+            int thumbX = listLeft + 8;
             int thumbY = rowY + (ROW_HEIGHT - THUMB_HEIGHT) / 2;
-            int buttonX = thumbX - BUTTON_GAP - RESTORE_BUTTON_WIDTH;
+            int buttonX = listLeft + listWidth - RESTORE_BUTTON_WIDTH - 8;
             int buttonY = rowY + (ROW_HEIGHT - ROW_BUTTON_HEIGHT) / 2;
 
             if (this.screenshotIds.contains(this.commits.get(i).id) && this.worldDir != null

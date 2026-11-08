@@ -36,6 +36,13 @@ public class GuiRestoreProgress extends GuiBase {
     }
 
     @Override
+    protected void drawScreenBackground(DrawContext drawContext, int mouseX, int mouseY) {
+        // 原版旋转全景背景,并叠一层暗色以保证文字可读
+        this.renderPanoramaBackground(drawContext, 0.0F);
+        drawContext.fill(0, 0, this.width, this.height, 0x60000000);
+    }
+
+    @Override
     protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 

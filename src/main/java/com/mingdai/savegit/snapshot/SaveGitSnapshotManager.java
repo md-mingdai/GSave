@@ -134,9 +134,28 @@ public final class SaveGitSnapshotManager {
             ticksUntilAuto--;
             if (ticksUntilAuto <= 0) {
                 ticksUntilAuto = SaveGitConfigs.autoSnapshotIntervalTicks();
-                takeSnapshotAsync(client, "定时快照");
+                if (shouldStopScheduledSnapshots(client)) {
+                    SaveGitConfigs.Generic.SCHEDULED_SNAPSHOT_ENABLED.setBooleanValue(false);
+                    SaveGitConfigs.saveToFile();
+                    ticksUntilAuto = -1;
+                    InfoUtils.sendVanillaMessage(Text.literal("快照数量已达到阈值，已自动关闭定时快照"));
+                } else {
+                    takeSnapshotAsync(client, "定时快照");
+                }
             }
         }
+    }
+
+    private static boolean shouldStopScheduledSnapshots(MinecraftClient client) {
+        int limit = SaveGitConfigs.scheduledSnapshotStopCount();
+        if (limit <= 0) {
+            return false;
+        }
+        Path worldDir = getWorldDirectory(client);
+        if (worldDir == null) {
+            return false;
+        }
+        return new SnapshotRepository(worldDir).listCommits().size() >= limit;
     }
 
     private static void handleMainMenuKey(MinecraftClient client) {

@@ -5,6 +5,7 @@ import com.mingdai.savegit.gui.GuiSnapshotList;
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import fi.dy.masa.malilib.gui.GuiBase;
@@ -27,7 +28,7 @@ public final class SaveGitCommands {
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
                 dispatcher.register(ClientCommandManager.literal("snapshot")
-                        .executes(SaveGitCommands::create)
+                        .executes(SaveGitCommands::help)
                         .then(ClientCommandManager.literal("create")
                                 .executes(SaveGitCommands::create))
                         .then(ClientCommandManager.literal("view")
@@ -47,7 +48,21 @@ public final class SaveGitCommands {
                                                             .stream().map(Commit::shortId).toList(),
                                                     builder);
                                         })
-                                        .executes(SaveGitCommands::restore))));
+                                        .executes(context -> restore(context, true))
+                                        .then(ClientCommandManager.argument(
+                                                        "safety", BoolArgumentType.bool())
+                                                .executes(context -> restore(context,
+                                                        BoolArgumentType.getBool(context, "safety"))))))));
+    }
+
+    private static int help(CommandContext<FabricClientCommandSource> context) {
+        context.getSource().sendFeedback(Text.literal("SaveGit 命令帮助："));
+        context.getSource().sendFeedback(Text.literal("/snapshot create —— 手动创建一次快照"));
+        context.getSource().sendFeedback(Text.literal("/snapshot view —— 打开快照列表"));
+        context.getSource().sendFeedback(
+                Text.literal("/snapshot restore [快照ID] [true/false] —— 恢复快照，"
+                        + "true 表示恢复前创建安全快照（默认），false 表示不创建"));
+        return 1;
     }
 
     private static int create(CommandContext<FabricClientCommandSource> context) {
@@ -69,7 +84,7 @@ public final class SaveGitCommands {
         return 1;
     }
 
-    private static int restore(CommandContext<FabricClientCommandSource> context) {
+    private static int restore(CommandContext<FabricClientCommandSource> context, boolean safety) {
         MinecraftClient client = MinecraftClient.getInstance();
         Path worldDir = SaveGitSnapshotManager.getWorldDirectory(client);
         if (worldDir == null) {
@@ -91,9 +106,9 @@ public final class SaveGitCommands {
         }
 
         client.setScreen(null);
-        SaveGitSnapshotManager.requestRestore(client, commit, true);
-        context.getSource().sendFeedback(
-                Text.literal("正在恢复到快照 #" + commit.shortId() + "（恢复前会自动创建安全快照）"));
+        SaveGitSnapshotManager.requestRestore(client, commit, safety);
+        context.getSource().sendFeedback(Text.literal("正在恢复到快照 #" + commit.shortId()
+                + (safety ? "（恢复前会自动创建安全快照）" : "（不创建安全快照）")));
         return 1;
     }
 }

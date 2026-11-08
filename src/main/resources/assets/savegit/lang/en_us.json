@@ -1,6 +1,7 @@
 {
   "savegit.gui.title.configs": "SaveGit 设置",
-  "savegit.hotkeys.category": "SaveGit 热键",
+  "key.categories.savegit": "SaveGit",
+  "key.savegit.open_main_menu": "打开 SaveGit 主界面",
 
   "savegit.config.generic.name.enabled": "总开关",
   "savegit.config.generic.prettyName.enabled": "总开关",
@@ -25,9 +26,5 @@
   "savegit.config.generic.comment.snapshotLevelDat": "是否把世界元数据 level.dat 纳入快照。",
   "savegit.config.generic.name.snapshotPlayerdata": "快照玩家数据",
   "savegit.config.generic.prettyName.snapshotPlayerdata": "玩家数据",
-  "savegit.config.generic.comment.snapshotPlayerdata": "是否把 playerdata/*.dat 玩家数据纳入快照。",
-
-  "savegit.config.hotkeys.name.openMainMenu": "打开主界面",
-  "savegit.config.hotkeys.prettyName.openMainMenu": "打开主界面",
-  "savegit.config.hotkeys.comment.openMainMenu": "打开 SaveGit 主界面，默认 H。"
+  "savegit.config.generic.comment.snapshotPlayerdata": "是否把 playerdata/*.dat 玩家数据纳入快照。"
 }

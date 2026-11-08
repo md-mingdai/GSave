@@ -8,7 +8,6 @@ import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
-import fi.dy.masa.malilib.config.options.ConfigHotkey;
 import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
@@ -22,7 +21,6 @@ import java.nio.file.Path;
 public final class SaveGitConfigs implements IConfigHandler {
     private static final String CONFIG_FILE_NAME = SaveGitMod.MOD_ID + ".json";
     private static final String GENERIC_KEY = SaveGitMod.MOD_ID + ".config.generic";
-    private static final String HOTKEYS_KEY = SaveGitMod.MOD_ID + ".config.hotkeys";
 
     public static final class Generic {
         public static final ConfigBoolean ENABLED =
@@ -54,19 +52,7 @@ public final class SaveGitConfigs implements IConfigHandler {
         );
     }
 
-    public static final class Hotkeys {
-        public static final ConfigHotkey OPEN_MAIN_MENU =
-                new ConfigHotkey("openMainMenu", "H").apply(HOTKEYS_KEY);
-
-        public static final ImmutableList<ConfigHotkey> HOTKEY_LIST = ImmutableList.of(
-                OPEN_MAIN_MENU
-        );
-    }
-
-    public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.<IConfigBase>builder()
-            .addAll(Generic.OPTIONS)
-            .addAll(Hotkeys.HOTKEY_LIST)
-            .build();
+    public static final ImmutableList<IConfigBase> OPTIONS = Generic.OPTIONS;
 
     public static boolean isEnabled() {
         return Generic.ENABLED.getBooleanValue();
@@ -123,7 +109,6 @@ public final class SaveGitConfigs implements IConfigHandler {
             if (element != null && element.isJsonObject()) {
                 JsonObject root = element.getAsJsonObject();
                 ConfigUtils.readConfigBase(root, "Generic", Generic.OPTIONS);
-                ConfigUtils.readConfigBase(root, "Hotkeys", Hotkeys.HOTKEY_LIST);
             } else {
                 SaveGitMod.LOGGER.error("无法读取配置文件: {}", configFile.toAbsolutePath());
             }
@@ -143,7 +128,6 @@ public final class SaveGitConfigs implements IConfigHandler {
 
         JsonObject root = new JsonObject();
         ConfigUtils.writeConfigBase(root, "Generic", Generic.OPTIONS);
-        ConfigUtils.writeConfigBase(root, "Hotkeys", Hotkeys.HOTKEY_LIST);
         JsonUtils.writeJsonToFileAsPath(root, dir.resolve(CONFIG_FILE_NAME));
     }
 }

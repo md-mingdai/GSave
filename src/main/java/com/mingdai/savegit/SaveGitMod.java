@@ -1,5 +1,6 @@
 package com.mingdai.savegit;
 
+import com.mingdai.savegit.input.SaveGitKeyBindings;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import fi.dy.masa.malilib.event.InitializationHandler;
 import net.fabricmc.api.ClientModInitializer;
@@ -14,6 +15,7 @@ public class SaveGitMod implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        SaveGitKeyBindings.init();
         InitializationHandler.getInstance().registerInitializationHandler(new SaveGitInitHandler());
         SaveGitSnapshotManager.init();
     }

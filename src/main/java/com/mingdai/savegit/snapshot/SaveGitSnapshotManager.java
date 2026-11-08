@@ -3,6 +3,9 @@ package com.mingdai.savegit.snapshot;
 import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.GuiRestoreProgress;
+import com.mingdai.savegit.gui.GuiSaveGitMain;
+import com.mingdai.savegit.input.SaveGitKeyBindings;
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.util.InfoUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -62,6 +65,7 @@ public final class SaveGitSnapshotManager {
     }
 
     private static void onClientTick(MinecraftClient client) {
+        handleMainMenuKey(client);
         checkPendingRestore(client);
 
         IntegratedServer server = client.getServer();
@@ -99,6 +103,14 @@ public final class SaveGitSnapshotManager {
             if (ticksUntilAuto <= 0) {
                 ticksUntilAuto = SaveGitConfigs.autoSnapshotIntervalTicks();
                 takeSnapshotAsync(client, "自动快照");
+            }
+        }
+    }
+
+    private static void handleMainMenuKey(MinecraftClient client) {
+        while (SaveGitKeyBindings.OPEN_MAIN_MENU.wasPressed()) {
+            if (client.currentScreen == null) {
+                GuiBase.openGui(new GuiSaveGitMain());
             }
         }
     }

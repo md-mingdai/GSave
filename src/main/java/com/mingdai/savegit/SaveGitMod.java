@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 public class SaveGitMod implements ClientModInitializer {
     public static final String MOD_ID = "savegit";
     public static final String MOD_NAME = "SaveGit";
+    public static final String MOD_VERSION = "1.0.0";
     public static final String MC_VERSION = "1.21.8";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 

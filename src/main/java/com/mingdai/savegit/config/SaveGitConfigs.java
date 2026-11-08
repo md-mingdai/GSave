@@ -25,6 +25,10 @@ public final class SaveGitConfigs implements IConfigHandler {
     public static final class Generic {
         public static final ConfigBoolean ENABLED =
                 new ConfigBoolean("enabled", true).apply(GENERIC_KEY);
+        public static final ConfigBoolean AUTO_SNAPSHOT_ENABLED =
+                new ConfigBoolean("autoSnapshotEnabled", true).apply(GENERIC_KEY);
+        public static final ConfigBoolean BASELINE_SNAPSHOT_ENABLED =
+                new ConfigBoolean("baselineSnapshotEnabled", true).apply(GENERIC_KEY);
         public static final ConfigInteger AUTO_SNAPSHOT_INTERVAL_MINUTES =
                 new ConfigInteger("autoSnapshotIntervalMinutes", 15, 1, 1440, true).apply(GENERIC_KEY);
         public static final ConfigInteger MAX_SNAPSHOTS =
@@ -42,6 +46,8 @@ public final class SaveGitConfigs implements IConfigHandler {
 
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
+                AUTO_SNAPSHOT_ENABLED,
+                BASELINE_SNAPSHOT_ENABLED,
                 AUTO_SNAPSHOT_INTERVAL_MINUTES,
                 MAX_SNAPSHOTS,
                 SNAPSHOT_REGION,
@@ -56,6 +62,14 @@ public final class SaveGitConfigs implements IConfigHandler {
 
     public static boolean isEnabled() {
         return Generic.ENABLED.getBooleanValue();
+    }
+
+    public static boolean isAutoSnapshotEnabled() {
+        return Generic.AUTO_SNAPSHOT_ENABLED.getBooleanValue();
+    }
+
+    public static boolean isBaselineSnapshotEnabled() {
+        return Generic.BASELINE_SNAPSHOT_ENABLED.getBooleanValue();
     }
 
     public static boolean snapshotRegion() {

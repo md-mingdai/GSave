@@ -80,14 +80,25 @@ public final class SaveGitSnapshotManager {
 
         if (!inWorld) {
             inWorld = true;
-            ticksUntilBaseline = BASELINE_DELAY_TICKS;
-            ticksUntilAuto = SaveGitConfigs.autoSnapshotIntervalTicks();
+            ticksUntilBaseline = SaveGitConfigs.isBaselineSnapshotEnabled() ? BASELINE_DELAY_TICKS : -1;
+            ticksUntilAuto = SaveGitConfigs.isAutoSnapshotEnabled()
+                    ? SaveGitConfigs.autoSnapshotIntervalTicks() : -1;
         }
 
         if (!SaveGitConfigs.isEnabled()) {
             ticksUntilBaseline = -1;
-            ticksUntilAuto = SaveGitConfigs.autoSnapshotIntervalTicks();
+            ticksUntilAuto = -1;
             return;
+        }
+
+        if (!SaveGitConfigs.isBaselineSnapshotEnabled()) {
+            ticksUntilBaseline = -1;
+        }
+
+        if (!SaveGitConfigs.isAutoSnapshotEnabled()) {
+            ticksUntilAuto = -1;
+        } else if (ticksUntilAuto < 0) {
+            ticksUntilAuto = SaveGitConfigs.autoSnapshotIntervalTicks();
         }
 
         if (ticksUntilBaseline >= 0) {

@@ -7,6 +7,7 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
 import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,17 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
             wrappers.add(new ConfigOptionWrapper(config));
         }
         return wrappers;
+    }
+
+    @Override
+    protected void drawScreenBackground(DrawContext drawContext, int mouseX, int mouseY) {
+        // 未加载世界时（标题界面 / Mod Menu）使用原版滚动全景背景
+        if (this.mc.world == null) {
+            this.renderPanoramaBackground(drawContext, 0.0F);
+            drawContext.fill(0, 0, this.width, this.height, 0x60000000);
+        } else {
+            super.drawScreenBackground(drawContext, mouseX, mouseY);
+        }
     }
 
     @Override

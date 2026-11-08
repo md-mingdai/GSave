@@ -6,6 +6,7 @@ import com.mingdai.savegit.snapshot.SnapshotRepository;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 
@@ -56,6 +57,16 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         int backWidth = 100;
         this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20, "返回主界面"),
                 (button, mouseButton) -> GuiBase.openGui(new GuiSaveGitMain()));
+    }
+
+    @Override
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        // 按 ESC 返回 SaveGit 主界面
+        if (keyCode == KeyCodes.KEY_ESCAPE) {
+            GuiBase.openGui(new GuiSaveGitMain());
+            return true;
+        }
+        return super.onKeyTyped(keyCode, scanCode, modifiers);
     }
 
     @Override

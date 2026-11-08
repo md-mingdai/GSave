@@ -4,6 +4,7 @@ import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
+import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.gui.DrawContext;
 
 import java.util.ArrayList;
@@ -44,13 +45,25 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
                     }
                 });
         this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20, "取消"),
-                (button, mouseButton) -> {
-                    if (this.parent != null) {
-                        GuiBase.openGui(this.parent);
-                    } else {
-                        this.close();
-                    }
-                });
+                (button, mouseButton) -> this.cancel());
+    }
+
+    @Override
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        // 按 ESC 视为取消，返回快照列表
+        if (keyCode == KeyCodes.KEY_ESCAPE) {
+            this.cancel();
+            return true;
+        }
+        return super.onKeyTyped(keyCode, scanCode, modifiers);
+    }
+
+    private void cancel() {
+        if (this.parent != null) {
+            GuiBase.openGui(this.parent);
+        } else {
+            GuiBase.openGui(new GuiSnapshotList());
+        }
     }
 
     @Override

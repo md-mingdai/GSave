@@ -4,6 +4,7 @@ import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
+import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.gui.DrawContext;
 
 import java.util.List;
@@ -34,6 +35,16 @@ public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
                 });
         this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20, "取消"),
                 (button, mouseButton) -> GuiBase.openGui(new GuiConfirmRestore(this.commit, this.parent)));
+    }
+
+    @Override
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        // 按 ESC 返回上一级确认界面
+        if (keyCode == KeyCodes.KEY_ESCAPE) {
+            GuiBase.openGui(new GuiConfirmRestore(this.commit, this.parent));
+            return true;
+        }
+        return super.onKeyTyped(keyCode, scanCode, modifiers);
     }
 
     @Override

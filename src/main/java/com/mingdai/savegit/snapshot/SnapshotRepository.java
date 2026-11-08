@@ -199,7 +199,7 @@ public final class SnapshotRepository {
      * 删除一个提交，并把它的直接子提交 rebase 到它的父提交上。
      * 返回是否删除成功。blob 与截图文件保留（截图按提交 id 命名，不随删除清理）。
      */
-    public boolean deleteCommit(String commitId) {
+    public boolean deleteCommit(String commitId) throws IOException {
         Commit target = getCommit(commitId);
         if (target == null) {
             return false;

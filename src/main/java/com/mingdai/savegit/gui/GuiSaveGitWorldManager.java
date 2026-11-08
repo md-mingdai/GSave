@@ -376,12 +376,17 @@ public class GuiSaveGitWorldManager extends GuiBase {
         private static void performDelete(MinecraftClient mc, Path worldDir, String commitId) {
             mc.setScreen(null);
             SnapshotRepository repo = new SnapshotRepository(worldDir);
-            if (repo.deleteCommit(commitId)) {
+            try {
+                if (repo.deleteCommit(commitId)) {
+                    InfoUtils.sendVanillaMessage(
+                            Text.literal("快照已删除: " + commitId.substring(0, ));
+                } else {
+                    InfoUtils.sendVanillaMessage(
+                            Text.literal("删除失败：找不到该快照"));
+                }
+            } catch (IOException e) {
                 InfoUtils.sendVanillaMessage(
-                        Text.literal("快照已删除: " + commitId.substring(0, 8)));
-            } else {
-                InfoUtils.sendVanillaMessage(
-                        Text.literal("删除失败：找不到该快照"));
+                        Text.literal("删除失败：" + e.getMessage()));
             }
         }
     }

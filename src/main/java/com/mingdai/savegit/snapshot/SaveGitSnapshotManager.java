@@ -3,8 +3,6 @@ package com.mingdai.savegit.snapshot;
 import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.GuiRestoreProgress;
-import com.mingdai.savegit.gui.GuiSnapshotList;
-import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.util.InfoUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -49,10 +47,6 @@ public final class SaveGitSnapshotManager {
             return;
         }
         takeSnapshotAsync(client, "手动快照");
-    }
-
-    public static void openSnapshotList() {
-        GuiBase.openGui(new GuiSnapshotList());
     }
 
     public static Path getWorldDirectory(MinecraftClient client) {

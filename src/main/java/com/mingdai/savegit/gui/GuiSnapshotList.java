@@ -38,21 +38,12 @@ public class GuiSnapshotList extends GuiBase {
         this.reload();
 
         int y = this.height - 28;
-        int x = 20;
-        this.addButton(new ButtonGeneric(x, y, 60, 20, "刷新"), (button, mouseButton) -> this.reload());
-        x += 64;
-        this.addButton(new ButtonGeneric(x, y, 72, 20, "立即快照"),
-                (button, mouseButton) -> SaveGitSnapshotManager.manualSnapshot());
-        x += 76;
-        this.addButton(new ButtonGeneric(x, y, 60, 20, "设置"), (button, mouseButton) -> {
-            GuiSaveGitConfigs gui = new GuiSaveGitConfigs();
-            gui.setParent(this);
-            GuiBase.openGui(gui);
-        });
+        this.addButton(new ButtonGeneric(20, y, 60, 20, "刷新"),
+                (button, mouseButton) -> this.reload());
 
-        int backWidth = 60;
-        this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20, "返回"),
-                (button, mouseButton) -> this.close());
+        int backWidth = 100;
+        this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20, "返回主界面"),
+                (button, mouseButton) -> GuiBase.openGui(new GuiSaveGitMain()));
     }
 
     public static String formatTime(long timestamp) {

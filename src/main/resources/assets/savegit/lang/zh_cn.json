@@ -27,13 +27,7 @@
   "savegit.config.generic.prettyName.snapshotPlayerdata": "玩家数据",
   "savegit.config.generic.comment.snapshotPlayerdata": "是否把 playerdata/*.dat 玩家数据纳入快照。",
 
-  "savegit.config.hotkeys.name.openSettings": "打开设置",
-  "savegit.config.hotkeys.prettyName.openSettings": "打开设置",
-  "savegit.config.hotkeys.comment.openSettings": "在游戏中打开 SaveGit 设置界面，默认未绑定。",
-  "savegit.config.hotkeys.name.manualSnapshot": "立即快照",
-  "savegit.config.hotkeys.prettyName.manualSnapshot": "立即快照",
-  "savegit.config.hotkeys.comment.manualSnapshot": "立即创建一个手动快照，默认 G。",
-  "savegit.config.hotkeys.name.openList": "打开快照列表",
-  "savegit.config.hotkeys.prettyName.openList": "打开快照列表",
-  "savegit.config.hotkeys.comment.openList": "打开快照列表界面，默认 H。"
+  "savegit.config.hotkeys.name.openMainMenu": "打开主界面",
+  "savegit.config.hotkeys.prettyName.openMainMenu": "打开主界面",
+  "savegit.config.hotkeys.comment.openMainMenu": "打开 SaveGit 主界面，默认 H。"
 }

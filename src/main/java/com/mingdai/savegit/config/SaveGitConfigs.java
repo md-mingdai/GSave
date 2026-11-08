@@ -55,17 +55,11 @@ public final class SaveGitConfigs implements IConfigHandler {
     }
 
     public static final class Hotkeys {
-        public static final ConfigHotkey OPEN_SETTINGS =
-                new ConfigHotkey("openSettings", "").apply(HOTKEYS_KEY);
-        public static final ConfigHotkey MANUAL_SNAPSHOT =
-                new ConfigHotkey("manualSnapshot", "G").apply(HOTKEYS_KEY);
-        public static final ConfigHotkey OPEN_LIST =
-                new ConfigHotkey("openList", "H").apply(HOTKEYS_KEY);
+        public static final ConfigHotkey OPEN_MAIN_MENU =
+                new ConfigHotkey("openMainMenu", "H").apply(HOTKEYS_KEY);
 
         public static final ImmutableList<ConfigHotkey> HOTKEY_LIST = ImmutableList.of(
-                OPEN_SETTINGS,
-                MANUAL_SNAPSHOT,
-                OPEN_LIST
+                OPEN_MAIN_MENU
         );
     }
 
@@ -99,7 +93,11 @@ public final class SaveGitConfigs implements IConfigHandler {
     }
 
     public static int autoSnapshotIntervalTicks() {
-        return Generic.AUTO_SNAPSHOT_INTERVAL_MINUTES.getIntegerValue() * 20 * 60;
+        return autoSnapshotIntervalMinutes() * 20 * 60;
+    }
+
+    public static int autoSnapshotIntervalMinutes() {
+        return Generic.AUTO_SNAPSHOT_INTERVAL_MINUTES.getIntegerValue();
     }
 
     public static int maxSnapshots() {

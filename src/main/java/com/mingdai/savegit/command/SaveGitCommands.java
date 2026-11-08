@@ -108,7 +108,9 @@ public final class SaveGitCommands {
     }
 
     private static int view(CommandContext<FabricClientCommandSource> context) {
-        GuiBase.openGui(new GuiSnapshotList());
+        MinecraftClient client = MinecraftClient.getInstance();
+        // 命令执行时聊天栏随后会 setScreen(null)，延后一帧再打开界面
+        client.execute(() -> GuiBase.openGui(new GuiSnapshotList()));
         return 1;
     }
 

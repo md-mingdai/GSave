@@ -129,7 +129,7 @@ public class GuiSaveGitWorldManager extends GuiBase {
                     listLeft + listWidth, rowY + ROW_HEIGHT, 0x50FFFFFF);
 
             String parent = commit.parent == null ? "无（首个快照）" : "#" + shortId(commit.parent);
-            String line1 = "#" + commit.shortId() + "  " + formatTime(commit.timestamp)
+            String line1 = "#" + commit.shortId() + "  " + GuiSnapshotList.formatTime(commit.timestamp)
                     + "  " + safe(commit.message);
             line1 = this.textRenderer.trimToWidth(line1,
                     listWidth - RESTORE_BUTTON_WIDTH - DELETE_BUTTON_WIDTH - BUTTON_GAP - 40);

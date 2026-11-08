@@ -46,7 +46,7 @@ public class SaveGitInitHandler implements IInitializationHandler {
                             if (summary != null && !summary.isLocked()) {
                                 var worldDir = client.runDirectory.toPath()
                                         .resolve("saves").resolve(summary.getName());
-                                var worldName = summary.getLevelName();
+                                var worldName = summary.getDisplayName();
                                 com.mingdai.savegit.gui.GuiSaveGitWorldManager.open(
                                         client, worldDir, worldName);
                             }

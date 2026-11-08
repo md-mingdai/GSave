@@ -166,7 +166,7 @@ public final class SaveGitSnapshotManager {
         }
     }
 
-    public static void requestRestore(MinecraftClient client, Commit commit) {
+    public static void requestRestore(MinecraftClient client, Commit commit, boolean createSafetySnapshot) {
         IntegratedServer server = client.getServer();
         if (server == null || client.world == null) {
             InfoUtils.sendVanillaMessage(Text.literal("当前不在单人世界中，无法恢复"));
@@ -183,7 +183,9 @@ public final class SaveGitSnapshotManager {
         // 安全快照不触发旧快照清理，避免清理掉用户正要恢复的目标快照
         WorldSnapshotter.Settings safetySettings = snapshotSettings(worldName, Integer.MAX_VALUE);
 
-        SnapshotStatus.begin("恢复前自动快照");
+        if (createSafetySnapshot) {
+            SnapshotStatus.begin("恢复前自动快照");
+        }
         try {
             server.execute(() -> {
                 try {
@@ -191,15 +193,19 @@ public final class SaveGitSnapshotManager {
                     notifyAsync(client, "恢复失败：找不到所选快照");
                     return;
                 }
-                server.save(true, true, true);
-                new WorldSnapshotter(new SnapshotRepository(worldDir))
-                        .takeSnapshot("恢复前自动快照", safetySettings);
+                if (createSafetySnapshot) {
+                    server.save(true, true, true);
+                    new WorldSnapshotter(new SnapshotRepository(worldDir))
+                            .takeSnapshot("恢复前自动快照", safetySettings);
+                }
             } catch (Throwable t) {
-                SaveGitMod.LOGGER.error("创建恢复前安全快照失败", t);
-                notifyAsync(client, "恢复已取消：安全快照创建失败（" + t.getMessage() + "）");
+                SaveGitMod.LOGGER.error("恢复前准备失败", t);
+                notifyAsync(client, "恢复已取消：" + t.getMessage());
                 return;
             } finally {
-                SnapshotStatus.end();
+                if (createSafetySnapshot) {
+                    SnapshotStatus.end();
+                }
             }
 
             client.execute(() -> {
@@ -221,7 +227,9 @@ public final class SaveGitSnapshotManager {
                 });
             });
         } catch (Throwable t) {
-            SnapshotStatus.end();
+            if (createSafetySnapshot) {
+                SnapshotStatus.end();
+            }
             SaveGitMod.LOGGER.error("调度恢复流程失败", t);
             notifyAsync(client, "恢复已取消:" + t.getMessage());
         }

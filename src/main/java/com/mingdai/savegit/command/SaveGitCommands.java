@@ -13,7 +13,6 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.command.CommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
@@ -44,14 +43,28 @@ public final class SaveGitCommands {
                                             if (worldDir == null) {
                                                 return builder.buildFuture();
                                             }
-                                            return CommandSource.suggestMatching(
-                                                    new SnapshotRepository(worldDir).listCommits()
-                                                            .stream().map(Commit::shortId).toList(),
-                                                    builder);
+                                            String remaining = builder.getRemainingLowerCase();
+                                            for (Commit commit : new SnapshotRepository(worldDir)
+                                                    .listCommits()) {
+                                                if (commit.shortId().startsWith(remaining)) {
+                                                    builder.suggest(commit.shortId(),
+                                                            Text.literal(GuiSnapshotList.formatTime(
+                                                                            commit.timestamp))
+                                                                    .append(Text.literal("  "
+                                                                            + (commit.message == null
+                                                                            ? "" : commit.message)))
+                                                                    .formatted(Formatting.GRAY));
+                                                }
+                                            }
+                                            return builder.buildFuture();
                                         })
                                         .executes(context -> restore(context, true))
                                         .then(ClientCommandManager.argument(
                                                         "safety", BoolArgumentType.bool())
+                                                .suggests((context, builder) ->
+                                                        builder.suggest("true")
+                                                                .suggest("false")
+                                                                .buildFuture())
                                                 .executes(context -> restore(context,
                                                         BoolArgumentType.getBool(context, "safety"))))))));
     }

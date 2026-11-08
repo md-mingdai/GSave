@@ -17,7 +17,7 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
         List<ConfigOptionWrapper> wrappers =
                 new ArrayList<>(ConfigOptionWrapper.createFor(SaveGitConfigs.OPTIONS));
         wrappers.add(0, new ConfigOptionWrapper(
-                "按键绑定: 选项 → 控制 → 按键绑定 → SaveGit（打开主界面）"));
+                "按键绑定请在 选项 - 控制 - 按键绑定 中修改 SaveGit 主界面热键"));
         return wrappers;
     }
 }

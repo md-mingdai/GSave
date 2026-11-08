@@ -101,7 +101,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
         this.drawStringWithShadow(drawContext, "存档快照与回滚", LEFT, 26, 0xFF808080);
 
         boolean snapshotActive = SnapshotStatus.isActive();
-        int lines = 4 + (snapshotActive ? 1 : 0) + (this.statusMessage.isEmpty() ? 0 : 1);
+        int lines = 5 + (snapshotActive ? 1 : 0) + (this.statusMessage.isEmpty() ? 0 : 1);
         int panelHeight = 10 + lines * 12 + 6;
         drawContext.fill(LEFT, PANEL_TOP, this.width - LEFT, PANEL_TOP + panelHeight, 0x70000000);
         drawContext.fill(LEFT, PANEL_TOP, this.width - LEFT, PANEL_TOP + 1, 0x40FFFFFF);
@@ -130,7 +130,12 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
         SnapshotPriority priority = SaveGitConfigs.snapshotPriority();
         String priorityText = priority == SnapshotPriority.GAMEPLAY ? "游戏体验优先" : "保存速度优先";
         this.drawLabelValue(drawContext, x, y, "基线快照：",
-                onOff(SaveGitConfigs.isBaselineSnapshotEnabled()) + "    执行优先级：" + priorityText, VALUE_COLOR);
+                onOff(SaveGitConfigs.isBaselineSnapshotEnabled())
+                        + "    断开快照：" + onOff(SaveGitConfigs.isDisconnectSnapshotEnabled()),
+                VALUE_COLOR);
+        y += 12;
+
+        this.drawLabelValue(drawContext, x, y, "执行优先级：", priorityText, VALUE_COLOR);
         y += 12;
 
         if (snapshotActive) {

@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class SaveGitSnapshotManager {
     private static final int BASELINE_DELAY_TICKS = 100;
     private static final int CLEAN_SHOT_DELAY_TICKS = 2;
-    private static final long ROLLING_SHOT_INTERVAL_MS = 60_000L;
     private static final AtomicLong SHOT_COUNTER = new AtomicLong();
 
     private record PendingShot(Path temp, Runnable afterCapture) {
@@ -39,7 +38,6 @@ public final class SaveGitSnapshotManager {
     private static final java.util.ArrayDeque<PendingShot> PENDING_SHOTS = new java.util.ArrayDeque<>();
     private static int pendingShotDelay;
     private static Screen pendingShotRestoreScreen;
-    private static long lastRollingShotAt;
 
     private static boolean inWorld;
     private static int ticksUntilBaseline = -1;
@@ -97,7 +95,6 @@ public final class SaveGitSnapshotManager {
             inWorld = false;
             ticksUntilBaseline = -1;
             ticksUntilAuto = -1;
-            lastRollingShotAt = 0L;
             SnapshotStatus.reset();
             return;
         }
@@ -114,8 +111,6 @@ public final class SaveGitSnapshotManager {
             ticksUntilAuto = -1;
             return;
         }
-
-        maybeCaptureRollingShot(client);
 
         if (!SaveGitConfigs.isBaselineSnapshotEnabled()) {
             ticksUntilBaseline = -1;
@@ -425,7 +420,7 @@ public final class SaveGitSnapshotManager {
         if (pendingRestore) {
             return;
         }
-        if (!SaveGitConfigs.isEnabled()) {
+        if (!SaveGitConfigs.isEnabled() || !SaveGitConfigs.isDisconnectSnapshotEnabled()) {
             return;
         }
 
@@ -433,9 +428,9 @@ public final class SaveGitSnapshotManager {
         try {
             Path worldDir = server.getSavePath(WorldSavePath.ROOT);
             server.save(true, true, true);
-            Commit commit = new WorldSnapshotter(new SnapshotRepository(worldDir))
+            // 退出快照不复用滚动截图：此时游戏已准备关闭，不提供截图
+            new WorldSnapshotter(new SnapshotRepository(worldDir))
                     .takeSnapshot("世界断开", snapshotSettings(worldName(server, worldDir), SaveGitConfigs.maxSnapshots()));
-            storeRollingShot(worldDir, commit.id);
         } catch (Throwable t) {
             SaveGitMod.LOGGER.error("创建退出快照失败", t);
         } finally {
@@ -505,61 +500,6 @@ public final class SaveGitSnapshotManager {
         } catch (Throwable t) {
             SaveGitMod.LOGGER.warn("截取快照截图失败", t);
             afterCapture.run();
-        }
-    }
-
-    /**
-     * 每 60 秒保存一张干净的世界截图，供“世界断开”快照使用。
-     */
-    private static void maybeCaptureRollingShot(MinecraftClient client) {
-        if (client.currentScreen != null || pendingShotRestoreScreen != null || !PENDING_SHOTS.isEmpty()) {
-            return;
-        }
-        Path worldDir = getWorldDirectory(client);
-        if (worldDir == null) {
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (lastRollingShotAt != 0L && now - lastRollingShotAt < ROLLING_SHOT_INTERVAL_MS) {
-            return;
-        }
-        lastRollingShotAt = now;
-
-        Path target = rollingShotPath(worldDir);
-        try {
-            ScreenshotRecorder.takeScreenshot(client.getFramebuffer(), 1, image -> {
-                try {
-                    Files.createDirectories(target.getParent());
-                    image.writeTo(target);
-                } catch (Throwable t) {
-                    SaveGitMod.LOGGER.warn("写入世界滚动截图失败", t);
-                } finally {
-                    try {
-                        image.close();
-                    } catch (Throwable ignored) {
-                    }
-                }
-            });
-        } catch (Throwable t) {
-            SaveGitMod.LOGGER.warn("截取世界滚动截图失败", t);
-        }
-    }
-
-    private static Path rollingShotPath(Path worldDir) {
-        return worldDir.resolve("savegit").resolve("shots").resolve("last-world.png");
-    }
-
-    private static void storeRollingShot(Path worldDir, String commitId) {
-        Path rolling = rollingShotPath(worldDir);
-        if (!Files.isRegularFile(rolling)) {
-            return;
-        }
-        try {
-            Path target = worldDir.resolve("savegit").resolve("shots").resolve(commitId + ".png");
-            Files.createDirectories(target.getParent());
-            Files.copy(rolling, target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            SaveGitMod.LOGGER.warn("保存退出快照截图失败", e);
         }
     }
 

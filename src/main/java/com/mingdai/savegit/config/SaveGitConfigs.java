@@ -30,6 +30,8 @@ public final class SaveGitConfigs implements IConfigHandler {
                 new ConfigBoolean("scheduledSnapshotEnabled", false).apply(GENERIC_KEY);
         public static final ConfigBoolean BASELINE_SNAPSHOT_ENABLED =
                 new ConfigBoolean("baselineSnapshotEnabled", true).apply(GENERIC_KEY);
+        public static final ConfigBoolean DISCONNECT_SNAPSHOT_ENABLED =
+                new ConfigBoolean("disconnectSnapshotEnabled", true).apply(GENERIC_KEY);
         public static final ConfigInteger AUTO_SNAPSHOT_INTERVAL_MINUTES =
                 new ConfigInteger("autoSnapshotIntervalMinutes", 15, 1, 1440, true).apply(GENERIC_KEY);
         public static final ConfigInteger MAX_SNAPSHOTS =
@@ -53,6 +55,7 @@ public final class SaveGitConfigs implements IConfigHandler {
                 ENABLED,
                 SCHEDULED_SNAPSHOT_ENABLED,
                 BASELINE_SNAPSHOT_ENABLED,
+                DISCONNECT_SNAPSHOT_ENABLED,
                 AUTO_SNAPSHOT_INTERVAL_MINUTES,
                 MAX_SNAPSHOTS,
                 UNLIMITED_SNAPSHOTS,
@@ -77,6 +80,10 @@ public final class SaveGitConfigs implements IConfigHandler {
 
     public static boolean isBaselineSnapshotEnabled() {
         return Generic.BASELINE_SNAPSHOT_ENABLED.getBooleanValue();
+    }
+
+    public static boolean isDisconnectSnapshotEnabled() {
+        return Generic.DISCONNECT_SNAPSHOT_ENABLED.getBooleanValue();
     }
 
     public static boolean snapshotRegion() {

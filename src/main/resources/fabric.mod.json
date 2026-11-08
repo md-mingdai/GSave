@@ -8,6 +8,11 @@
     "mingdai"
   ],
   "license": "GPL-3.0",
+  "contact": {
+    "homepage": "https://github.com/md-mingdai/SaveGit",
+    "sources": "https://github.com/md-mingdai/SaveGit",
+    "issues": "https://github.com/md-mingdai/SaveGit/issues"
+  },
   "environment": "client",
   "entrypoints": {
     "client": [

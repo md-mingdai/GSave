@@ -10,19 +10,25 @@ import fi.dy.masa.malilib.util.InfoUtils;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.integrated.IntegratedServer;
 import net.minecraft.text.Text;
 import net.minecraft.util.WorldSavePath;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 客户端侧快照调度：热键、自动定时、进世界基线、退出快照与恢复流程。
+ * 客户端侧快照调度：热键、定时、进世界基线、退出快照与恢复流程。
  */
 public final class SaveGitSnapshotManager {
     private static final int BASELINE_DELAY_TICKS = 100;
+    private static final AtomicLong SHOT_COUNTER = new AtomicLong();
 
     private static boolean inWorld;
     private static int ticksUntilBaseline = -1;
@@ -62,6 +68,10 @@ public final class SaveGitSnapshotManager {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public static String getWorldName(MinecraftClient client) {
+        return worldName(client.getServer(), getWorldDirectory(client));
     }
 
     private static void onClientTick(MinecraftClient client) {
@@ -140,30 +150,82 @@ public final class SaveGitSnapshotManager {
             return;
         }
 
-        String worldName = worldName(worldDir);
+        String worldName = worldName(server, worldDir);
         WorldSnapshotter.Settings settings = snapshotSettings(worldName, SaveGitConfigs.maxSnapshots());
+        Path shotTemp = newTempShotPath(worldDir);
 
-        // 在服务端线程先 save() 刷盘，再执行快照，保证数据一致
+        captureScreenshot(client, shotTemp,
+                () -> startWorldSnapshot(client, server, worldDir, message, settings, shotTemp));
+    }
+
+    private static void startWorldSnapshot(MinecraftClient client, IntegratedServer server, Path worldDir,
+                                           String message, WorldSnapshotter.Settings settings, Path shotTemp) {
         SnapshotStatus.begin(message);
-        try {
-            server.execute(() -> {
-                try {
-                    server.save(true, true, true);
-                    SnapshotRepository repo = new SnapshotRepository(worldDir);
-                Commit commit = new WorldSnapshotter(repo).takeSnapshot(message, settings);
-                notifyAsync(client, "快照已创建: " + commit.shortId() + "（" + message + "）");
-                } catch (Throwable t) {
-                    SaveGitMod.LOGGER.error("创建快照失败", t);
-                    notifyAsync(client, "快照失败: " + t.getMessage());
-                } finally {
-                    SnapshotStatus.end();
-                }
-            });
-        } catch (Throwable t) {
-            SnapshotStatus.end();
-            SaveGitMod.LOGGER.error("调度快照任务失败", t);
-            notifyAsync(client, "快照失败: " + t.getMessage());
+
+        if (SaveGitConfigs.isGameplayPriority()) {
+            // 游戏体验优先：服务端线程只负责 save()，耗时的哈希/写盘放到后台线程
+            try {
+                server.execute(() -> {
+                    try {
+                        server.save(true, true, true);
+                    } catch (Throwable t) {
+                        SnapshotStatus.end();
+                        deleteQuietly(shotTemp);
+                        notifyAsync(client, "快照失败: " + t.getMessage());
+                        return;
+                    }
+                    startBackgroundSnapshot(client, worldDir, message, settings, shotTemp);
+                });
+            } catch (Throwable t) {
+                SnapshotStatus.end();
+                deleteQuietly(shotTemp);
+                notifyAsync(client, "快照失败: " + t.getMessage());
+            }
+        } else {
+            try {
+                server.execute(() -> {
+                    try {
+                        server.save(true, true, true);
+                        runSnapshot(client, worldDir, message, settings, shotTemp);
+                    } catch (Throwable t) {
+                        SaveGitMod.LOGGER.error("创建快照失败", t);
+                        deleteQuietly(shotTemp);
+                        notifyAsync(client, "快照失败: " + t.getMessage());
+                    } finally {
+                        SnapshotStatus.end();
+                    }
+                });
+            } catch (Throwable t) {
+                SnapshotStatus.end();
+                deleteQuietly(shotTemp);
+                notifyAsync(client, "快照失败: " + t.getMessage());
+            }
         }
+    }
+
+    private static void startBackgroundSnapshot(MinecraftClient client, Path worldDir, String message,
+                                                WorldSnapshotter.Settings settings, Path shotTemp) {
+        Thread thread = new Thread(() -> {
+            try {
+                runSnapshot(client, worldDir, message, settings, shotTemp);
+            } catch (Throwable t) {
+                SaveGitMod.LOGGER.error("创建快照失败", t);
+                deleteQuietly(shotTemp);
+                notifyAsync(client, "快照失败: " + t.getMessage());
+            } finally {
+                SnapshotStatus.end();
+            }
+        }, "SaveGit-Snapshot");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private static void runSnapshot(MinecraftClient client, Path worldDir, String message,
+                                    WorldSnapshotter.Settings settings, Path shotTemp) throws IOException {
+        SnapshotRepository repo = new SnapshotRepository(worldDir);
+        Commit commit = new WorldSnapshotter(repo).takeSnapshot(message, settings);
+        storeScreenshot(worldDir, shotTemp, commit.id);
+        notifyAsync(client, "快照已创建: " + commit.shortId() + "（" + message + "）");
     }
 
     public static void requestRestore(MinecraftClient client, Commit commit, boolean createSafetySnapshot) {
@@ -179,60 +241,115 @@ public final class SaveGitSnapshotManager {
             return;
         }
 
-        String worldName = worldName(worldDir);
-        // 安全快照不触发旧快照清理，避免清理掉用户正要恢复的目标快照
-        WorldSnapshotter.Settings safetySettings = snapshotSettings(worldName, Integer.MAX_VALUE);
-
-        if (createSafetySnapshot) {
-            SnapshotStatus.begin("恢复前自动快照");
-        }
-        try {
+        if (!createSafetySnapshot) {
             server.execute(() -> {
-                try {
-                    if (new SnapshotRepository(worldDir).getCommit(commit.id) == null) {
+                if (new SnapshotRepository(worldDir).getCommit(commit.id) == null) {
                     notifyAsync(client, "恢复失败：找不到所选快照");
                     return;
                 }
-                if (createSafetySnapshot) {
-                    server.save(true, true, true);
-                    new WorldSnapshotter(new SnapshotRepository(worldDir))
-                            .takeSnapshot("恢复前自动快照", safetySettings);
-                }
-            } catch (Throwable t) {
-                SaveGitMod.LOGGER.error("恢复前准备失败", t);
-                notifyAsync(client, "恢复已取消：" + t.getMessage());
-                return;
-            } finally {
-                if (createSafetySnapshot) {
-                    SnapshotStatus.end();
-                }
-            }
-
-            client.execute(() -> {
-                pendingRestore = true;
-                restoreStarted = false;
-                pendingRestoreCommitId = commit.id;
-                pendingRestoreWorldDir = worldDir;
-                pendingTeardownServer = server;
-                teardownTicks = 0;
-
-                // 原版 disconnectWithSavingScreen() 会一直等待 isShutdown()。
-                // 某些情况下服务端收不到 singleplayer owner 的登出事件，
-                // 会导致“保存世界中”永久卡住，所以这里主动停止集成服务端。
-                if (!server.isStopping()) {
-                    SaveGitMod.LOGGER.info("停止集成服务端以开始恢复快照");
-                    server.stop(false);
-                }
-                client.disconnectWithSavingScreen();
-                });
+                client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir));
             });
-        } catch (Throwable t) {
-            if (createSafetySnapshot) {
-                SnapshotStatus.end();
-            }
-            SaveGitMod.LOGGER.error("调度恢复流程失败", t);
-            notifyAsync(client, "恢复已取消:" + t.getMessage());
+            return;
         }
+
+        String worldName = worldName(server, worldDir);
+        // 安全快照不触发旧快照清理，避免清理掉用户正要恢复的目标快照
+        WorldSnapshotter.Settings safetySettings = snapshotSettings(worldName, Integer.MAX_VALUE);
+        Path shotTemp = newTempShotPath(worldDir);
+
+        captureScreenshot(client, shotTemp, () ->
+                startSafetySnapshotThenRestore(client, server, worldDir, commit, safetySettings, shotTemp));
+    }
+
+    private static void startSafetySnapshotThenRestore(MinecraftClient client, IntegratedServer server, Path worldDir,
+                                                       Commit commit, WorldSnapshotter.Settings safetySettings,
+                                                       Path shotTemp) {
+        if (SaveGitConfigs.isGameplayPriority()) {
+            SnapshotStatus.begin("恢复前自动快照");
+            try {
+                server.execute(() -> {
+                    if (new SnapshotRepository(worldDir).getCommit(commit.id) == null) {
+                        SnapshotStatus.end();
+                        deleteQuietly(shotTemp);
+                        notifyAsync(client, "恢复失败：找不到所选快照");
+                        return;
+                    }
+                    try {
+                        server.save(true, true, true);
+                    } catch (Throwable t) {
+                        SnapshotStatus.end();
+                        deleteQuietly(shotTemp);
+                        notifyAsync(client, "恢复已取消：" + t.getMessage());
+                        return;
+                    }
+
+                    Thread thread = new Thread(() -> {
+                        try {
+                            runSnapshot(client, worldDir, "恢复前自动快照", safetySettings, shotTemp);
+                        } catch (Throwable t) {
+                            SaveGitMod.LOGGER.error("恢复前准备失败", t);
+                            deleteQuietly(shotTemp);
+                            notifyAsync(client, "恢复已取消：" + t.getMessage());
+                            SnapshotStatus.end();
+                            return;
+                        }
+                        SnapshotStatus.end();
+                        client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir));
+                    }, "SaveGit-SafetySnapshot");
+                    thread.setDaemon(true);
+                    thread.start();
+                });
+            } catch (Throwable t) {
+                SnapshotStatus.end();
+                deleteQuietly(shotTemp);
+                notifyAsync(client, "恢复已取消：" + t.getMessage());
+            }
+        } else {
+            SnapshotStatus.begin("恢复前自动快照");
+            try {
+                server.execute(() -> {
+                    try {
+                        if (new SnapshotRepository(worldDir).getCommit(commit.id) == null) {
+                            notifyAsync(client, "恢复失败：找不到所选快照");
+                            return;
+                        }
+                        server.save(true, true, true);
+                        runSnapshot(client, worldDir, "恢复前自动快照", safetySettings, shotTemp);
+                    } catch (Throwable t) {
+                        SaveGitMod.LOGGER.error("恢复前准备失败", t);
+                        deleteQuietly(shotTemp);
+                        notifyAsync(client, "恢复已取消：" + t.getMessage());
+                        return;
+                    } finally {
+                        SnapshotStatus.end();
+                    }
+                    client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir));
+                });
+            } catch (Throwable t) {
+                SnapshotStatus.end();
+                deleteQuietly(shotTemp);
+                notifyAsync(client, "恢复已取消：" + t.getMessage());
+            }
+        }
+    }
+
+    private static void beginRestoreTeardown(MinecraftClient client, IntegratedServer server,
+                                             String commitId, Path worldDir) {
+        pendingRestore = true;
+        restoreStarted = false;
+        pendingRestoreCommitId = commitId;
+        pendingRestoreWorldDir = worldDir;
+        pendingTeardownServer = server;
+        teardownTicks = 0;
+
+        // 原版 disconnectWithSavingScreen() 会一直等待 isStopping()。
+        // 某些情况下服务端收不到 singleplayer owner 的登出事件，
+        // 会导致“保存世界中”永久卡住，所以这里主动停止集成服务端。
+        if (!server.isStopping()) {
+            SaveGitMod.LOGGER.info("停止集成服务端以开始恢复快照");
+            server.stop(false);
+        }
+        client.disconnectWithSavingScreen();
     }
 
     private static void checkPendingRestore(MinecraftClient client) {
@@ -302,11 +419,65 @@ public final class SaveGitSnapshotManager {
             Path worldDir = server.getSavePath(WorldSavePath.ROOT);
             server.save(true, true, true);
             new WorldSnapshotter(new SnapshotRepository(worldDir))
-                    .takeSnapshot("世界断开", snapshotSettings(worldName(worldDir), SaveGitConfigs.maxSnapshots()));
+                    .takeSnapshot("世界断开", snapshotSettings(worldName(server, worldDir), SaveGitConfigs.maxSnapshots()));
         } catch (Throwable t) {
             SaveGitMod.LOGGER.error("创建退出快照失败", t);
         } finally {
             SnapshotStatus.end();
+        }
+    }
+
+    private static void captureScreenshot(MinecraftClient client, Path temp, Runnable afterCapture) {
+        try {
+            ScreenshotRecorder.takeScreenshot(client.getFramebuffer(), 1, image -> {
+                try {
+                    Path parent = temp.getParent();
+                    if (parent != null) {
+                        Files.createDirectories(parent);
+                    }
+                    image.writeTo(temp);
+                } catch (Throwable t) {
+                    SaveGitMod.LOGGER.warn("写入快照截图失败", t);
+                    deleteQuietly(temp);
+                } finally {
+                    try {
+                        image.close();
+                    } catch (Throwable ignored) {
+                    }
+                    afterCapture.run();
+                }
+            });
+        } catch (Throwable t) {
+            SaveGitMod.LOGGER.warn("截取快照截图失败", t);
+            afterCapture.run();
+        }
+    }
+
+    private static Path newTempShotPath(Path worldDir) {
+        return worldDir.resolve("savegit").resolve("shots")
+                .resolve("pending-" + System.currentTimeMillis() + "-" + SHOT_COUNTER.incrementAndGet() + ".png");
+    }
+
+    private static void storeScreenshot(Path worldDir, Path temp, String commitId) {
+        try {
+            if (temp == null || !Files.isRegularFile(temp)) {
+                return;
+            }
+            Path dir = worldDir.resolve("savegit").resolve("shots");
+            Files.createDirectories(dir);
+            Files.move(temp, dir.resolve(commitId + ".png"), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            SaveGitMod.LOGGER.warn("保存快照截图失败", e);
+            deleteQuietly(temp);
+        }
+    }
+
+    private static void deleteQuietly(Path path) {
+        try {
+            if (path != null) {
+                Files.deleteIfExists(path);
+            }
+        } catch (IOException ignored) {
         }
     }
 
@@ -323,8 +494,17 @@ public final class SaveGitSnapshotManager {
         );
     }
 
-    private static String worldName(Path worldDir) {
-        Path name = worldDir.getFileName();
+    private static String worldName(MinecraftServer server, Path worldDir) {
+        if (server != null) {
+            try {
+                String name = server.getSaveProperties().getLevelName();
+                if (name != null && !name.isBlank()) {
+                    return name;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        Path name = worldDir == null ? null : worldDir.getFileName();
         return name == null ? "未知世界" : name.toString();
     }
 

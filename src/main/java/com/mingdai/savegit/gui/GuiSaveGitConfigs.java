@@ -26,6 +26,11 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
                     && !SaveGitConfigs.isScheduledSnapshotEnabled()) {
                 continue;
             }
+            // 无限保留快照时不显示数量上限
+            if (config == SaveGitConfigs.Generic.MAX_SNAPSHOTS
+                    && SaveGitConfigs.isUnlimitedSnapshots()) {
+                continue;
+            }
             wrappers.add(new ConfigOptionWrapper(config));
         }
         return wrappers;

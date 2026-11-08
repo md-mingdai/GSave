@@ -19,5 +19,7 @@ public class SaveGitInitHandler implements IInitializationHandler {
         RenderEventHandler.getInstance().registerGameOverlayRenderer(new SnapshotHud());
         SaveGitConfigs.Generic.SCHEDULED_SNAPSHOT_ENABLED.setValueChangeCallback(
                 config -> GuiSaveGitConfigs.refreshIfOpen());
+        SaveGitConfigs.Generic.UNLIMITED_SNAPSHOTS.setValueChangeCallback(
+                config -> GuiSaveGitConfigs.refreshIfOpen());
     }
 }

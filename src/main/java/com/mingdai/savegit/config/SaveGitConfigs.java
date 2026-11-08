@@ -9,6 +9,7 @@ import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.config.IConfigHandler;
 import fi.dy.masa.malilib.config.options.ConfigBoolean;
 import fi.dy.masa.malilib.config.options.ConfigInteger;
+import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
 
@@ -33,6 +34,10 @@ public final class SaveGitConfigs implements IConfigHandler {
                 new ConfigInteger("autoSnapshotIntervalMinutes", 15, 1, 1440, true).apply(GENERIC_KEY);
         public static final ConfigInteger MAX_SNAPSHOTS =
                 new ConfigInteger("maxSnapshots", 50, 1, 1000, true).apply(GENERIC_KEY);
+        public static final ConfigBoolean UNLIMITED_SNAPSHOTS =
+                new ConfigBoolean("unlimitedSnapshots", false).apply(GENERIC_KEY);
+        public static final ConfigOptionList SNAPSHOT_PRIORITY =
+                new ConfigOptionList("snapshotPriority", SnapshotPriority.GAMEPLAY).apply(GENERIC_KEY);
         public static final ConfigBoolean SNAPSHOT_REGION =
                 new ConfigBoolean("snapshotRegion", true).apply(GENERIC_KEY);
         public static final ConfigBoolean SNAPSHOT_ENTITIES =
@@ -50,6 +55,8 @@ public final class SaveGitConfigs implements IConfigHandler {
                 BASELINE_SNAPSHOT_ENABLED,
                 AUTO_SNAPSHOT_INTERVAL_MINUTES,
                 MAX_SNAPSHOTS,
+                UNLIMITED_SNAPSHOTS,
+                SNAPSHOT_PRIORITY,
                 SNAPSHOT_REGION,
                 SNAPSHOT_ENTITIES,
                 SNAPSHOT_POI,
@@ -101,7 +108,19 @@ public final class SaveGitConfigs implements IConfigHandler {
     }
 
     public static int maxSnapshots() {
-        return Generic.MAX_SNAPSHOTS.getIntegerValue();
+        return isUnlimitedSnapshots() ? Integer.MAX_VALUE : Generic.MAX_SNAPSHOTS.getIntegerValue();
+    }
+
+    public static boolean isUnlimitedSnapshots() {
+        return Generic.UNLIMITED_SNAPSHOTS.getBooleanValue();
+    }
+
+    public static SnapshotPriority snapshotPriority() {
+        return (SnapshotPriority) Generic.SNAPSHOT_PRIORITY.getOptionListValue();
+    }
+
+    public static boolean isGameplayPriority() {
+        return snapshotPriority() == SnapshotPriority.GAMEPLAY;
     }
 
     @Override

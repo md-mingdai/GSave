@@ -1,6 +1,7 @@
 package com.mingdai.savegit.gui;
 
 import com.mingdai.savegit.snapshot.Commit;
+import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import net.minecraft.client.gui.DrawContext;

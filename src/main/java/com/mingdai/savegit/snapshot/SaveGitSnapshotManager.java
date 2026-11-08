@@ -31,6 +31,8 @@ public final class SaveGitSnapshotManager {
     private static volatile String pendingRestoreCommitId;
     private static volatile Path pendingRestoreWorldDir;
     private static volatile boolean restoreStarted;
+    private static volatile IntegratedServer pendingTeardownServer;
+    private static int teardownTicks;
 
     private SaveGitSnapshotManager() {
     }
@@ -174,7 +176,16 @@ public final class SaveGitSnapshotManager {
                 restoreStarted = false;
                 pendingRestoreCommitId = commit.id;
                 pendingRestoreWorldDir = worldDir;
-                // 回到标题界面，等待世界与集成服务端完全卸载
+                pendingTeardownServer = server;
+                teardownTicks = 0;
+
+                // 原版 disconnectWithSavingScreen() 会一直等待 isShutdown()。
+                // 某些情况下服务端收不到 singleplayer owner 的登出事件，
+                // 会导致“保存世界中”永久卡住，所以这里主动停止集成服务端。
+                if (!server.isShutdown()) {
+                    SaveGitMod.LOGGER.info("停止集成服务端以开始恢复快照");
+                    server.halt(false);
+                }
                 client.disconnectWithSavingScreen();
             });
         });
@@ -191,17 +202,32 @@ public final class SaveGitSnapshotManager {
             return;
         }
 
+        // 看门狗：服务端若迟迟不停止，再次强制 halt，避免永久停在“保存世界中”
+        teardownTicks++;
+        IntegratedServer teardownServer = pendingTeardownServer;
+        if (teardownServer != null && !teardownServer.isShutdown()) {
+            if (teardownTicks == 200) {
+                SaveGitMod.LOGGER.warn("等待集成服务端停止超时，再次强制停止");
+                teardownServer.halt(false);
+            } else if (teardownTicks == 600) {
+                SaveGitMod.LOGGER.error("集成服务端仍未停止，恢复流程可能卡住");
+            }
+        }
+
         if (client.world != null || client.getServer() != null) {
             return;
         }
 
         pendingRestore = false;
+        pendingTeardownServer = null;
+        teardownTicks = 0;
         String commitId = pendingRestoreCommitId;
         Path worldDir = pendingRestoreWorldDir;
         pendingRestoreCommitId = null;
         pendingRestoreWorldDir = null;
         restoreStarted = true;
 
+        SaveGitMod.LOGGER.info("世界已卸载，开始恢复快照 {}", commitId);
         client.setScreen(new GuiRestoreProgress());
 
         new Thread(() -> {

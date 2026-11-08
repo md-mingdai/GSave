@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "savegit",
+  "version": "${version}",
+  "name": "SaveGit",
+  "description": "为单人世界提供类 Git 的存档快照与回滚能力。",
+  "authors": [
+    "mingdai"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.mingdai.savegit.SaveGitMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.8",
+    "java": ">=21",
+    "fabric-api": "*",
+    "malilib": ">=0.25.7"
+  }
+}

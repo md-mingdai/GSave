@@ -7,7 +7,7 @@
   "authors": [
     "mingdai"
   ],
-  "license": "MIT",
+  "license": "GPL-3.0",
   "environment": "client",
   "entrypoints": {
     "client": [

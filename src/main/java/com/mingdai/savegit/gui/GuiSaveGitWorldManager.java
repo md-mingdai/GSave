@@ -58,6 +58,10 @@ public class GuiSaveGitWorldManager extends GuiBase {
                 (button, mouseButton) -> this.close());
     }
 
+    public static void open(MinecraftClient client, Path worldDir, String worldName) {
+        client.setScreen(new GuiSaveGitWorldManager(worldDir, worldName));
+    }
+
     @Override
     public boolean shouldPause() {
         return false;

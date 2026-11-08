@@ -182,9 +182,9 @@ public final class SaveGitSnapshotManager {
                 // 原版 disconnectWithSavingScreen() 会一直等待 isShutdown()。
                 // 某些情况下服务端收不到 singleplayer owner 的登出事件，
                 // 会导致“保存世界中”永久卡住，所以这里主动停止集成服务端。
-                if (!server.isShutdown()) {
+                if (!server.isStopping()) {
                     SaveGitMod.LOGGER.info("停止集成服务端以开始恢复快照");
-                    server.halt(false);
+                    server.stop(false);
                 }
                 client.disconnectWithSavingScreen();
             });
@@ -205,10 +205,10 @@ public final class SaveGitSnapshotManager {
         // 看门狗：服务端若迟迟不停止，再次强制 halt，避免永久停在“保存世界中”
         teardownTicks++;
         IntegratedServer teardownServer = pendingTeardownServer;
-        if (teardownServer != null && !teardownServer.isShutdown()) {
+        if (teardownServer != null && !teardownServer.isStopping()) {
             if (teardownTicks == 200) {
                 SaveGitMod.LOGGER.warn("等待集成服务端停止超时，再次强制停止");
-                teardownServer.halt(false);
+                teardownServer.stop(false);
             } else if (teardownTicks == 600) {
                 SaveGitMod.LOGGER.error("集成服务端仍未停止，恢复流程可能卡住");
             }

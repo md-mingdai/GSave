@@ -98,7 +98,7 @@ public final class SnapshotThumbnailCache implements AutoCloseable {
             int sourceY = Math.min(sourceHeight - 1, y * sourceHeight / height);
             for (int x = 0; x < width; x++) {
                 int sourceX = Math.min(sourceWidth - 1, x * sourceWidth / width);
-                target.setColor(x, y, source.getColor(sourceX, sourceY));
+                target.setColorArgb(x, y, source.getColorArgb(sourceX, sourceY));
             }
         }
         return target;

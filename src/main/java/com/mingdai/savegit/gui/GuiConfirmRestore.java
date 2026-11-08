@@ -9,7 +9,7 @@ import net.minecraft.client.gui.DrawContext;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GuiConfirmRestore extends GuiBase {
+public class GuiConfirmRestore extends GuiSaveGitScreen {
     private final Commit commit;
     private final GuiSnapshotList parent;
     private boolean createSafetySnapshot = true;

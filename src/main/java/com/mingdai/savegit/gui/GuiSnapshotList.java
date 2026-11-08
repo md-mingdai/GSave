@@ -18,7 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class GuiSnapshotList extends GuiBase {
+public class GuiSnapshotList extends GuiSaveGitScreen {
     private static final int LIST_TOP = 40;
     private static final int LIST_BOTTOM_MARGIN = 40;
     private static final int ROW_HEIGHT = 34;

@@ -16,7 +16,7 @@ import java.nio.file.Path;
 /**
  * 主界面：左上角标题 + 双列按钮 + 状态面板。
  */
-public class GuiSaveGitMain extends GuiBase {
+public class GuiSaveGitMain extends GuiSaveGitScreen {
     private static final int LEFT = 20;
     private static final int BUTTON_WIDTH = 200;
     private static final int BUTTON_HEIGHT = 20;

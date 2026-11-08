@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 取消“恢复前安全快照”后的二级确认。
  */
-public class GuiConfirmNoSafetyRestore extends GuiBase {
+public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
     private final Commit commit;
     private final GuiSnapshotList parent;
 

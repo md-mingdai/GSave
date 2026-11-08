@@ -23,7 +23,7 @@ import java.util.List;
  * 离线存档管理界面：在单人游戏列表点击「SaveGit 管理」后打开。
  * 支持恢复和删除快照（含 rebase）。
  */
-public class GuiSaveGitWorldManager extends GuiBase {
+public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
     private static final int LIST_TOP = 40;
     private static final int LIST_BOTTOM_MARGIN = 40;
     private static final int ROW_HEIGHT = 34;
@@ -253,7 +253,7 @@ public class GuiSaveGitWorldManager extends GuiBase {
     /**
      * 外部模式的恢复确认界面。
      */
-    public static class GuiExternalRestoreConfirm extends GuiBase {
+    public static class GuiExternalRestoreConfirm extends GuiSaveGitScreen {
         private final Commit commit;
         private final GuiSaveGitWorldManager parent;
         private final Path worldDir;
@@ -320,7 +320,7 @@ public class GuiSaveGitWorldManager extends GuiBase {
     /**
      * 外部模式的删除确认界面。
      */
-    public static class GuiExternalDeleteConfirm extends GuiBase {
+    public static class GuiExternalDeleteConfirm extends GuiSaveGitScreen {
         private final Commit commit;
         private final GuiSaveGitWorldManager parent;
         private final Path worldDir;

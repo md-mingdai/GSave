@@ -5,6 +5,7 @@ import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.input.SaveGitKeyBindings;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
+import com.mingdai.savegit.snapshot.SnapshotStatus;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import net.minecraft.client.gui.DrawContext;
@@ -120,6 +121,13 @@ public class GuiSaveGitMain extends GuiBase {
         this.drawString(drawContext, "世界加载基线快照: "
                 + onOff(SaveGitConfigs.isBaselineSnapshotEnabled()), LEFT, y, 0xFFCCCCCC);
         y += 16;
+
+        if (SnapshotStatus.isActive()) {
+            String label = SnapshotStatus.getLabel();
+            String line = label.isEmpty() ? "快照进行中…" : "快照进行中…（" + label + "）";
+            this.drawString(drawContext, line, LEFT, y, 0xFFFFDD55);
+            y += 12;
+        }
 
         if (!this.statusMessage.isEmpty()) {
             this.drawString(drawContext, this.statusMessage, LEFT, y, 0xFFFFDD55);

@@ -379,7 +379,7 @@ public class GuiSaveGitWorldManager extends GuiBase {
             try {
                 if (repo.deleteCommit(commitId)) {
                     InfoUtils.sendVanillaMessage(
-                            Text.literal("快照已删除: " + commitId.substring(0, ));
+                            Text.literal("快照已删除: " + commitId.substring(0, 8)));
                 } else {
                     InfoUtils.sendVanillaMessage(
                             Text.literal("删除失败：找不到该快照"));

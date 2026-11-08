@@ -12,6 +12,9 @@
   "entrypoints": {
     "client": [
       "com.mingdai.savegit.SaveGitMod"
+    ],
+    "modmenu": [
+      "com.mingdai.savegit.compat.SaveGitModMenuIntegration"
     ]
   },
   "mixins": [
@@ -23,5 +26,8 @@
     "java": ">=21",
     "fabric-api": "*",
     "malilib": ">=0.25.7"
+  },
+  "suggests": {
+    "modmenu": "*"
   }
 }

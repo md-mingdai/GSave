@@ -10,6 +10,7 @@ import com.mingdai.savegit.snapshot.SnapshotStatus;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
 
 import java.nio.file.Path;
 
@@ -32,8 +33,15 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     private String worldName = "";
     private int snapshotCount;
     private String statusMessage = "";
+    private final Screen parentScreen;
 
     public GuiSaveGitMain() {
+        this(null);
+    }
+
+    public GuiSaveGitMain(Screen parentScreen) {
+        this.parentScreen = parentScreen;
+        this.setParent(parentScreen);
         this.setTitle("SaveGit v" + SaveGitMod.MOD_VERSION + " 主菜单");
     }
 
@@ -56,7 +64,16 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
             gui.setParent(this);
             GuiBase.openGui(gui);
         });
-        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP) * 3, "返回游戏", this::close);
+        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP) * 3,
+                this.parentScreen == null ? "返回游戏" : "返回", this::goBack);
+    }
+
+    private void goBack() {
+        if (this.parentScreen != null) {
+            GuiBase.openGui(this.parentScreen);
+        } else {
+            this.close();
+        }
     }
 
     private void addLeftButton(int x, int y, String text, Runnable action) {

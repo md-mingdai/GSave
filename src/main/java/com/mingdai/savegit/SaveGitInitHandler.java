@@ -28,9 +28,11 @@ public class SaveGitInitHandler implements IInitializationHandler {
                 config -> GuiSaveGitConfigs.refreshIfOpen());
 
         // 在世界选择界面添加 "SaveGit 管理" 按钮
-        ScreenEvents.AFTER_INIT.addAfterListener(SelectWorldScreen.class, (client, screen, scaledWidth, scaledHeight) -> {
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+            if (!(screen instanceof SelectWorldScreen)) {
+                return;
+            }
             var buttons = Screens.getButtons(screen);
-            // 放在 "返回" 按钮右侧
             int x = scaledWidth / 2 + 158;
             int y = scaledHeight - 28;
             var button = ButtonWidget.builder(
@@ -39,7 +41,7 @@ public class SaveGitInitHandler implements IInitializationHandler {
                         var accessor = (com.mingdai.savegit.mixin.SelectWorldScreenAccessor) screen;
                         var levelList = accessor.savegit$getLevelList();
                         levelList.getSelectedAsOptional().ifPresent(entry -> {
-                            var worldEntry = (com.mingdai.savegit.mixin.WorldEntryAccessor) entry;
+                            var worldEntry = (com.mingdai.savegit.mixin.WorldEntryAccessor)(Object) entry;
                             var summary = worldEntry.savegit$getLevelSummary();
                             if (summary != null && !summary.isLocked()) {
                                 var worldDir = client.runDirectory.toPath()

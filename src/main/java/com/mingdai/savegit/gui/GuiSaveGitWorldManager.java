@@ -258,7 +258,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             if (rowY + ROW_HEIGHT <= LIST_TOP || rowY >= listBottom) {
                 continue;
             }
-            int thumbX = listLeft + listWidth - THUMB_WIDTH - 8;
+            int thumbX = listLeft + 8;
             int thumbY = rowY + (ROW_HEIGHT - THUMB_HEIGHT) / 2;
             int restoreX = listLeft + listWidth - RESTORE_BUTTON_WIDTH - 8;
             int deleteX = restoreX - DELETE_BUTTON_WIDTH - BUTTON_GAP;
@@ -415,10 +415,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             int buttonWidth = 100;
             int y = this.height / 2 + 40;
             this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20, "确认删除"),
-                    (button, mouseButton) -> {
-                        this.mc.setScreen(null);
-                        performDelete(this.mc, this.worldDir, this.commit.id);
-                    });
+                    (button, mouseButton) -> this.performDelete());
             this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20, "取消"),
                     (button, mouseButton) -> {
                         if (this.parent != null) {
@@ -449,13 +446,12 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             }
         }
 
-        private static void performDelete(MinecraftClient mc, Path worldDir, String commitId) {
-            mc.setScreen(null);
-            SnapshotRepository repo = new SnapshotRepository(worldDir);
+        private void performDelete() {
+            SnapshotRepository repo = new SnapshotRepository(this.worldDir);
             try {
-                if (repo.deleteCommit(commitId)) {
+                if (repo.deleteCommit(this.commit.id)) {
                     InfoUtils.sendVanillaMessage(
-                            Text.literal("快照已删除: " + commitId.substring(0, 8)));
+                            Text.literal("快照已删除: " + this.commit.shortId()));
                 } else {
                     InfoUtils.sendVanillaMessage(
                             Text.literal("删除失败：找不到该快照"));
@@ -464,6 +460,8 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 InfoUtils.sendVanillaMessage(
                         Text.literal("删除失败：" + e.getMessage()));
             }
+            // 删除后刷新并回到存档管理列表，而不是退回主菜单
+            GuiBase.openGui(new GuiSaveGitWorldManager(this.worldDir, this.parent.worldDisplayName));
         }
     }
 

@@ -20,9 +20,10 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     private static final int LEFT = 20;
     private static final int BUTTON_WIDTH = 200;
     private static final int BUTTON_HEIGHT = 20;
-    private static final int COLUMN_GAP = 8;
     private static final int ROW_GAP = 4;
-    private static final int PANEL_TOP = 104;
+    private static final int ROW_TOP = 44;
+    private static final int BUTTON_ROWS = 4;
+    private static final int PANEL_TOP = ROW_TOP + BUTTON_ROWS * (BUTTON_HEIGHT + ROW_GAP) + 8;
     private static final int LABEL_COLOR = 0xFF9A9A9A;
     private static final int VALUE_COLOR = 0xFFFFFFFF;
 
@@ -45,19 +46,16 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
         super.initGui();
         this.reload();
 
-        int col1 = LEFT;
-        int col2 = LEFT + BUTTON_WIDTH + COLUMN_GAP;
-        int row1 = 44;
-        int row2 = row1 + BUTTON_HEIGHT + ROW_GAP;
-
-        this.addLeftButton(col1, row1, "立即创建快照", this::onManualSnapshot);
-        this.addLeftButton(col1, row2, "查看快照并恢复", () -> GuiBase.openGui(new GuiSnapshotList()));
-        this.addLeftButton(col2, row1, "设置", () -> {
+        int x = LEFT;
+        this.addLeftButton(x, ROW_TOP, "立即创建快照", this::onManualSnapshot);
+        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP), "查看快照并恢复",
+                () -> GuiBase.openGui(new GuiSnapshotList()));
+        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP) * 2, "设置", () -> {
             GuiSaveGitConfigs gui = new GuiSaveGitConfigs();
             gui.setParent(this);
             GuiBase.openGui(gui);
         });
-        this.addLeftButton(col2, row2, "返回游戏", this::close);
+        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP) * 3, "返回游戏", this::close);
     }
 
     private void addLeftButton(int x, int y, String text, Runnable action) {

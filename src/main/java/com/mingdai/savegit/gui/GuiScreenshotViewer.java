@@ -5,6 +5,7 @@ import net.minecraft.client.gui.screen.Screen;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.util.Util;
 
 import java.nio.file.Path;
 
@@ -31,7 +32,9 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
         this.image = this.cache.getFull(this.file, this.commitId);
 
         int y = this.height - 40;
-        this.addButton(new ButtonGeneric(this.width / 2 - 50, y, 100, 20, "返回"),
+        this.addButton(new ButtonGeneric(this.width / 2 - 105, y, 100, 20, "打开文件"),
+                (button, mouseButton) -> Util.getOperatingSystem().open(this.file));
+        this.addButton(new ButtonGeneric(this.width / 2 + 5, y, 100, 20, "返回"),
                 (button, mouseButton) -> GuiBase.openGui(this.parent));
     }
 
@@ -58,7 +61,9 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
 
         drawContext.fill(x - 2, y - 2, x + drawWidth + 2, y + drawHeight + 2, 0xFF000000);
         drawContext.drawTexture(RenderPipelines.GUI_TEXTURED, this.image.id(),
-                x, y, 0.0F, 0.0F, drawWidth, drawHeight, this.image.width(), this.image.height());
+                x, y, 0.0F, 0.0F, drawWidth, drawHeight,
+                this.image.width(), this.image.height(),
+                this.image.width(), this.image.height());
     }
 
     @Override

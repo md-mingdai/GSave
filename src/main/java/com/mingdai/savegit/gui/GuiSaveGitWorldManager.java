@@ -182,6 +182,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 if (thumbnail != null) {
                     drawContext.drawTexture(RenderPipelines.GUI_TEXTURED, thumbnail.id(),
                             thumbX, thumbY, 0.0F, 0.0F, THUMB_WIDTH, THUMB_HEIGHT,
+                            thumbnail.width(), thumbnail.height(),
                             thumbnail.width(), thumbnail.height());
                 } else {
                     drawContext.fill(thumbX, thumbY,

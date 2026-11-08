@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -426,11 +427,11 @@ public final class BlobStore implements AutoCloseable {
     }
 
     private Path packPath(int packId) {
-        return packsDir.resolve(String.format("pack-%06d.pack", packId));
+        return packsDir.resolve(String.format(Locale.ROOT, "pack-%06d.pack", packId));
     }
 
     private Path packIndexPath(int packId) {
-        return packsDir.resolve(String.format("pack-%06d.idx", packId));
+        return packsDir.resolve(String.format(Locale.ROOT, "pack-%06d.idx", packId));
     }
 
     private Path legacyPath(String hash) {

@@ -53,7 +53,15 @@ public class SaveGitInitHandler implements IInitializationHandler {
                         });
                     }
             ).dimensions(x, y, 72, 20).build();
+            button.active = false;
             buttons.add(button);
+
+            // 未选中世界时按钮置灰
+            ScreenEvents.beforeRender(screen).register((renderedScreen, drawContext, mouseX, mouseY, tickDelta) -> {
+                var accessor = (com.mingdai.savegit.mixin.SelectWorldScreenAccessor) renderedScreen;
+                var levelList = accessor.savegit$getLevelList();
+                button.active = levelList != null && levelList.getSelectedAsOptional().isPresent();
+            });
         });
     }
 }

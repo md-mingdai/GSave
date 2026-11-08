@@ -83,9 +83,9 @@ public final class Manifest {
         return GSON.toJson(root);
     }
 
-    public static Manifest fromJson(String json) {
+    public static Manifest fromJson(String jsonText) {
         Manifest manifest = new Manifest();
-        JsonObject root = GSON.fromJson(json, JsonObject.class);
+        JsonObject root = GSON.fromJson(jsonText, JsonObject.class);
         if (root == null || !root.has("files") || !root.get("files").isJsonObject()) {
             return manifest;
         }

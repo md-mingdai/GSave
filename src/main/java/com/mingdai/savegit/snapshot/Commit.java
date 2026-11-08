@@ -36,7 +36,7 @@ public final class Commit {
         commit.message = message;
         commit.worldName = worldName;
         commit.mcVersion = mcVersion;
-        commit.id = RawMca.hashBytes(commit.payloadJson().getBytes(StandardCharsets.UTF_8));
+        commit.id = RawMca.hashBytes(commit.payloadJson().toString().getBytes(StandardCharsets.UTF_8));
         return commit;
     }
 

@@ -32,6 +32,11 @@ public class GuiSaveGitMain extends GuiBase {
     }
 
     @Override
+    public boolean shouldPause() {
+        return true;
+    }
+
+    @Override
     public void initGui() {
         super.initGui();
         this.reload();
@@ -106,9 +111,9 @@ public class GuiSaveGitMain extends GuiBase {
                 LEFT, y, 0xFFCCCCCC);
         y += 12;
 
-        String autoLine = SaveGitConfigs.isAutoSnapshotEnabled()
-                ? "自动快照: 开（每 " + SaveGitConfigs.autoSnapshotIntervalMinutes() + " 分钟）"
-                : "自动快照: 关";
+        String autoLine = SaveGitConfigs.isScheduledSnapshotEnabled()
+                ? "定时快照: 开（每 " + SaveGitConfigs.autoSnapshotIntervalMinutes() + " 分钟）"
+                : "定时快照: 关";
         this.drawString(drawContext, autoLine, LEFT, y, 0xFFCCCCCC);
         y += 12;
 

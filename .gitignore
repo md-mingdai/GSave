@@ -7,3 +7,4 @@ run/
 *.ipr
 *.iws
 .vscode/
+FEATURES.md

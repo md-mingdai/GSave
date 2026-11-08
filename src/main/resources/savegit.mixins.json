@@ -1,0 +1,14 @@
+{
+    "required": true,
+    "package": "com.mingdai.savegit.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "minVersion": "0.8",
+    "mixins": [],
+    "client": [
+        "SelectWorldScreenAccessor",
+        "WorldEntryAccessor"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

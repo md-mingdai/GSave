@@ -52,6 +52,10 @@ public final class SnapshotRepository {
         return saveGitDir;
     }
 
+    public Path getShotsDir() {
+        return saveGitDir.resolve("shots");
+    }
+
     public BlobStore getBlobStore() {
         return blobStore;
     }
@@ -187,19 +191,73 @@ public final class SnapshotRepository {
             deleteQuietly(patchesDir.resolve(commit.id + ".json"));
         }
 
-        if (Files.isDirectory(manifestsDir)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(manifestsDir, "*.json")) {
-                for (Path path : stream) {
-                    String name = path.getFileName().toString();
-                    String id = name.substring(0, name.length() - ".json".length());
-                    if (!keptManifests.contains(id)) {
-                        deleteQuietly(path);
-                    }
-                }
-            } catch (IOException ignored) {
+        cleanupUnreferencedManifests(keptManifests);
+        return removed.size();
+    }
+
+    /**
+     * 删除一个提交，并把它的直接子提交 rebase 到它的父提交上。
+     * 返回是否删除成功。blob 与截图文件保留（截图按提交 id 命名，不随删除清理）。
+     */
+    public boolean deleteCommit(String commitId) {
+        Commit target = getCommit(commitId);
+        if (target == null) {
+            return false;
+        }
+
+        List<Commit> commits = listCommits();
+        Commit child = null;
+        for (Commit commit : commits) {
+            if (commitId.equals(commit.parent)) {
+                child = commit;
+                break;
             }
         }
-        return removed.size();
+
+        deleteQuietly(commitsDir.resolve(commitId + ".json"));
+        deleteQuietly(patchesDir.resolve(commitId + ".json"));
+        // 删除该提交对应的截图（截图按提交 id 命名）
+        deleteQuietly(getShotsDir().resolve(commitId + ".png"));
+
+        if (child != null) {
+            child.parent = target.parent;
+            saveCommit(child);
+
+            Manifest parentManifest = target.parent == null ? null : getManifest(target.parent);
+            Manifest childManifest = getManifest(child.manifestId);
+            savePatch(PatchGenerator.generate(child.id, target.parent, parentManifest, childManifest));
+        }
+
+        if (commitId.equals(readHead())) {
+            if (target.parent != null) {
+                writeHead(target.parent);
+            } else {
+                deleteQuietly(headFile);
+            }
+        }
+
+        Set<String> keptManifests = new HashSet<>();
+        for (Commit commit : listCommits()) {
+            keptManifests.add(commit.manifestId);
+        }
+        cleanupUnreferencedManifests(keptManifests);
+        return true;
+    }
+
+    private void cleanupUnreferencedManifests(Set<String> keptManifests) {
+        if (!Files.isDirectory(manifestsDir)) {
+            return;
+        }
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(manifestsDir, "*.json")) {
+            for (Path path : stream) {
+                String name = path.getFileName().toString();
+                String id = name.substring(0, name.length() - ".json".length());
+                if (!keptManifests.contains(id)) {
+                    deleteQuietly(path);
+                }
+            }
+        } catch (IOException ignored) {
+        }
     }
 
     private static void deleteQuietly(Path path) {

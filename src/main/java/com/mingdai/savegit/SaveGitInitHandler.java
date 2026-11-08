@@ -8,6 +8,11 @@ import fi.dy.masa.malilib.event.RenderEventHandler;
 import fi.dy.masa.malilib.interfaces.IInitializationHandler;
 import fi.dy.masa.malilib.registry.Registry;
 import fi.dy.masa.malilib.util.data.ModInfo;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.Screens;
+import net.minecraft.client.gui.screen.world.SelectWorldScreen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.text.Text;
 
 public class SaveGitInitHandler implements IInitializationHandler {
     @Override
@@ -21,5 +26,32 @@ public class SaveGitInitHandler implements IInitializationHandler {
                 config -> GuiSaveGitConfigs.refreshIfOpen());
         SaveGitConfigs.Generic.UNLIMITED_SNAPSHOTS.setValueChangeCallback(
                 config -> GuiSaveGitConfigs.refreshIfOpen());
+
+        // 在世界选择界面添加 "SaveGit 管理" 按钮
+        ScreenEvents.AFTER_INIT.addAfterListener(SelectWorldScreen.class, (client, screen, scaledWidth, scaledHeight) -> {
+            var buttons = Screens.getButtons(screen);
+            // 放在 "返回" 按钮右侧
+            int x = scaledWidth / 2 + 158;
+            int y = scaledHeight - 28;
+            var button = ButtonWidget.builder(
+                    Text.literal("SaveGit 管理"),
+                    b -> {
+                        var accessor = (com.mingdai.savegit.mixin.SelectWorldScreenAccessor) screen;
+                        var levelList = accessor.savegit$getLevelList();
+                        levelList.getSelectedAsOptional().ifPresent(entry -> {
+                            var worldEntry = (com.mingdai.savegit.mixin.WorldEntryAccessor) entry;
+                            var summary = worldEntry.savegit$getLevelSummary();
+                            if (summary != null && !summary.isLocked()) {
+                                var worldDir = client.runDirectory.toPath()
+                                        .resolve("saves").resolve(summary.getName());
+                                var worldName = summary.getLevelName();
+                                com.mingdai.savegit.gui.GuiSaveGitWorldManager.open(
+                                        client, worldDir, worldName);
+                            }
+                        });
+                    }
+            ).dimensions(x, y, 72, 20).build();
+            buttons.add(button);
+        });
     }
 }

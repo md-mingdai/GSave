@@ -6,6 +6,7 @@ import com.mingdai.savegit.snapshot.SnapshotRepository;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.render.RenderUtils;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 
 import java.nio.file.Files;
@@ -26,11 +27,15 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     private static final int DELETE_BUTTON_WIDTH = 48;
     private static final int BUTTON_GAP = 6;
     private static final int ROW_BUTTON_HEIGHT = 18;
+    private static final int THUMB_WIDTH = 48;
+    private static final int THUMB_HEIGHT = 27;
     private static final DateTimeFormatter TIME_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
     private List<Commit> commits = Collections.emptyList();
     private Set<String> screenshotIds = Collections.emptySet();
+    private Path worldDir;
+    private final SnapshotThumbnailCache thumbnails = new SnapshotThumbnailCache();
     private boolean worldAvailable;
     private String message;
     private int scrollOffset;
@@ -53,12 +58,19 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                 (button, mouseButton) -> GuiBase.openGui(new GuiSaveGitMain()));
     }
 
+    @Override
+    public void removed() {
+        super.removed();
+        this.thumbnails.close();
+    }
+
     public static String formatTime(long timestamp) {
         return TIME_FORMAT.format(Instant.ofEpochMilli(timestamp));
     }
 
     private void reload() {
         Path worldDir = SaveGitSnapshotManager.getWorldDirectory(this.mc);
+        this.worldDir = worldDir;
         this.worldAvailable = worldDir != null;
         this.scrollOffset = 0;
 
@@ -132,16 +144,48 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             String line1 = "#" + commit.shortId() + "  " + formatTime(commit.timestamp)
                     + "  " + safe(commit.message);
             line1 = this.textRenderer.trimToWidth(line1,
-                    listWidth - RESTORE_BUTTON_WIDTH - DELETE_BUTTON_WIDTH - BUTTON_GAP - 40);
-            String line2 = "父提交: " + parent
-                    + (this.screenshotIds.contains(commit.id) ? "    有截图" : "");
+                    listWidth - THUMB_WIDTH - RESTORE_BUTTON_WIDTH - DELETE_BUTTON_WIDTH
+                            - BUTTON_GAP * 2 - 48);
+            String line2 = "父提交: " + parent;
 
             this.drawString(drawContext, line1, listLeft + 8, rowY + 6, 0xFFFFFFFF);
             this.drawString(drawContext, line2, listLeft + 8, rowY + 18, 0xFFA0A0A0);
 
             int buttonY = rowY + (ROW_HEIGHT - ROW_BUTTON_HEIGHT) / 2;
 
-            int restoreX = listLeft + listWidth - RESTORE_BUTTON_WIDTH - 8;
+            // 最右侧截图缩略图
+            int thumbX = listLeft + listWidth - THUMB_WIDTH - 8;
+            int thumbY = rowY + (ROW_HEIGHT - THUMB_HEIGHT) / 2;
+            boolean hasShot = this.screenshotIds.contains(commit.id) && this.worldDir != null;
+            drawContext.fill(thumbX - 1, thumbY - 1,
+                    thumbX + THUMB_WIDTH + 1, thumbY + THUMB_HEIGHT + 1, 0xFF202020);
+            if (hasShot) {
+                Path shotFile = this.worldDir.resolve("savegit").resolve("shots").resolve(commit.id + ".png");
+                SnapshotThumbnailCache.Entry thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
+                if (thumbnail != null) {
+                    drawContext.drawTexture(RenderPipelines.GUI_TEXTURED, thumbnail.id(),
+                            thumbX, thumbY, 0.0F, 0.0F, THUMB_WIDTH, THUMB_HEIGHT,
+                            thumbnail.width(), thumbnail.height());
+                } else {
+                    drawContext.fill(thumbX, thumbY,
+                            thumbX + THUMB_WIDTH, thumbY + THUMB_HEIGHT, 0xFF151515);
+                }
+                boolean thumbHovered = mouseX >= thumbX && mouseX < thumbX + THUMB_WIDTH
+                        && mouseY >= thumbY && mouseY < thumbY + THUMB_HEIGHT;
+                if (thumbHovered) {
+                    drawContext.fill(thumbX - 1, thumbY - 1,
+                            thumbX + THUMB_WIDTH + 1, thumbY + THUMB_HEIGHT + 1, 0x60FFFFFF);
+                }
+            } else {
+                drawContext.fill(thumbX, thumbY,
+                        thumbX + THUMB_WIDTH, thumbY + THUMB_HEIGHT, 0xFF151515);
+                String none = "无";
+                this.drawString(drawContext, none,
+                        thumbX + THUMB_WIDTH / 2 - this.getStringWidth(none) / 2,
+                        thumbY + THUMB_HEIGHT / 2 - 4, 0xFF606060);
+            }
+
+            int restoreX = thumbX - BUTTON_GAP - RESTORE_BUTTON_WIDTH;
             boolean restoreHovered = mouseX >= restoreX && mouseX < restoreX + RESTORE_BUTTON_WIDTH
                     && mouseY >= buttonY && mouseY < buttonY + ROW_BUTTON_HEIGHT;
             drawContext.fill(restoreX, buttonY,
@@ -207,8 +251,19 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             if (rowY + ROW_HEIGHT <= LIST_TOP || rowY >= listBottom) {
                 continue;
             }
-            int buttonX = listLeft + listWidth - RESTORE_BUTTON_WIDTH - 8;
+            int thumbX = listLeft + listWidth - THUMB_WIDTH - 8;
+            int thumbY = rowY + (ROW_HEIGHT - THUMB_HEIGHT) / 2;
+            int buttonX = thumbX - BUTTON_GAP - RESTORE_BUTTON_WIDTH;
             int buttonY = rowY + (ROW_HEIGHT - ROW_BUTTON_HEIGHT) / 2;
+
+            if (this.screenshotIds.contains(this.commits.get(i).id) && this.worldDir != null
+                    && mouseX >= thumbX && mouseX < thumbX + THUMB_WIDTH
+                    && mouseY >= thumbY && mouseY < thumbY + THUMB_HEIGHT) {
+                Path shotFile = this.worldDir.resolve("savegit").resolve("shots")
+                        .resolve(this.commits.get(i).id + ".png");
+                GuiBase.openGui(new GuiScreenshotViewer(shotFile, this.commits.get(i).id, this));
+                return true;
+            }
 
             if (mouseX >= buttonX && mouseX < buttonX + RESTORE_BUTTON_WIDTH
                     && mouseY >= buttonY && mouseY < buttonY + ROW_BUTTON_HEIGHT) {

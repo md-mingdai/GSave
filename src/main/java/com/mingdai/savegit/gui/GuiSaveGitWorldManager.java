@@ -9,6 +9,7 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 
@@ -17,7 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 离线存档管理界面：在单人游戏列表点击「SaveGit 管理」后打开。
@@ -31,12 +34,16 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
     private static final int DELETE_BUTTON_WIDTH = 48;
     private static final int BUTTON_GAP = 6;
     private static final int ROW_BUTTON_HEIGHT = 18;
+    private static final int THUMB_WIDTH = 48;
+    private static final int THUMB_HEIGHT = 27;
 
     private final Path worldDir;
     private final String worldDisplayName;
     private List<Commit> commits = Collections.emptyList();
+    private Set<String> screenshotIds = Collections.emptySet();
     private String message;
     private int scrollOffset;
+    private final SnapshotThumbnailCache thumbnails = new SnapshotThumbnailCache();
 
     public GuiSaveGitWorldManager(Path worldDir, String worldDisplayName) {
         this.worldDir = worldDir;
@@ -71,6 +78,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         this.scrollOffset = 0;
         if (!Files.isDirectory(worldDir)) {
             this.commits = Collections.emptyList();
+            this.screenshotIds = Collections.emptySet();
             this.message = "世界存档目录不存在";
             return;
         }
@@ -78,6 +86,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         Path saveGitDir = worldDir.resolve("savegit");
         if (!Files.isDirectory(saveGitDir)) {
             this.commits = Collections.emptyList();
+            this.screenshotIds = Collections.emptySet();
             this.message = "该世界还没有任何 SaveGit 数据。";
             return;
         }
@@ -86,6 +95,21 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         this.message = this.commits.isEmpty()
                 ? "该世界还没有任何快照。"
                 : null;
+
+        Set<String> shots = new HashSet<>();
+        Path shotsDir = worldDir.resolve("savegit").resolve("shots");
+        for (Commit commit : this.commits) {
+            if (Files.isRegularFile(shotsDir.resolve(commit.id + ".png"))) {
+                shots.add(commit.id);
+            }
+        }
+        this.screenshotIds = shots;
+    }
+
+    @Override
+    public void removed() {
+        super.removed();
+        this.thumbnails.close();
     }
 
     @Override
@@ -136,7 +160,8 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             String line1 = "#" + commit.shortId() + "  " + GuiSnapshotList.formatTime(commit.timestamp)
                     + "  " + safe(commit.message);
             line1 = this.textRenderer.trimToWidth(line1,
-                    listWidth - RESTORE_BUTTON_WIDTH - DELETE_BUTTON_WIDTH - BUTTON_GAP - 40);
+                    listWidth - THUMB_WIDTH - RESTORE_BUTTON_WIDTH - DELETE_BUTTON_WIDTH
+                            - BUTTON_GAP * 2 - 48);
             String line2 = "父提交: " + parent;
 
             this.drawString(drawContext, line1, listLeft + 8, rowY + 6, 0xFFFFFFFF);
@@ -144,7 +169,39 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
             int buttonY = rowY + (ROW_HEIGHT - ROW_BUTTON_HEIGHT) / 2;
 
-            int restoreX = listLeft + listWidth - RESTORE_BUTTON_WIDTH - 8;
+            // 最右侧截图缩略图
+            int thumbX = listLeft + listWidth - THUMB_WIDTH - 8;
+            int thumbY = rowY + (ROW_HEIGHT - THUMB_HEIGHT) / 2;
+            boolean hasShot = this.screenshotIds.contains(commit.id);
+            drawContext.fill(thumbX - 1, thumbY - 1,
+                    thumbX + THUMB_WIDTH + 1, thumbY + THUMB_HEIGHT + 1, 0xFF202020);
+            if (hasShot) {
+                Path shotFile = worldDir.resolve("savegit").resolve("shots").resolve(commit.id + ".png");
+                SnapshotThumbnailCache.Entry thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
+                if (thumbnail != null) {
+                    drawContext.drawTexture(RenderPipelines.GUI_TEXTURED, thumbnail.id(),
+                            thumbX, thumbY, 0.0F, 0.0F, THUMB_WIDTH, THUMB_HEIGHT,
+                            thumbnail.width(), thumbnail.height());
+                } else {
+                    drawContext.fill(thumbX, thumbY,
+                            thumbX + THUMB_WIDTH, thumbY + THUMB_HEIGHT, 0xFF151515);
+                }
+                boolean thumbHovered = mouseX >= thumbX && mouseX < thumbX + THUMB_WIDTH
+                        && mouseY >= thumbY && mouseY < thumbY + THUMB_HEIGHT;
+                if (thumbHovered) {
+                    drawContext.fill(thumbX - 1, thumbY - 1,
+                            thumbX + THUMB_WIDTH + 1, thumbY + THUMB_HEIGHT + 1, 0x60FFFFFF);
+                }
+            } else {
+                drawContext.fill(thumbX, thumbY,
+                        thumbX + THUMB_WIDTH, thumbY + THUMB_HEIGHT, 0xFF151515);
+                String none = "无";
+                this.drawString(drawContext, none,
+                        thumbX + THUMB_WIDTH / 2 - this.getStringWidth(none) / 2,
+                        thumbY + THUMB_HEIGHT / 2 - 4, 0xFF606060);
+            }
+
+            int restoreX = thumbX - BUTTON_GAP - RESTORE_BUTTON_WIDTH;
             boolean restoreHovered = mouseX >= restoreX && mouseX < restoreX + RESTORE_BUTTON_WIDTH
                     && mouseY >= buttonY && mouseY < buttonY + ROW_BUTTON_HEIGHT;
             drawContext.fill(restoreX, buttonY,
@@ -199,9 +256,26 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             if (rowY + ROW_HEIGHT <= LIST_TOP || rowY >= listBottom) {
                 continue;
             }
-            int restoreX = listLeft + listWidth - RESTORE_BUTTON_WIDTH - 8;
+            int thumbX = listLeft + listWidth - THUMB_WIDTH - 8;
+            int thumbY = rowY + (ROW_HEIGHT - THUMB_HEIGHT) / 2;
+            int restoreX = thumbX - BUTTON_GAP - RESTORE_BUTTON_WIDTH;
             int deleteX = restoreX - DELETE_BUTTON_WIDTH - BUTTON_GAP;
             int buttonY = rowY + (ROW_HEIGHT - ROW_BUTTON_HEIGHT) / 2;
+
+            Commit rowCommit = this.commits.get(i);
+            if (this.screenshotIds.contains(rowCommit.id)
+                    && mouseX >= thumbX && mouseX < thumbX + THUMB_WIDTH
+                    && mouseY >= thumbY && mouseY < thumbY + THUMB_HEIGHT) {
+                Path shotFile = this.worldDir.resolve("savegit").resolve("shots")
+                        .resolve(rowCommit.id + ".png");
+                GuiBase.openGui(new GuiScreenshotViewer(shotFile, rowCommit.id, this));
+                return true;
+            }
+            if (mouseX >= restoreX && mouseX < restoreX + RESTORE_BUTTON_WIDTH
+                    && mouseY >= buttonY && mouseY < buttonY + ROW_BUTTON_HEIGHT) {
+                GuiBase.openGui(new GuiExternalRestoreConfirm(rowCommit, this, this.worldDir));
+                return true;
+            }
 
             if (mouseX >= deleteX && mouseX < deleteX + DELETE_BUTTON_WIDTH
                     && mouseY >= buttonY && mouseY < buttonY + ROW_BUTTON_HEIGHT) {

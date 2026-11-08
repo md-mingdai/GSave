@@ -1,26 +1,60 @@
 package com.mingdai.savegit.snapshot;
 
+import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.mca.RawMca;
 
+import java.io.BufferedInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * SHA-256 内容寻址的 blob 存储。<哈希前 2 位>/<完整哈希>，相同内容自动去重。
+ * SHA-256 内容寻址的 blob 存储。
+ * <p>
+ * 新数据按 Git packfile 思路追加写入 {@code savegit/packs/pack-XXXXXX.pack},
+ * 每个 pack 配一个 {@code .idx} 记录 hash -> 偏移/长度，避免每个区块一个文件。
+ * 旧版 {@code savegit/blobs/<前2位>/<hash>} 会在首次写入时自动迁移进 pack 并删除散文件。
  */
-public final class BlobStore {
+public final class BlobStore implements AutoCloseable {
+    private static final int MAX_PACK_BYTES = 64 * 1024 * 1024;
+    private static final int COPY_BUFFER_SIZE = 8192;
+    private static final Pattern HASH_PATTERN = Pattern.compile("[0-9a-f]{64}");
+    private static final Pattern PACK_PATTERN = Pattern.compile("pack-(\\d+)\\.(?:pack|idx)");
+
+    private final Path packsDir;
     private final Path blobsDir;
+    private final Path legacyMarker;
+    private final Map<String, BlobLocation> index = new HashMap<>();
+    private final Map<Integer, FileChannel> readChannels = new HashMap<>();
 
-    public BlobStore(Path blobsDir) {
-        this.blobsDir = blobsDir;
-    }
+    private boolean loaded;
+    private boolean migrated;
+    private int nextPackId = 1;
+    private PackWriter currentPack;
 
-    public Path getBlobsDir() {
-        return blobsDir;
+    public BlobStore(Path saveGitDir) {
+        this.packsDir = saveGitDir.resolve("packs");
+        this.blobsDir = saveGitDir.resolve("blobs");
+        this.legacyMarker = packsDir.resolve(".legacy-migrated");
     }
 
     public String store(byte[] bytes) {
@@ -28,64 +62,529 @@ public final class BlobStore {
         return store(bytes, hash);
     }
 
-    public String store(byte[] bytes, String hash) {
-        Path blobPath = blobPath(hash);
-        if (!Files.exists(blobPath)) {
-            try {
-                Files.createDirectories(blobPath.getParent());
-                Files.write(blobPath, bytes);
-            } catch (IOException e) {
-                throw new RuntimeException("写入 blob 失败: " + hash, e);
+    public synchronized String store(byte[] bytes, String hash) {
+        try {
+            ensureMigrated();
+            if (hasBlob(hash)) {
+                return hash;
             }
+            PackWriter writer = packWriter();
+            if (!writer.isEmpty() && writer.position + 8 + bytes.length > MAX_PACK_BYTES) {
+                rotatePack();
+                writer = packWriter();
+            }
+            writer.append(hash, bytes);
+            return hash;
+        } catch (IOException e) {
+            throw new RuntimeException("写入 blob 失败: " + hash, e);
         }
-        return hash;
     }
 
-    public String store(Path file) throws IOException {
+    public synchronized String store(Path file) throws IOException {
+        ensureMigrated();
         String hash = RawMca.hashFile(file);
-        Path blobPath = blobPath(hash);
-        if (!Files.exists(blobPath)) {
-            Files.createDirectories(blobPath.getParent());
-            copyFile(file, blobPath);
+        if (hasBlob(hash)) {
+            return hash;
+        }
+
+        long length = Files.size(file);
+        PackWriter writer = packWriter();
+        if (!writer.isEmpty() && writer.position + 8 + length > MAX_PACK_BYTES) {
+            rotatePack();
+            writer = packWriter();
+        }
+
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
+            writer.appendStream(hash, in, length, sha256());
         }
         return hash;
     }
 
-    public byte[] load(String hash) throws IOException {
-        return Files.readAllBytes(blobPath(hash));
+    public synchronized byte[] load(String hash) throws IOException {
+        ensureLoaded();
+        BlobLocation location = index.get(hash);
+        if (location != null) {
+            return loadFromPack(location);
+        }
+
+        Path legacy = legacyPath(hash);
+        if (Files.isRegularFile(legacy)) {
+            return Files.readAllBytes(legacy);
+        }
+        throw new IOException("blob 不存在: " + hash);
     }
 
-    public void copyTo(String hash, Path target) throws IOException {
-        Path source = blobPath(hash);
-        if (!Files.exists(source)) {
-            throw new IOException("blob 不存在: " + hash);
-        }
+    public synchronized void copyTo(String hash, Path target) throws IOException {
+        ensureLoaded();
         Path parent = target.getParent();
         if (parent != null) {
             Files.createDirectories(parent);
         }
-        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+
+        BlobLocation location = index.get(hash);
+        if (location != null) {
+            copyFromPack(location, target);
+            return;
+        }
+
+        Path legacy = legacyPath(hash);
+        if (!Files.isRegularFile(legacy)) {
+            throw new IOException("blob 不存在: " + hash);
+        }
+        Files.copy(legacy, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    public boolean exists(String hash) {
-        return Files.exists(blobPath(hash));
+    public synchronized boolean exists(String hash) {
+        try {
+            ensureLoaded();
+        } catch (IOException e) {
+            return false;
+        }
+        return hasBlob(hash);
     }
 
-    public Path blobPath(String hash) {
+    /** 把当前 pack 的数据和索引落盘。 */
+    public synchronized void flush() throws IOException {
+        if (currentPack != null) {
+            currentPack.flushData();
+            currentPack.writeIndex();
+        }
+    }
+
+    @Override
+    public synchronized void close() {
+        try {
+            flush();
+        } catch (IOException e) {
+            SaveGitMod.LOGGER.error("关闭 blob pack 失败", e);
+        } finally {
+            if (currentPack != null) {
+                try {
+                    currentPack.channel.close();
+                } catch (IOException e) {
+                    SaveGitMod.LOGGER.error("关闭 blob pack 文件失败", e);
+                }
+                currentPack = null;
+            }
+            for (FileChannel channel : readChannels.values()) {
+                try {
+                    channel.close();
+                } catch (IOException ignored) {
+                }
+            }
+            readChannels.clear();
+        }
+    }
+
+    private boolean hasBlob(String hash) {
+        return index.containsKey(hash) || Files.isRegularFile(legacyPath(hash));
+    }
+
+    private PackWriter packWriter() throws IOException {
+        if (currentPack == null) {
+            Files.createDirectories(packsDir);
+            currentPack = new PackWriter(nextPackId++);
+        }
+        return currentPack;
+    }
+
+    private void rotatePack() throws IOException {
+        if (currentPack != null) {
+            currentPack.finish();
+            currentPack = null;
+        }
+    }
+
+    private void ensureLoaded() throws IOException {
+        if (loaded) {
+            return;
+        }
+        Files.createDirectories(packsDir);
+
+        List<Integer> packIds = listPackIds();
+        for (int packId : packIds) {
+            Path packFile = packPath(packId);
+            Path indexFile = packIndexPath(packId);
+            if (!Files.isRegularFile(packFile) || !Files.isRegularFile(indexFile)) {
+                continue;
+            }
+            long packSize = Files.size(packFile);
+            try (var reader = Files.newBufferedReader(indexFile, StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.trim().split(" ");
+                    if (parts.length != 3) {
+                        continue;
+                    }
+                    String hash = parts[0];
+                    if (!HASH_PATTERN.matcher(hash).matches()) {
+                        continue;
+                    }
+                    try {
+                        long offset = Long.parseLong(parts[1]);
+                        long length = Long.parseLong(parts[2]);
+                        if (length < 0 || offset < 0 || offset + length > packSize) {
+                            continue;
+                        }
+                        index.putIfAbsent(hash, new BlobLocation(packId, offset, length));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+
+        int maxId = 0;
+        for (int packId : packIds) {
+            maxId = Math.max(maxId, packId);
+        }
+        nextPackId = maxId + 1;
+        loaded = true;
+    }
+
+    private List<Integer> listPackIds() throws IOException {
+        List<Integer> ids = new ArrayList<>();
+        if (!Files.isDirectory(packsDir)) {
+            return ids;
+        }
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(packsDir, "pack-*")) {
+            for (Path path : stream) {
+                String name = path.getFileName().toString();
+                if (name.endsWith(".tmp")) {
+                    continue;
+                }
+                Matcher matcher = PACK_PATTERN.matcher(name);
+                if (matcher.matches()) {
+                    int id = Integer.parseInt(matcher.group(1));
+                    if (!ids.contains(id)) {
+                        ids.add(id);
+                    }
+                }
+            }
+        }
+        return ids;
+    }
+
+    private void ensureMigrated() throws IOException {
+        ensureLoaded();
+        if (migrated) {
+            return;
+        }
+        migrated = true;
+
+        if (Files.isRegularFile(legacyMarker)) {
+            return;
+        }
+        if (!Files.isDirectory(blobsDir)) {
+            writeMarker();
+            return;
+        }
+
+        int packed = 0;
+        List<Path> toDelete = new ArrayList<>();
+        try (DirectoryStream<Path> dirs = Files.newDirectoryStream(blobsDir)) {
+            for (Path dir : dirs) {
+                if (!Files.isDirectory(dir)) {
+                    continue;
+                }
+                String prefix = dir.getFileName().toString();
+                if (prefix.length() != 2) {
+                    continue;
+                }
+                try (DirectoryStream<Path> files = Files.newDirectoryStream(dir)) {
+                    for (Path file : files) {
+                        if (!Files.isRegularFile(file)) {
+                            continue;
+                        }
+                        String hash = file.getFileName().toString();
+                        if (!HASH_PATTERN.matcher(hash).matches() || !hash.startsWith(prefix)) {
+                            continue;
+                        }
+                        if (index.containsKey(hash)) {
+                            toDelete.add(file);
+                            continue;
+                        }
+                        try {
+                            appendLegacyFile(file, hash);
+                            toDelete.add(file);
+                            packed++;
+                        } catch (Throwable t) {
+                            SaveGitMod.LOGGER.warn("迁移旧 blob 失败: {}", hash, t);
+                        }
+                    }
+                }
+            }
+        }
+
+        flush();
+        for (Path file : toDelete) {
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException e) {
+                SaveGitMod.LOGGER.warn("删除旧 blob 失败: {}", file, e);
+            }
+        }
+        deleteEmptyDirectories();
+        writeMarker();
+        if (packed > 0) {
+            SaveGitMod.LOGGER.info("已把 {} 个旧 blob 迁移进 pack 存储", packed);
+        }
+    }
+
+    private void appendLegacyFile(Path file, String hash) throws IOException {
+        long length = Files.size(file);
+        PackWriter writer = packWriter();
+        if (!writer.isEmpty() && writer.position + 8 + length > MAX_PACK_BYTES) {
+            rotatePack();
+            writer = packWriter();
+        }
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
+            writer.appendStream(hash, in, length, sha256());
+        }
+    }
+
+    private void deleteEmptyDirectories() {
+        if (!Files.isDirectory(blobsDir)) {
+            return;
+        }
+        try (DirectoryStream<Path> dirs = Files.newDirectoryStream(blobsDir)) {
+            for (Path dir : dirs) {
+                if (!Files.isDirectory(dir)) {
+                    continue;
+                }
+                try (DirectoryStream<Path> files = Files.newDirectoryStream(dir)) {
+                    if (!files.iterator().hasNext()) {
+                        Files.deleteIfExists(dir);
+                    }
+                }
+            }
+        } catch (IOException ignored) {
+        }
+    }
+
+    private void writeMarker() {
+        try {
+            Files.createDirectories(packsDir);
+            Path temp = legacyMarker.resolveSibling(legacyMarker.getFileName() + ".tmp");
+            Files.writeString(temp, "ok\n", StandardCharsets.UTF_8);
+            moveAtomic(temp, legacyMarker);
+        } catch (IOException e) {
+            SaveGitMod.LOGGER.warn("写入 blob 迁移标记失败", e);
+        }
+    }
+
+    private byte[] loadFromPack(BlobLocation location) throws IOException {
+        if (location.length > Integer.MAX_VALUE - 8) {
+            throw new IOException("blob 过大: " + location.length);
+        }
+        if (currentPack != null && currentPack.id == location.packId) {
+            currentPack.flushData();
+        }
+        FileChannel channel = readChannel(location.packId);
+        ByteBuffer buffer = ByteBuffer.allocate((int) location.length);
+        long position = location.offset;
+        while (buffer.hasRemaining()) {
+            int read = channel.read(buffer, position);
+            if (read < 0) {
+                throw new EOFException("pack 数据被截断");
+            }
+            position += read;
+        }
+        return buffer.array();
+    }
+
+    private void copyFromPack(BlobLocation location, Path target) throws IOException {
+        if (currentPack != null && currentPack.id == location.packId) {
+            currentPack.flushData();
+        }
+        FileChannel channel = readChannel(location.packId);
+        try (OutputStream out = Files.newOutputStream(target)) {
+            long position = location.offset;
+            long remaining = location.length;
+            byte[] buffer = new byte[COPY_BUFFER_SIZE];
+
+            while (remaining > 0) {
+                int toRead = (int) Math.min(buffer.length, remaining);
+                ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, toRead);
+                int read = channel.read(byteBuffer, position);
+                if (read < 0) {
+                    throw new EOFException("pack 数据被截断");
+                }
+                out.write(buffer, 0, read);
+                position += read;
+                remaining -= read;
+            }
+        }
+    }
+
+    private FileChannel readChannel(int packId) throws IOException {
+        FileChannel channel = readChannels.get(packId);
+        if (channel == null) {
+            channel = FileChannel.open(packPath(packId), StandardOpenOption.READ);
+            readChannels.put(packId, channel);
+        }
+        return channel;
+    }
+
+    private Path packPath(int packId) {
+        return packsDir.resolve(String.format("pack-%06d.pack", packId));
+    }
+
+    private Path packIndexPath(int packId) {
+        return packsDir.resolve(String.format("pack-%06d.idx", packId));
+    }
+
+    private Path legacyPath(String hash) {
         if (hash == null || hash.length() < 2) {
             throw new IllegalArgumentException("哈希值过短: " + hash);
         }
         return blobsDir.resolve(hash.substring(0, 2)).resolve(hash);
     }
 
-    private static void copyFile(Path source, Path target) throws IOException {
-        try (InputStream in = Files.newInputStream(source);
-             OutputStream out = Files.newOutputStream(target)) {
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = in.read(buffer)) > 0) {
-                out.write(buffer, 0, read);
+    private static MessageDigest sha256() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void moveAtomic(Path source, Path target) throws IOException {
+        try {
+            Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException | UnsupportedOperationException e) {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private record BlobLocation(int packId, long offset, long length) {
+    }
+
+    private final class PackWriter {
+        private final int id;
+        private final FileChannel channel;
+        private final TreeMap<String, BlobLocation> entries = new TreeMap<>();
+        private long position;
+
+        private PackWriter(int id) throws IOException {
+            this.id = id;
+            this.channel = FileChannel.open(packPath(id),
+                    StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
+            this.position = channel.size();
+            channel.position(position);
+        }
+
+        private boolean isEmpty() {
+            return entries.isEmpty();
+        }
+
+        private void append(String hash, byte[] data) throws IOException {
+            long start = position;
+            try {
+                writeLong(data.length);
+                long offset = position;
+                writeFully(ByteBuffer.wrap(data));
+                position += data.length;
+
+                BlobLocation location = new BlobLocation(id, offset, data.length);
+                entries.put(hash, location);
+                index.put(hash, location);
+            } catch (IOException e) {
+                channel.truncate(start);
+                channel.position(start);
+                position = start;
+                throw e;
             }
         }
+
+        private void appendStream(String hash, InputStream in, long length, MessageDigest digest)
+                throws IOException {
+            long start = position;
+            try {
+                writeLong(length);
+                long offset = position;
+                byte[] buffer = new byte[COPY_BUFFER_SIZE];
+                long remaining = length;
+
+                while (remaining > 0) {
+                    int toRead = (int) Math.min(buffer.length, remaining);
+                    int read = in.read(buffer, 0, toRead);
+                    if (read < 0) {
+                        throw new IOException("文件在快照期间变短: " + hash);
+                    }
+                    digest.update(buffer, 0, read);
+                    writeFully(ByteBuffer.wrap(buffer, 0, read));
+                    position += read;
+                    remaining -= read;
+                }
+                if (in.read() != -1) {
+                    throw new IOException("文件在快照期间变长: " + hash);
+                }
+
+                String actual = toHex(digest.digest());
+                if (!actual.equals(hash)) {
+                    throw new IOException("文件在快照期间发生变化: " + hash);
+                }
+
+                BlobLocation location = new BlobLocation(id, offset, length);
+                entries.put(hash, location);
+                index.put(hash, location);
+            } catch (IOException e) {
+                channel.truncate(start);
+                channel.position(start);
+                position = start;
+                throw e;
+            }
+        }
+
+        private void writeLong(long value) throws IOException {
+            ByteBuffer buffer = ByteBuffer.allocate(8);
+            buffer.putLong(value);
+            buffer.flip();
+            writeFully(buffer);
+            position += 8;
+        }
+
+        private void writeFully(ByteBuffer buffer) throws IOException {
+            while (buffer.hasRemaining()) {
+                channel.write(buffer);
+            }
+        }
+
+        private void flushData() throws IOException {
+            channel.force(false);
+        }
+
+        private void writeIndex() throws IOException {
+            Path indexFile = packIndexPath(id);
+            Path temp = indexFile.resolveSibling(indexFile.getFileName() + ".tmp");
+            StringBuilder builder = new StringBuilder(entries.size() * 80);
+            for (Map.Entry<String, BlobLocation> entry : entries.entrySet()) {
+                BlobLocation location = entry.getValue();
+                builder.append(entry.getKey()).append(' ')
+                        .append(location.offset()).append(' ')
+                        .append(location.length()).append('\n');
+            }
+            Files.writeString(temp, builder.toString(), StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            moveAtomic(temp, indexFile);
+        }
+
+        private void finish() throws IOException {
+            try {
+                flushData();
+                writeIndex();
+            } finally {
+                channel.close();
+            }
+        }
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(Character.forDigit((value >> 4) & 0x0F, 16));
+            builder.append(Character.forDigit(value & 0x0F, 16));
+        }
+        return builder.toString();
     }
 }

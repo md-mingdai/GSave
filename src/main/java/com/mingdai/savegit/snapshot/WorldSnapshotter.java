@@ -38,6 +38,7 @@ public final class WorldSnapshotter {
     }
 
     private Commit takeSnapshotLocked(String message, Settings settings) throws IOException {
+        try {
         Path worldRoot = repo.getWorldRoot();
         Manifest manifest = new Manifest();
         Set<String> storedWholeFiles = new HashSet<>();
@@ -58,6 +59,7 @@ public final class WorldSnapshotter {
             snapshotPlayerData(manifest, worldRoot, storedWholeFiles);
         }
 
+        repo.getBlobStore().flush();
         String manifestId = repo.saveManifest(manifest);
         String parentId = repo.readHead();
         Commit parent = parentId == null ? null : repo.getCommit(parentId);
@@ -75,6 +77,9 @@ public final class WorldSnapshotter {
         repo.writeHead(commit.id);
         repo.cleanupOldSnapshots(settings.maxSnapshots());
         return commit;
+        } finally {
+            repo.getBlobStore().close();
+        }
     }
 
     private void snapshotMcaFile(Manifest manifest, Path worldRoot,

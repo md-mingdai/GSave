@@ -21,35 +21,39 @@ public final class WorldRestorer {
     }
 
     public void restore(Commit commit) throws IOException {
-        Manifest manifest = repo.getManifest(commit.manifestId);
-        if (manifest == null) {
-            throw new IOException("找不到快照清单: " + commit.manifestId);
+        try {
+            Manifest manifest = repo.getManifest(commit.manifestId);
+            if (manifest == null) {
+                throw new IOException("找不到快照清单: " + commit.manifestId);
+            }
+
+            Collection<Manifest.FileEntry> entries = manifest.getAllEntries();
+            RestoreProgress.begin(entries.size());
+            int index = 0;
+
+            for (Manifest.FileEntry entry : entries) {
+                if (entry.path == null || entry.path.isEmpty()) {
+                    throw new IOException("快照中存在空文件路径");
+                }
+                RestoreProgress.startFile(index, entry.path);
+
+                Path target = worldRoot.resolve(entry.path).normalize();
+                if (!target.startsWith(worldRoot)) {
+                    throw new IOException("非法的快照路径: " + entry.path);
+                }
+
+                if (entry.isMca()) {
+                    restoreMcaFile(entry, target);
+                } else if (entry.isWhole()) {
+                    restoreWholeFile(entry, target);
+                }
+                RestoreProgress.completeFile();
+                index++;
+            }
+            RestoreProgress.finish();
+        } finally {
+            repo.getBlobStore().close();
         }
-
-        Collection<Manifest.FileEntry> entries = manifest.getAllEntries();
-        RestoreProgress.begin(entries.size());
-        int index = 0;
-
-        for (Manifest.FileEntry entry : entries) {
-            if (entry.path == null || entry.path.isEmpty()) {
-                throw new IOException("快照中存在空文件路径");
-            }
-            RestoreProgress.startFile(index, entry.path);
-
-            Path target = worldRoot.resolve(entry.path).normalize();
-            if (!target.startsWith(worldRoot)) {
-                throw new IOException("非法的快照路径: " + entry.path);
-            }
-
-            if (entry.isMca()) {
-                restoreMcaFile(entry, target);
-            } else if (entry.isWhole()) {
-                restoreWholeFile(entry, target);
-            }
-            RestoreProgress.completeFile();
-            index++;
-        }
-        RestoreProgress.finish();
     }
 
     private void restoreMcaFile(Manifest.FileEntry entry, Path target) throws IOException {

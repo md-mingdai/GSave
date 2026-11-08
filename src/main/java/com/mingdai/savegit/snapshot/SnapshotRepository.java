@@ -41,7 +41,7 @@ public final class SnapshotRepository {
         this.manifestsDir = saveGitDir.resolve("manifests");
         this.patchesDir = saveGitDir.resolve("patches");
         this.headFile = saveGitDir.resolve("HEAD");
-        this.blobStore = new BlobStore(saveGitDir.resolve("blobs"));
+        this.blobStore = new BlobStore(saveGitDir);
     }
 
     public Path getWorldRoot() {

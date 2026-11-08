@@ -24,6 +24,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     private static final int ROW_TOP = 44;
     private static final int BUTTON_ROWS = 4;
     private static final int PANEL_TOP = ROW_TOP + BUTTON_ROWS * (BUTTON_HEIGHT + ROW_GAP) + 8;
+    private static final int PANEL_BOTTOM_MARGIN = 10;
     private static final int LABEL_COLOR = 0xFF9A9A9A;
     private static final int VALUE_COLOR = 0xFFFFFFFF;
 
@@ -60,7 +61,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
 
     private void addLeftButton(int x, int y, String text, Runnable action) {
         ButtonGeneric button = new ButtonGeneric(x, y, BUTTON_WIDTH, BUTTON_HEIGHT, text);
-        button.setTextCentered(false);
+        button.setTextCentered(true);
         this.addButton(button, (mouseButton, button1) -> action.run());
     }
 
@@ -101,12 +102,14 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
         boolean snapshotActive = SnapshotStatus.isActive();
         int lines = 5 + (snapshotActive ? 1 : 0) + (this.statusMessage.isEmpty() ? 0 : 1);
         int panelHeight = 10 + lines * 12 + 6;
-        drawContext.fill(LEFT, PANEL_TOP, this.width - LEFT, PANEL_TOP + panelHeight, 0x70000000);
-        drawContext.fill(LEFT, PANEL_TOP, this.width - LEFT, PANEL_TOP + 1, 0x40FFFFFF);
-        drawContext.fill(LEFT, PANEL_TOP + panelHeight - 1, this.width - LEFT, PANEL_TOP + panelHeight, 0x40FFFFFF);
+        // 信息栏固定贴底，窗口过矮时才退回按钮下方
+        int panelTop = Math.max(PANEL_TOP, this.height - PANEL_BOTTOM_MARGIN - panelHeight);
+        drawContext.fill(LEFT, panelTop, this.width - LEFT, panelTop + panelHeight, 0x70000000);
+        drawContext.fill(LEFT, panelTop, this.width - LEFT, panelTop + 1, 0x40FFFFFF);
+        drawContext.fill(LEFT, panelTop + panelHeight - 1, this.width - LEFT, panelTop + panelHeight, 0x40FFFFFF);
 
         int x = LEFT + 8;
-        int y = PANEL_TOP + 7;
+        int y = panelTop + 7;
 
         String world = this.worldAvailable ? this.worldName : "未加载单人世界";
         this.drawLabelValue(drawContext, x, y, "当前世界：", world,
@@ -150,7 +153,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
         String keyName = SaveGitKeyBindings.OPEN_MAIN_MENU.getBoundKeyLocalizedText().getString();
         this.drawStringWithShadow(drawContext,
                 "按键：" + keyName + "    可在 选项 - 控制 - 按键绑定 中修改",
-                LEFT, this.height - 20, 0xFF9A9A9A);
+                LEFT, panelTop - 12, 0xFF9A9A9A);
     }
 
     private void drawLabelValue(DrawContext drawContext, int x, int y, String label, String value, int valueColor) {

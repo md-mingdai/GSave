@@ -61,7 +61,7 @@ public final class SaveGitSnapshotManager {
     public static void manualSnapshot() {
         MinecraftClient client = MinecraftClient.getInstance();
         if (!SaveGitConfigs.isEnabled()) {
-            InfoUtils.sendVanillaMessage(Text.literal("SaveGit 已关闭"));
+            InfoUtils.sendVanillaMessage(Text.literal("GSave 已关闭"));
             return;
         }
         takeSnapshotAsync(client, "手动快照");
@@ -244,7 +244,7 @@ public final class SaveGitSnapshotManager {
             } finally {
                 SnapshotStatus.end();
             }
-        }, "SaveGit-Snapshot");
+        }, "GSave-Snapshot");
         thread.setDaemon(true);
         thread.start();
     }
@@ -324,7 +324,7 @@ public final class SaveGitSnapshotManager {
                         }
                         SnapshotStatus.end();
                         client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir));
-                    }, "SaveGit-SafetySnapshot");
+                    }, "GSave-SafetySnapshot");
                     thread.setDaemon(true);
                     thread.start();
                 });
@@ -432,7 +432,7 @@ public final class SaveGitSnapshotManager {
                 SaveGitMod.LOGGER.error("恢复快照失败", t);
                 RestoreProgress.fail(t.getMessage());
             }
-        }, "SaveGit-Restore").start();
+        }, "GSave-Restore").start();
     }
 
     private static void onServerStopping(MinecraftServer server) {

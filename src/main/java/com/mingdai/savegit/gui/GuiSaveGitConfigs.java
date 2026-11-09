@@ -21,7 +21,7 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
     public List<ConfigOptionWrapper> getConfigs() {
         List<ConfigOptionWrapper> wrappers = new ArrayList<>();
         wrappers.add(new ConfigOptionWrapper(
-                "按键绑定请在 选项 - 控制 - 按键绑定 中修改 SaveGit 主界面热键"));
+                "按键绑定请在 选项 - 控制 - 按键绑定 中修改 GSave 主界面热键"));
 
         for (IConfigBase config : SaveGitConfigs.OPTIONS) {
             // 定时快照关闭时不显示间隔与自动停用阈值
@@ -53,7 +53,7 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
 
     @Override
     public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-        // 按 ESC 返回 SaveGit 主界面（正在编辑热键时保留 MaLiLib 的取消逻辑）
+        // 按 ESC 返回 GSave 主界面（正在编辑热键时保留 MaLiLib 的取消逻辑）
         if (keyCode == KeyCodes.KEY_ESCAPE && this.activeKeybindButton == null) {
             GuiBase.openGui(new GuiSaveGitMain());
             return true;

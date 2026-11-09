@@ -42,7 +42,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     public GuiSaveGitMain(Screen parentScreen) {
         this.parentScreen = parentScreen;
         this.setParent(parentScreen);
-        this.setTitle("SaveGit v" + SaveGitMod.MOD_VERSION + " 主菜单");
+        this.setTitle("GSave v" + SaveGitMod.MOD_VERSION + " 主菜单");
     }
 
     @Override
@@ -88,7 +88,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
             return;
         }
         if (!SaveGitConfigs.isEnabled()) {
-            this.statusMessage = "SaveGit 总开关已关闭";
+            this.statusMessage = "GSave 总开关已关闭";
             return;
         }
         SaveGitSnapshotManager.manualSnapshot();

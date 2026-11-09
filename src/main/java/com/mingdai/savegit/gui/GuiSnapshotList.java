@@ -42,7 +42,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     private int scrollOffset;
 
     public GuiSnapshotList() {
-        this.setTitle("SaveGit 快照列表");
+        this.setTitle("GSave 快照列表");
     }
 
     @Override
@@ -61,7 +61,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
 
     @Override
     public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-        // 按 ESC 返回 SaveGit 主界面
+        // 按 ESC 返回 GSave 主界面
         if (keyCode == KeyCodes.KEY_ESCAPE) {
             GuiBase.openGui(new GuiSaveGitMain());
             return true;
@@ -231,7 +231,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         if (deleteButtonHovered) {
             RenderUtils.drawHoverText(drawContext, mouseX, mouseY, List.of(
                     "正常游戏时不能删除快照",
-                    "退出游戏后可在单人游戏列表的「SaveGit 管理」中删除"));
+                    "退出游戏后可在单人游戏列表的「GSave 管理」中删除"));
         }
 
         if (maxScroll > 0) {

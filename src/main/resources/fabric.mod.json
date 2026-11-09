@@ -2,16 +2,16 @@
   "schemaVersion": 1,
   "id": "savegit",
   "version": "${version}",
-  "name": "SaveGit",
+  "name": "GSave",
   "description": "为单人世界提供类 Git 的存档快照与回滚能力。",
   "authors": [
     "mingdai"
   ],
   "license": "GPL-3.0",
   "contact": {
-    "homepage": "https://github.com/md-mingdai/SaveGit",
-    "sources": "https://github.com/md-mingdai/SaveGit",
-    "issues": "https://github.com/md-mingdai/SaveGit/issues"
+    "homepage": "https://github.com/md-mingdai/GSave",
+    "sources": "https://github.com/md-mingdai/GSave",
+    "issues": "https://github.com/md-mingdai/GSave/issues"
   },
   "environment": "client",
   "entrypoints": {

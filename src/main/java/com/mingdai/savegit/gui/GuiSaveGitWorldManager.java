@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 离线存档管理界面：在单人游戏列表点击「SaveGit 管理」后打开。
+ * 离线存档管理界面：在单人游戏列表点击「GSave 管理」后打开。
  * 支持恢复和删除快照（含 rebase）。
  */
 public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
@@ -57,7 +57,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         this.worldDisplayName = worldDisplayName;
         this.returnScreen = returnScreen;
         this.setParent(returnScreen);
-        this.setTitle("SaveGit 存档管理 - " + worldDisplayName);
+        this.setTitle("GSave 存档管理 - " + worldDisplayName);
     }
 
     @Override
@@ -541,7 +541,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 return;
             }
             mc.execute(() -> beginExternalRestore(mc, worldDir, commit));
-        }, "SaveGit-SafetySnapshot").start();
+        }, "GSave-SafetySnapshot").start();
     }
 
     private static void beginExternalRestore(MinecraftClient mc, Path worldDir, Commit commit) {
@@ -559,6 +559,6 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             } catch (Throwable t) {
                 com.mingdai.savegit.snapshot.RestoreProgress.fail(t.getMessage());
             }
-        }, "SaveGit-ExternalRestore").start();
+        }, "GSave-ExternalRestore").start();
     }
 }

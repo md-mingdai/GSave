@@ -71,7 +71,7 @@ public final class SaveGitCommands {
 
     private static int help(CommandContext<FabricClientCommandSource> context) {
         context.getSource().sendFeedback(
-                Text.literal("SaveGit 命令帮助：").formatted(Formatting.GOLD));
+                Text.literal("GSave 命令帮助：").formatted(Formatting.GOLD));
         context.getSource().sendFeedback(commandLine(
                 "/snapshot create", "手动创建一次快照"));
         context.getSource().sendFeedback(commandLine(
@@ -94,7 +94,7 @@ public final class SaveGitCommands {
 
     private static int create(CommandContext<FabricClientCommandSource> context) {
         if (!SaveGitConfigs.isEnabled()) {
-            context.getSource().sendError(error("SaveGit 总开关已关闭"));
+            context.getSource().sendError(error("GSave 总开关已关闭"));
             return 0;
         }
         if (SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance()) == null) {
@@ -122,7 +122,7 @@ public final class SaveGitCommands {
             return 0;
         }
         if (!SaveGitConfigs.isEnabled()) {
-            context.getSource().sendError(error("SaveGit 总开关已关闭"));
+            context.getSource().sendError(error("GSave 总开关已关闭"));
             return 0;
         }
 

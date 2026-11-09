@@ -1,7 +1,7 @@
 {
-  "savegit.gui.title.configs": "SaveGit 设置",
-  "key.categories.savegit": "SaveGit",
-  "key.savegit.open_main_menu": "打开 SaveGit 主界面",
+  "savegit.gui.title.configs": "GSave 设置",
+  "key.categories.savegit": "GSave",
+  "key.savegit.open_main_menu": "打开 GSave 主界面",
 
   "savegit.config.generic.name.enabled": "总开关",
   "savegit.config.generic.prettyName.enabled": "总开关",

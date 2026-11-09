@@ -19,8 +19,8 @@ public class SnapshotHud implements IRenderer {
         MinecraftClient mc = MinecraftClient.getInstance();
         String label = SnapshotStatus.getLabel();
         String text = label.isEmpty()
-                ? "SaveGit 正在创建快照…"
-                : "SaveGit 正在创建快照…（" + label + "）";
+                ? "GSave 正在创建快照…"
+                : "GSave 正在创建快照…（" + label + "）";
 
         int width = mc.textRenderer.getWidth(text);
         int x = drawContext.getScaledWindowWidth() - width - 10;

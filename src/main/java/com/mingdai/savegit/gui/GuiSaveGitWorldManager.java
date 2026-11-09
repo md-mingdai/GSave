@@ -109,7 +109,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             return;
         }
 
-        Path saveGitDir = worldDir.resolve("savegit");
+        Path saveGitDir = SnapshotRepository.dataDir(worldDir);
         if (!Files.isDirectory(saveGitDir)) {
             this.commits = Collections.emptyList();
             this.screenshotIds = Collections.emptySet();
@@ -123,7 +123,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 : null;
 
         Set<String> shots = new HashSet<>();
-        Path shotsDir = worldDir.resolve("savegit").resolve("shots");
+        Path shotsDir = SnapshotRepository.dataDir(worldDir).resolve("shots");
         for (Commit commit : this.commits) {
             if (Files.isRegularFile(shotsDir.resolve(commit.id + ".png"))) {
                 shots.add(commit.id);
@@ -203,7 +203,8 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             drawContext.fill(thumbX - 1, thumbY - 1,
                     thumbX + THUMB_WIDTH + 1, thumbY + THUMB_HEIGHT + 1, 0xFF202020);
             if (hasShot) {
-                Path shotFile = worldDir.resolve("savegit").resolve("shots").resolve(commit.id + ".png");
+                Path shotFile = SnapshotRepository.dataDir(worldDir).resolve("shots")
+                        .resolve(commit.id + ".png");
                 SnapshotThumbnailCache.Entry thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
                 if (thumbnail != null) {
                     drawContext.drawTexture(RenderPipelines.GUI_TEXTURED, thumbnail.id(),
@@ -294,7 +295,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             if (this.screenshotIds.contains(rowCommit.id)
                     && mouseX >= thumbX && mouseX < thumbX + THUMB_WIDTH
                     && mouseY >= thumbY && mouseY < thumbY + THUMB_HEIGHT) {
-                Path shotFile = this.worldDir.resolve("savegit").resolve("shots")
+                Path shotFile = SnapshotRepository.dataDir(this.worldDir).resolve("shots")
                         .resolve(rowCommit.id + ".png");
                 GuiBase.openGui(new GuiScreenshotViewer(shotFile, rowCommit.id, this));
                 return true;

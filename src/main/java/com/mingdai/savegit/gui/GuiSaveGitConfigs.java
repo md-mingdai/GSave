@@ -14,7 +14,7 @@ import java.util.List;
 
 public class GuiSaveGitConfigs extends GuiConfigsBase {
     public GuiSaveGitConfigs() {
-        super(10, 50, SaveGitMod.MOD_ID, null, "savegit.gui.title.configs");
+        super(10, 50, SaveGitMod.MOD_ID, null, "gsave.gui.title.configs");
     }
 
     @Override

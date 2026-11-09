@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "savegit",
+  "id": "gsave",
   "version": "${version}",
   "name": "GSave",
   "description": "为单人世界提供类 Git 的存档快照与回滚能力。",
@@ -23,7 +23,7 @@
     ]
   },
   "mixins": [
-    "savegit.mixins.json"
+    "gsave.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.16.0",

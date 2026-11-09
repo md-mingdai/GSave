@@ -2,6 +2,7 @@ package com.mingdai.savegit.snapshot;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.mingdai.savegit.SaveGitMod;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -18,13 +19,16 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 存档内的 savegit 仓库：HEAD、commits、manifests、blobs、patches。
+ * 存档内的 GSave 仓库：HEAD、commits、manifests、blobs、patches。
  */
 public final class SnapshotRepository {
     private static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
             .create();
+
+    private static final String LEGACY_DATA_DIR_NAME = "savegit";
+    private static final Object MIGRATION_LOCK = new Object();
 
     private final Path worldRoot;
     private final Path saveGitDir;
@@ -36,12 +40,42 @@ public final class SnapshotRepository {
 
     public SnapshotRepository(Path worldRoot) {
         this.worldRoot = worldRoot.toAbsolutePath().normalize();
-        this.saveGitDir = this.worldRoot.resolve("savegit");
+        this.saveGitDir = dataDir(this.worldRoot);
         this.commitsDir = saveGitDir.resolve("commits");
         this.manifestsDir = saveGitDir.resolve("manifests");
         this.patchesDir = saveGitDir.resolve("patches");
         this.headFile = saveGitDir.resolve("HEAD");
         this.blobStore = new BlobStore(saveGitDir);
+    }
+
+    /**
+     * 返回世界内的数据目录；发现旧版 savegit/ 目录时自动迁移为 gsave/。
+     */
+    public static Path dataDir(Path worldRoot) {
+        Path dir = worldRoot.resolve(SaveGitMod.MOD_ID);
+
+        if (Files.isDirectory(dir)) {
+            return dir;
+        }
+
+        Path legacy = worldRoot.resolve(LEGACY_DATA_DIR_NAME);
+        if (!Files.isDirectory(legacy)) {
+            return dir;
+        }
+
+        synchronized (MIGRATION_LOCK) {
+            if (Files.isDirectory(dir)) {
+                return dir;
+            }
+            try {
+                Files.move(legacy, dir);
+                SaveGitMod.LOGGER.info("已迁移旧快照数据目录: {} -> {}", legacy, dir);
+                return dir;
+            } catch (IOException e) {
+                SaveGitMod.LOGGER.error("迁移旧快照数据目录失败: {}", legacy, e);
+                return legacy;
+            }
+        }
     }
 
     public Path getWorldRoot() {

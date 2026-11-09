@@ -1,5 +1,6 @@
 package com.mingdai.savegit.gui;
 
+import com.mingdai.savegit.SaveGitMod;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
@@ -65,7 +66,7 @@ public final class SnapshotThumbnailCache implements AutoCloseable {
 
             String path = (thumbnail ? "shots/thumb/" : "shots/full/")
                     + key + "_" + this.texturePrefix;
-            Identifier id = Identifier.of("savegit", path.toLowerCase(Locale.ROOT));
+            Identifier id = Identifier.of(SaveGitMod.MOD_ID, path.toLowerCase(Locale.ROOT));
             NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> "savegit_shot", image);
             MinecraftClient.getInstance().getTextureManager().registerTexture(id, texture);
             Entry entry = new Entry(id, image.getWidth(), image.getHeight());

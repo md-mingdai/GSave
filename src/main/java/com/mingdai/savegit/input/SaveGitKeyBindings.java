@@ -10,10 +10,10 @@ import org.lwjgl.glfw.GLFW;
  */
 public final class SaveGitKeyBindings {
     public static final KeyBinding OPEN_MAIN_MENU = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "key.savegit.open_main_menu",
+            "key.gsave.open_main_menu",
             InputUtil.Type.KEYSYM,
             GLFW.GLFW_KEY_H,
-            "key.categories.savegit"
+            "key.categories.gsave"
     ));
 
     private SaveGitKeyBindings() {

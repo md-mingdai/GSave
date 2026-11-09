@@ -523,7 +523,7 @@ public final class SaveGitSnapshotManager {
     }
 
     private static Path newTempShotPath(Path worldDir) {
-        return worldDir.resolve("savegit").resolve("shots")
+        return SnapshotRepository.dataDir(worldDir).resolve("shots")
                 .resolve("pending-" + System.currentTimeMillis() + "-" + SHOT_COUNTER.incrementAndGet() + ".png");
     }
 
@@ -532,7 +532,7 @@ public final class SaveGitSnapshotManager {
             if (temp == null || !Files.isRegularFile(temp)) {
                 return;
             }
-            Path dir = worldDir.resolve("savegit").resolve("shots");
+            Path dir = SnapshotRepository.dataDir(worldDir).resolve("shots");
             Files.createDirectories(dir);
             Files.move(temp, dir.resolve(commitId + ".png"), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {

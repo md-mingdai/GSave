@@ -9,7 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class SaveGitMod implements ClientModInitializer {
-    public static final String MOD_ID = "savegit";
+    public static final String MOD_ID = "gsave";
     public static final String MOD_NAME = "GSave";
     public static final String MOD_VERSION = "1.0.0";
     public static final String MC_VERSION = "1.21.8";

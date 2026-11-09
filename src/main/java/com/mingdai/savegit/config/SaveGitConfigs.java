@@ -13,14 +13,16 @@ import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.util.FileUtils;
 import fi.dy.masa.malilib.util.JsonUtils;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * 配置持久化到 config/savegit.json，由 MaLiLib 的 ConfigManager 负责加载与保存。
+ * 配置持久化到 config/gsave.json，由 MaLiLib 的 ConfigManager 负责加载与保存。
  */
 public final class SaveGitConfigs implements IConfigHandler {
     private static final String CONFIG_FILE_NAME = SaveGitMod.MOD_ID + ".json";
+    private static final String LEGACY_CONFIG_FILE_NAME = "savegit.json";
     private static final String GENERIC_KEY = SaveGitMod.MOD_ID + ".config.generic";
 
     public static final class Generic {
@@ -149,6 +151,7 @@ public final class SaveGitConfigs implements IConfigHandler {
 
     public static void loadFromFile() {
         Path configFile = FileUtils.getConfigDirectoryAsPath().resolve(CONFIG_FILE_NAME);
+        migrateLegacyConfig(configFile);
 
         if (Files.exists(configFile) && Files.isReadable(configFile)) {
             JsonElement element = JsonUtils.parseJsonFileAsPath(configFile);
@@ -159,6 +162,21 @@ public final class SaveGitConfigs implements IConfigHandler {
             } else {
                 SaveGitMod.LOGGER.error("无法读取配置文件: {}", configFile.toAbsolutePath());
             }
+        }
+    }
+
+    private static void migrateLegacyConfig(Path configFile) {
+        Path legacy = configFile.resolveSibling(LEGACY_CONFIG_FILE_NAME);
+
+        if (Files.exists(configFile) || !Files.exists(legacy)) {
+            return;
+        }
+
+        try {
+            Files.move(legacy, configFile);
+            SaveGitMod.LOGGER.info("已迁移旧配置文件: {} -> {}", legacy, configFile);
+        } catch (IOException e) {
+            SaveGitMod.LOGGER.warn("迁移旧配置文件失败: {}", legacy, e);
         }
     }
 

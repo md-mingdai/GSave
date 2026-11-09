@@ -98,7 +98,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                 : null;
 
         Set<String> shots = new HashSet<>();
-        Path shotsDir = worldDir.resolve("savegit").resolve("shots");
+        Path shotsDir = SnapshotRepository.dataDir(worldDir).resolve("shots");
         for (Commit commit : this.commits) {
             if (Files.isRegularFile(shotsDir.resolve(commit.id + ".png"))) {
                 shots.add(commit.id);
@@ -172,7 +172,8 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             drawContext.fill(thumbX - 1, thumbY - 1,
                     thumbX + THUMB_WIDTH + 1, thumbY + THUMB_HEIGHT + 1, 0xFF202020);
             if (hasShot) {
-                Path shotFile = this.worldDir.resolve("savegit").resolve("shots").resolve(commit.id + ".png");
+                Path shotFile = SnapshotRepository.dataDir(this.worldDir).resolve("shots")
+                        .resolve(commit.id + ".png");
                 SnapshotThumbnailCache.Entry thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
                 if (thumbnail != null) {
                     drawContext.drawTexture(RenderPipelines.GUI_TEXTURED, thumbnail.id(),
@@ -272,7 +273,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             if (this.screenshotIds.contains(this.commits.get(i).id) && this.worldDir != null
                     && mouseX >= thumbX && mouseX < thumbX + THUMB_WIDTH
                     && mouseY >= thumbY && mouseY < thumbY + THUMB_HEIGHT) {
-                Path shotFile = this.worldDir.resolve("savegit").resolve("shots")
+                Path shotFile = SnapshotRepository.dataDir(this.worldDir).resolve("shots")
                         .resolve(this.commits.get(i).id + ".png");
                 GuiBase.openGui(new GuiScreenshotViewer(shotFile, this.commits.get(i).id, this));
                 return true;

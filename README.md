@@ -70,10 +70,10 @@
 
 ## 存储结构
 
-所有数据位于世界目录下的 `savegit/`：
+所有数据位于世界目录下的 `gsave/`：
 
 ```
-<world>/savegit/
+<world>/gsave/
 ├── HEAD                # 当前最新提交
 ├── commits/<id>.json   # 提交元数据（父提交、manifest、时间、消息）
 ├── manifests/          # 文件清单（路径 → 内容哈希）
@@ -83,6 +83,8 @@
 │   └── pack-000000.idx
 └── shots/<id>.png      # 快照截图（断开世界快照不含截图）
 ```
+
+旧版本遗留的 `savegit/` 数据目录会在首次打开时自动迁移为 `gsave/`；旧配置文件 `config/savegit.json` 也会自动迁移为 `config/gsave.json`。
 
 旧版本遗留的 `blobs/` 松散文件会在首次使用时自动迁移进 packfile 并校验摘要后清理。
 

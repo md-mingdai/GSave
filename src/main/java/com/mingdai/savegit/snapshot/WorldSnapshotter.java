@@ -52,6 +52,7 @@ public final class WorldSnapshotter {
     private Commit takeSnapshotLocked(String message, Settings settings) throws IOException {
         try {
         repo.ensureWritableFormat();
+        long startedAt = System.currentTimeMillis();
         Path worldRoot = repo.getWorldRoot();
         Manifest manifest = new Manifest();
         Set<String> storedWholeFiles = new HashSet<>();
@@ -83,6 +84,7 @@ public final class WorldSnapshotter {
 
         Commit commit = Commit.create(parentId, manifestId, System.currentTimeMillis(),
                 message, settings.worldName(), settings.mcVersion());
+        commit.durationMs = Math.max(0L, System.currentTimeMillis() - startedAt);
 
         Patch patch = PatchGenerator.generate(commit.id, parentId, oldManifest, manifest);
         repo.savePatch(patch);

@@ -106,7 +106,9 @@ public final class SnapshotCardRenderer {
             messageX += font.getWidth("★") + 6;
         }
 
-        String message = L10n.commitMessage(commit.message);
+        String message = commit.note != null && !commit.note.isEmpty()
+                ? commit.note
+                : L10n.commitMessage(commit.message);
         if (message.isEmpty()) {
             message = L10n.tr("gsave.gui.value.no_message");
         }

@@ -144,6 +144,28 @@ public final class SnapshotRepository {
         writeStringAtomic(commitsDir.resolve(commit.id + ".json"), commit.toJson());
     }
 
+    /** 设置快照备注（不改变提交 id）。 */
+    public boolean setNote(String commitId, String note) throws IOException {
+        Commit commit = getCommit(commitId);
+        if (commit == null) {
+            return false;
+        }
+        commit.note = note == null ? "" : note;
+        saveCommit(commit);
+        return true;
+    }
+
+    /** 切换收藏状态；收藏的快照不会被自动清理。 */
+    public boolean setPinned(String commitId, boolean pinned) throws IOException {
+        Commit commit = getCommit(commitId);
+        if (commit == null) {
+            return false;
+        }
+        commit.pinned = pinned;
+        saveCommit(commit);
+        return true;
+    }
+
     public Manifest getManifest(String id) {
         if (id == null) {
             return null;
@@ -227,7 +249,7 @@ public final class SnapshotRepository {
         List<Commit> kept = new ArrayList<>();
         List<Commit> removed = new ArrayList<>();
         for (Commit commit : commits) {
-            if (kept.size() < max || commit.id.equals(head)) {
+            if (kept.size() < max || commit.id.equals(head) || commit.pinned) {
                 kept.add(commit);
                 keptManifests.add(commit.manifestId);
             } else {

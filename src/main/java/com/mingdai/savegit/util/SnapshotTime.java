@@ -45,4 +45,12 @@ public final class SnapshotTime {
     public static String full(long epochMillis) {
         return absolute(epochMillis) + " · " + relative(epochMillis);
     }
+
+    /** 秒为单位的耗时，保留一位小数；未知时返回空串。 */
+    public static String duration(long millis) {
+        if (millis < 0) {
+            return "";
+        }
+        return String.format(java.util.Locale.ROOT, "%.1f", millis / 1000.0);
+    }
 }

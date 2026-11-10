@@ -23,6 +23,10 @@ public final class Commit {
     public String message;
     public String worldName;
     public String mcVersion;
+    /** 以下字段不参与 id 哈希，可随时修改。 */
+    public String note = "";
+    public boolean pinned;
+    public long durationMs = -1L;
 
     public Commit() {
     }
@@ -43,6 +47,15 @@ public final class Commit {
     public String toJson() {
         JsonObject json = payloadJson();
         json.addProperty("id", id);
+        if (note != null && !note.isEmpty()) {
+            json.addProperty("note", note);
+        }
+        if (pinned) {
+            json.addProperty("pinned", true);
+        }
+        if (durationMs >= 0) {
+            json.addProperty("durationMs", durationMs);
+        }
         return GSON.toJson(json);
     }
 
@@ -72,6 +85,10 @@ public final class Commit {
         commit.message = getString(json, "message");
         commit.worldName = getString(json, "worldName");
         commit.mcVersion = getString(json, "mcVersion");
+        String note = getString(json, "note");
+        commit.note = note == null ? "" : note;
+        commit.pinned = json.has("pinned") && json.get("pinned").getAsBoolean();
+        commit.durationMs = json.has("durationMs") ? json.get("durationMs").getAsLong() : -1L;
         if (commit.id == null || commit.manifestId == null) {
             return null;
         }

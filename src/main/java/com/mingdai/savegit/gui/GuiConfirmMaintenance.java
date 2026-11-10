@@ -74,6 +74,8 @@ public class GuiConfirmMaintenance extends GuiSaveGitScreen {
         );
 
         int startY = this.height / 2 - lines.size() * 6 - 16;
+        com.mingdai.savegit.gui.theme.GuiTheme.drawDialogPanel(drawContext,
+                this.textRenderer, this.width / 2, startY, lines);
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             int color = i == 0 ? 0xFFFF6060 : 0xFFB0B0B0;

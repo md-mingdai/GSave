@@ -76,13 +76,20 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
 
         List<String> lines = new ArrayList<>();
         lines.add(L10n.tr("gsave.gui.message.restore_target", this.commit.shortId()));
-        lines.add(L10n.tr("gsave.gui.label.time", GuiSnapshotList.formatTime(this.commit.timestamp)));
+        lines.add(L10n.tr("gsave.gui.label.time",
+                com.mingdai.savegit.util.SnapshotTime.full(this.commit.timestamp)));
+        if (this.commit.durationMs >= 0) {
+            lines.add(L10n.tr("gsave.gui.label.duration",
+                    com.mingdai.savegit.util.SnapshotTime.duration(this.commit.durationMs)));
+        }
         lines.add(L10n.tr("gsave.gui.label.message", L10n.commitMessage(this.commit.message)));
         lines.add("");
         lines.add(L10n.tr("gsave.gui.message.safety_hint"));
         lines.add(L10n.tr("gsave.gui.message.restore_warning"));
 
         int startY = this.height / 2 - lines.size() * 6 - 26;
+        com.mingdai.savegit.gui.theme.GuiTheme.drawDialogPanel(drawContext,
+                this.textRenderer, this.width / 2, startY, lines);
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             int color = i == 0 ? 0xFFFFFFFF : 0xFFB0B0B0;

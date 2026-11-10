@@ -1,5 +1,6 @@
 package com.mingdai.savegit.gui;
 
+import com.mingdai.savegit.gui.theme.GuiTheme;
 import com.mingdai.savegit.snapshot.RestoreProgress;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
@@ -61,11 +62,13 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
         int barHeight = 12;
         int percent = RestoreProgress.getPercent();
 
+        GuiTheme.drawPanel(drawContext, barX - 16, barY - 16,
+                barX + barWidth + 16, this.height - 56);
         drawContext.fill(barX - 1, barY - 1, barX + barWidth + 1, barY + barHeight + 1, 0xFF000000);
-        drawContext.fill(barX, barY, barX + barWidth, barY + barHeight, 0xFF303030);
+        drawContext.fill(barX, barY, barX + barWidth, barY + barHeight, 0xFF1A1E23);
         int filled = barWidth * percent / 100;
         drawContext.fill(barX, barY, barX + filled, barY + barHeight,
-                failed ? 0xFFAA3333 : 0xFF3CB371);
+                failed ? GuiTheme.DANGER : GuiTheme.ACCENT);
 
         String progress = L10n.tr("gsave.progress.label.progress",
                 String.valueOf(RestoreProgress.getCompleted()),

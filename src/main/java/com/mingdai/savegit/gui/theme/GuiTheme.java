@@ -125,6 +125,19 @@ public final class GuiTheme {
         context.fill(x, barY, x + 4, barY + barHeight, 0xFFAAAAAA);
     }
 
+    public static void drawDialogPanel(DrawContext context, TextRenderer font,
+                                       int centerX, int startY, java.util.List<String> lines) {
+        int textWidth = 0;
+        for (String line : lines) {
+            textWidth = Math.max(textWidth, font.getWidth(line));
+        }
+        int x1 = centerX - textWidth / 2 - 18;
+        int x2 = centerX + textWidth / 2 + 18;
+        int y1 = startY - 12;
+        int y2 = startY + lines.size() * 12 + 10;
+        drawPanel(context, x1, y1, x2, y2);
+    }
+
     public static void drawEmptyState(DrawContext context, TextRenderer font,
                                       int centerX, int centerY, String title, String subtitle) {
         int width = Math.max(font.getWidth(title), font.getWidth(subtitle));

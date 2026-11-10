@@ -3,6 +3,7 @@ package com.mingdai.savegit.gui;
 import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.config.SnapshotPriority;
+import com.mingdai.savegit.gui.theme.GuiTheme;
 import com.mingdai.savegit.input.SaveGitKeyBindings;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
@@ -119,16 +120,16 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
-        this.drawStringWithShadow(drawContext, L10n.tr("gsave.gui.main.subtitle"), LEFT, 26, 0xFF808080);
+        GuiTheme.drawHeader(drawContext, 0, 0, this.width, 32);
+        this.drawStringWithShadow(drawContext, L10n.tr("gsave.gui.main.subtitle"),
+                LEFT, 22, GuiTheme.TEXT_DIM);
 
         boolean snapshotActive = SnapshotStatus.isActive();
         int lines = 5 + (snapshotActive ? 1 : 0) + (this.statusMessage.isEmpty() ? 0 : 1);
         int panelHeight = 10 + lines * 12 + 6;
         // 信息栏固定贴底，窗口过矮时才退回按钮下方
         int panelTop = Math.max(PANEL_TOP, this.height - PANEL_BOTTOM_MARGIN - panelHeight);
-        drawContext.fill(LEFT, panelTop, this.width - LEFT, panelTop + panelHeight, 0x70000000);
-        drawContext.fill(LEFT, panelTop, this.width - LEFT, panelTop + 1, 0x40FFFFFF);
-        drawContext.fill(LEFT, panelTop + panelHeight - 1, this.width - LEFT, panelTop + panelHeight, 0x40FFFFFF);
+        GuiTheme.drawPanel(drawContext, LEFT, panelTop, this.width - LEFT, panelTop + panelHeight);
 
         int x = LEFT + 8;
         int y = panelTop + 7;

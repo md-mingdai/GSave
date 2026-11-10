@@ -218,8 +218,8 @@ public final class BlobStore implements AutoCloseable {
         int newPacks = 0;
         java.util.List<Integer> writtenPackIds = new java.util.ArrayList<>();
 
+        PackWriter writer = null;
         try {
-            PackWriter writer = null;
             for (java.util.Map.Entry<String, BlobLocation> entry : snapshot.entrySet()) {
                 String hash = entry.getKey();
                 BlobLocation location = entry.getValue();
@@ -246,8 +246,17 @@ public final class BlobStore implements AutoCloseable {
                 writer.finish();
                 writtenPackIds.add(writer.id);
                 newPacks++;
+                writer = null;
             }
         } catch (IOException e) {
+            if (writer != null) {
+                try {
+                    writer.channel.close();
+                } catch (IOException ignored) {
+                }
+                deleteQuietly(packPath(writer.id));
+                deleteQuietly(packIndexPath(writer.id));
+            }
             for (int id : writtenPackIds) {
                 deleteQuietly(packPath(id));
                 deleteQuietly(packIndexPath(id));

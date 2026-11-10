@@ -22,8 +22,7 @@ public final class RepositoryGc {
     }
 
     public static Result collect(Path worldRoot, BiConsumer<Integer, String> progress)
-            throws IOException {
-        SnapshotRepository repo = new SnapshotRepository(worldRoot);
+            throws IOException {        SnapshotRepository repo = new SnapshotRepository(worldRoot);
         repo.ensureWritableFormat();
         List<Commit> commits = repo.listCommits();
 
@@ -71,5 +70,19 @@ public final class RepositoryGc {
         progress.accept(100, L10n.tr("gsave.gc.log.done"));
         return new Result(repack.freedBytes(), repack.keptBlobs(), repack.removedBlobs(),
                 repack.newPacks(), orphanFiles);
+    }
+
+    /** 后台静默回收（删除快照/自动清理后调用），与快照创建共用一把锁。 */
+    public static void collectQuietAsync(Path worldRoot) {
+        Thread thread = new Thread(() -> {
+            try {
+                WorldSnapshotter.runLocked(() -> collect(worldRoot, (percent, message) -> {
+                }));
+            } catch (Exception e) {
+                com.mingdai.savegit.SaveGitMod.LOGGER.warn("后台回收未引用数据失败", e);
+            }
+        }, "GSave-Gc");
+        thread.setDaemon(true);
+        thread.start();
     }
 }

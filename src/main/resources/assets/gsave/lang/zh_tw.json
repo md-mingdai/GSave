@@ -131,6 +131,8 @@
   "gsave.gui.label.note": "備註",
   "gsave.message.note_failed": "備註儲存失敗：%s",
   "gsave.message.snapshot_unchanged": "世界沒有變化，已跳過本次快照",
+  "gsave.message.gc_started": "正在背景回收未引用資料…",
+  "gsave.message.gc_finished": "已回收 %s 空間",
   "gsave.button.compare": "比對",
   "gsave.button.back_to_world_list": "返回世界清單",
   "gsave.gui.message.compare_hint": "依序點擊兩個快照進行比對",

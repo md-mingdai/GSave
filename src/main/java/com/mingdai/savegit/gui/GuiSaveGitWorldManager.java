@@ -316,21 +316,22 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
             this.safetyCheckBox = new com.mingdai.savegit.gui.WidgetCheckBoxSimple(
                     0, 0, L10n.tr("gsave.gui.checkbox.safety_snapshot"), true);
+            int panelBottom = this.panelBottom();
             this.safetyCheckBox.setPosition(
-                    this.width / 2 - this.safetyCheckBox.getWidth() / 2, this.height / 2 - 6);
+                    this.width / 2 - this.safetyCheckBox.getWidth() / 2, panelBottom + 10);
             this.addWidget(this.safetyCheckBox);
 
             this.regionBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_region"),
-                    this.width / 2 - 130, this.height / 2 + 12);
+                    this.width / 2 - 130, panelBottom + 28);
             this.entitiesBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_entities"),
-                    this.width / 2 - 4, this.height / 2 + 12);
+                    this.width / 2 - 4, panelBottom + 28);
             this.poiBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_poi"),
-                    this.width / 2 - 130, this.height / 2 + 28);
+                    this.width / 2 - 130, panelBottom + 44);
             this.otherBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_other"),
-                    this.width / 2 - 4, this.height / 2 + 28);
+                    this.width / 2 - 4, panelBottom + 44);
 
             int buttonWidth = 100;
-            int y = this.height / 2 + 52;
+            int y = panelBottom + 68;
             this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
                             L10n.tr("gsave.button.confirm_restore")),
                     (button, mouseButton) -> {
@@ -375,10 +376,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             return box;
         }
 
-        @Override
-        protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-            super.drawContents(drawContext, mouseX, mouseY, partialTicks);
-
+        private List<String> buildLines() {
             List<String> lines = new ArrayList<>();
             lines.add(L10n.tr("gsave.gui.message.restore_target", this.commit.shortId()));
             lines.add(L10n.tr("gsave.gui.label.time",
@@ -396,8 +394,24 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             lines.add("");
             lines.add(L10n.tr("gsave.gui.message.safety_hint"));
             lines.add(L10n.tr("gsave.gui.message.restore_warning_external"));
+            return lines;
+        }
 
-            int startY = this.height / 2 - lines.size() * 6 - 26;
+        private int panelStartY() {
+            int count = this.buildLines().size();
+            return this.height / 2 - count * 6 - 26;
+        }
+
+        private int panelBottom() {
+            return this.panelStartY() + this.buildLines().size() * 12 + 10;
+        }
+
+        @Override
+        protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+            super.drawContents(drawContext, mouseX, mouseY, partialTicks);
+
+            List<String> lines = this.buildLines();
+            int startY = this.panelStartY();
             com.mingdai.savegit.gui.theme.GuiTheme.drawDialogPanel(drawContext,
                     this.textRenderer, this.width / 2, startY, lines);
             for (int i = 0; i < lines.size(); i++) {
@@ -491,8 +505,10 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
         private void performDelete() {
             SnapshotRepository repo = new SnapshotRepository(this.worldDir);
+            boolean deleted = false;
             try {
-                if (repo.deleteCommit(this.commit.id)) {
+                deleted = repo.deleteCommit(this.commit.id);
+                if (deleted) {
                     InfoUtils.sendVanillaMessage(L10n.text(
                             "gsave.message.snapshot_deleted", this.commit.shortId()));
                 } else {
@@ -503,10 +519,32 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 InfoUtils.sendVanillaMessage(
                         L10n.text("gsave.message.delete_failed", e.getMessage()));
             }
+            if (deleted) {
+                startReclaim(this.worldDir);
+            }
             // 删除后刷新并回到存档管理列表，而不是退回主菜单
             GuiBase.openGui(new GuiSaveGitWorldManager(
                     this.worldDir, this.parent.worldDisplayName, this.parent.returnScreen));
         }
+    }
+
+    private static void startReclaim(Path worldDir) {
+        InfoUtils.sendVanillaMessage(L10n.text("gsave.message.gc_started"));
+        Thread thread = new Thread(() -> {
+            try {
+                com.mingdai.savegit.snapshot.RepositoryGc.Result result =
+                        com.mingdai.savegit.snapshot.RepositoryGc.collect(worldDir,
+                                (percent, message) -> {
+                                });
+                InfoUtils.sendVanillaMessage(L10n.text("gsave.message.gc_finished",
+                        com.mingdai.savegit.snapshot.RepositoryMaintenance.formatBytes(
+                                result.freedBytes())));
+            } catch (Throwable t) {
+                com.mingdai.savegit.SaveGitMod.LOGGER.warn("删除后回收空间失败", t);
+            }
+        }, "GSave-Gc");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private static void startExternalRestore(MinecraftClient mc, Path worldDir, Commit commit,

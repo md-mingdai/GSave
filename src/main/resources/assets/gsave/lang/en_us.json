@@ -131,6 +131,8 @@
   "gsave.gui.label.note": "Note",
   "gsave.message.note_failed": "Failed to save note: %s",
   "gsave.message.snapshot_unchanged": "No changes detected; snapshot skipped",
+  "gsave.message.gc_started": "Reclaiming unreferenced data in background…",
+  "gsave.message.gc_finished": "Reclaimed %s",
   "gsave.button.compare": "Compare",
   "gsave.button.back_to_world_list": "Back to World List",
   "gsave.gui.message.compare_hint": "Click two snapshots to compare them",

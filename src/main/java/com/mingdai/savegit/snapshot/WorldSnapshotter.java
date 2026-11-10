@@ -103,7 +103,11 @@ public final class WorldSnapshotter {
         repo.savePatch(patch);
         repo.saveCommit(commit);
         repo.writeHead(commit.id);
-        repo.cleanupOldSnapshots(settings.maxSnapshots(), settings.protectManual());
+        int removed = repo.cleanupOldSnapshots(settings.maxSnapshots(), settings.protectManual());
+        if (removed > 0) {
+            // 自动清理删除了旧提交：后台回收不再被引用的数据块
+            RepositoryGc.collectQuietAsync(worldRoot);
+        }
         return commit;
         } finally {
             repo.getBlobStore().close();

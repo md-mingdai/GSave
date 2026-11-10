@@ -251,6 +251,11 @@ public final class SaveGitCommands {
                 SaveGitConfigs.maxSnapshots(), SaveGitConfigs.protectManualSnapshots());
         context.getSource().sendFeedback(L10n.text("gsave.command.prune_done",
                 String.valueOf(removed)).formatted(Formatting.GREEN));
+        if (removed > 0) {
+            context.getSource().sendFeedback(
+                    L10n.text("gsave.message.gc_started").formatted(Formatting.GRAY));
+            com.mingdai.savegit.snapshot.RepositoryGc.collectQuietAsync(worldDir);
+        }
         return 1;
     }
 

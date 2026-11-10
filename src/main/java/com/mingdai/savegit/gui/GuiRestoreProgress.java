@@ -74,7 +74,7 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
         int percent = RestoreProgress.getPercent();
 
         GuiTheme.drawPanel(drawContext, barX - 16, barY - 16,
-                barX + barWidth + 16, this.height - 56);
+                barX + barWidth + 16, this.height - 78);
         drawContext.fill(barX - 1, barY - 1, barX + barWidth + 1, barY + barHeight + 1, 0xFF000000);
         drawContext.fill(barX, barY, barX + barWidth, barY + barHeight, 0xFF1A1E23);
         int filled = barWidth * percent / 100;

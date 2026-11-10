@@ -27,16 +27,17 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
     public void initGui() {
         super.initGui();
 
+        int checkboxY = this.panelBottom() + 12;
         this.safetyCheckBox = new WidgetCheckBoxSimple(0, 0,
                 L10n.tr("gsave.gui.checkbox.safety_snapshot"), true);
         this.safetyCheckBox.setPosition(
-                this.width / 2 - this.safetyCheckBox.getWidth() / 2, this.height / 2 + 10);
+                this.width / 2 - this.safetyCheckBox.getWidth() / 2, checkboxY);
         this.safetyCheckBox.setChangeListener(
                 () -> this.createSafetySnapshot = this.safetyCheckBox.isChecked());
         this.addWidget(this.safetyCheckBox);
 
         int buttonWidth = 100;
-        int y = this.height / 2 + 42;
+        int y = checkboxY + 28;
         this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
                         L10n.tr("gsave.button.confirm_restore")),
                 (button, mouseButton) -> {
@@ -70,10 +71,7 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         }
     }
 
-    @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
-        super.drawContents(drawContext, mouseX, mouseY, partialTicks);
-
+    private List<String> buildLines() {
         List<String> lines = new ArrayList<>();
         lines.add(L10n.tr("gsave.gui.message.restore_target", this.commit.shortId()));
         lines.add(L10n.tr("gsave.gui.label.time",
@@ -91,8 +89,24 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         lines.add("");
         lines.add(L10n.tr("gsave.gui.message.safety_hint"));
         lines.add(L10n.tr("gsave.gui.message.restore_warning"));
+        return lines;
+    }
 
-        int startY = this.height / 2 - lines.size() * 6 - 26;
+    private int panelStartY() {
+        int count = this.buildLines().size();
+        return this.height / 2 - count * 6 - 26;
+    }
+
+    private int panelBottom() {
+        return this.panelStartY() + this.buildLines().size() * 12 + 10;
+    }
+
+    @Override
+    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+        super.drawContents(drawContext, mouseX, mouseY, partialTicks);
+
+        List<String> lines = this.buildLines();
+        int startY = this.panelStartY();
         com.mingdai.savegit.gui.theme.GuiTheme.drawDialogPanel(drawContext,
                 this.textRenderer, this.width / 2, startY, lines);
         for (int i = 0; i < lines.size(); i++) {

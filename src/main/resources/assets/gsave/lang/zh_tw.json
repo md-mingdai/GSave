@@ -124,6 +124,13 @@
   "gsave.error.illegal_path": "非法的快照路徑: %s",
   "gsave.error.missing_hash": "快照缺少檔案雜湊: %s",
 
+  "gsave.error.repo_too_new": "倉庫格式版本 %s 高於目前支援的版本，請升級 GSave",
+  "gsave.time.just_now": "剛剛",
+  "gsave.time.minutes_ago": "%s 分鐘前",
+  "gsave.time.hours_ago": "%s 小時前",
+  "gsave.time.days_ago": "%s 天前",
+  "gsave.gui.value.no_message": "（無訊息）",
+
   "gsave.snapshot.reason.manual": "手動快照",
   "gsave.snapshot.reason.scheduled": "定時快照",
   "gsave.snapshot.reason.baseline": "世界載入基準",

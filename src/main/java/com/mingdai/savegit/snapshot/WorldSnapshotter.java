@@ -39,6 +39,7 @@ public final class WorldSnapshotter {
 
     private Commit takeSnapshotLocked(String message, Settings settings) throws IOException {
         try {
+        repo.ensureWritableFormat();
         Path worldRoot = repo.getWorldRoot();
         Manifest manifest = new Manifest();
         Set<String> storedWholeFiles = new HashSet<>();

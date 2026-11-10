@@ -37,6 +37,7 @@ public final class SnapshotRepository {
     private final Path patchesDir;
     private final Path headFile;
     private final BlobStore blobStore;
+    private final int formatVersion;
 
     public SnapshotRepository(Path worldRoot) {
         this.worldRoot = worldRoot.toAbsolutePath().normalize();
@@ -45,7 +46,21 @@ public final class SnapshotRepository {
         this.manifestsDir = saveGitDir.resolve("manifests");
         this.patchesDir = saveGitDir.resolve("patches");
         this.headFile = saveGitDir.resolve("HEAD");
+        this.formatVersion = RepositoryFormat.ensureIfExists(saveGitDir);
         this.blobStore = new BlobStore(saveGitDir);
+    }
+
+    public int getFormatVersion() {
+        return this.formatVersion;
+    }
+
+    public boolean isReadOnly() {
+        return RepositoryFormat.isNewerThanSupported(this.formatVersion);
+    }
+
+    /** 写入前调用，必要时补写/升级版本文件；格式过新时抛异常。 */
+    public void ensureWritableFormat() throws IOException {
+        RepositoryFormat.ensureWritable(this.saveGitDir);
     }
 
     /**

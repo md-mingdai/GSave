@@ -22,6 +22,10 @@ public final class WorldRestorer {
     }
 
     public void restore(Commit commit) throws IOException {
+        if (this.repo.isReadOnly()) {
+            throw new IOException(L10n.tr("gsave.error.repo_too_new",
+                    String.valueOf(this.repo.getFormatVersion())));
+        }
         try {
             Manifest manifest = repo.getManifest(commit.manifestId);
             if (manifest == null) {

@@ -124,6 +124,13 @@
   "gsave.error.illegal_path": "非法的快照路径: %s",
   "gsave.error.missing_hash": "快照缺少文件哈希: %s",
 
+  "gsave.error.repo_too_new": "仓库格式版本 %s 高于当前支持的版本，请升级 GSave",
+  "gsave.time.just_now": "刚刚",
+  "gsave.time.minutes_ago": "%s 分钟前",
+  "gsave.time.hours_ago": "%s 小时前",
+  "gsave.time.days_ago": "%s 天前",
+  "gsave.gui.value.no_message": "（无消息）",
+
   "gsave.snapshot.reason.manual": "手动快照",
   "gsave.snapshot.reason.scheduled": "定时快照",
   "gsave.snapshot.reason.baseline": "世界加载基线",

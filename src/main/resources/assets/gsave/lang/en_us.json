@@ -124,6 +124,13 @@
   "gsave.error.illegal_path": "Illegal snapshot path: %s",
   "gsave.error.missing_hash": "The snapshot is missing a file hash: %s",
 
+  "gsave.error.repo_too_new": "Repository format %s is newer than this build supports; please update GSave",
+  "gsave.time.just_now": "just now",
+  "gsave.time.minutes_ago": "%s min ago",
+  "gsave.time.hours_ago": "%s h ago",
+  "gsave.time.days_ago": "%s d ago",
+  "gsave.gui.value.no_message": "(no message)",
+
   "gsave.snapshot.reason.manual": "Manual snapshot",
   "gsave.snapshot.reason.scheduled": "Scheduled snapshot",
   "gsave.snapshot.reason.baseline": "World load baseline",

@@ -7,11 +7,13 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 
 import java.util.List;
 
 public class GuiRestoreProgress extends GuiSaveGitScreen {
     private ButtonGeneric doneButton;
+    private ButtonGeneric worldListButton;
 
     public GuiRestoreProgress() {
         this.setTitle(L10n.tr("gsave.progress.title.restoring"));
@@ -25,6 +27,12 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
                 L10n.tr("gsave.progress.button.restoring"));
         this.doneButton.setEnabled(false);
         this.addButton(this.doneButton, (button, mouseButton) -> this.mc.setScreen(new TitleScreen()));
+
+        this.worldListButton = new ButtonGeneric(this.width / 2 - 60, this.height - 66, 120, 20,
+                L10n.tr("gsave.button.back_to_world_list"));
+        this.worldListButton.setEnabled(false);
+        this.addButton(this.worldListButton,
+                (button, mouseButton) -> this.mc.setScreen(new SelectWorldScreen(new TitleScreen())));
     }
 
     @Override
@@ -47,6 +55,9 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
 
         if (this.doneButton != null) {
             this.doneButton.setEnabled(finished);
+            if (this.worldListButton != null) {
+                this.worldListButton.setEnabled(finished);
+            }
             if (failed) {
                 this.doneButton.setDisplayString(L10n.tr("gsave.button.back_to_title"));
             } else if (finished) {

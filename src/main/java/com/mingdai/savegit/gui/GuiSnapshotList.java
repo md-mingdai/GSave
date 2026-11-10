@@ -34,6 +34,8 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     private boolean worldAvailable;
     private String message;
     private int scrollOffset;
+    private boolean compareMode;
+    private String compareBaseId;
 
     public GuiSnapshotList() {
         this.setTitle(L10n.tr("gsave.gui.title.snapshot_list"));
@@ -47,6 +49,13 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         int y = this.height - 28;
         this.addButton(new ButtonGeneric(20, y, 60, 20, L10n.tr("gsave.button.refresh")),
                 (button, mouseButton) -> this.reload());
+        this.addButton(new ButtonGeneric(88, y, 60, 20, L10n.tr("gsave.button.compare")),
+                (button, mouseButton) -> {
+                    this.compareMode = !this.compareMode;
+                    this.compareBaseId = null;
+                    this.message = this.compareMode
+                            ? L10n.tr("gsave.gui.message.compare_hint") : null;
+                });
 
         int backWidth = 100;
         this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20,
@@ -115,9 +124,12 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             return;
         }
 
-        this.drawString(drawContext,
-                L10n.tr("gsave.gui.value.total_snapshots", String.valueOf(this.commits.size())),
-                listLeft, LIST_TOP - 14, GuiTheme.TEXT_DIM);
+        String header = this.compareMode
+                ? L10n.tr("gsave.gui.message.compare_hint")
+                : L10n.tr("gsave.gui.value.total_snapshots",
+                String.valueOf(this.commits.size()));
+        this.drawString(drawContext, header, listLeft, LIST_TOP - 14,
+                this.compareMode ? GuiTheme.ACCENT : GuiTheme.TEXT_DIM);
 
         int visibleHeight = listBottom - LIST_TOP;
         int contentHeight = this.commits.size() * ROW_STRIDE - CARD_GAP;
@@ -146,7 +158,9 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             }
 
             SnapshotCardRenderer.draw(drawContext, this.textRenderer, layout, commit,
-                    thumbnail, hasShot, commit.pinned, false, hovered, false, mouseX, mouseY);
+                    thumbnail, hasShot, commit.pinned, false,
+                    hovered, this.compareMode && commit.id.equals(this.compareBaseId),
+                    mouseX, mouseY);
         }
 
         drawContext.disableScissor();
@@ -202,6 +216,10 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             Commit commit = this.commits.get(i);
             SnapshotCardRenderer.Layout layout =
                     SnapshotCardRenderer.layout(listLeft, listWidth, rowY);
+            if (this.compareMode && SnapshotCardRenderer.isInsideCard(layout, mouseX, mouseY)) {
+                this.handleCompareClick(commit);
+                return true;
+            }
             boolean hasShot = this.screenshotIds.contains(commit.id);
             SnapshotCardRenderer.Action action =
                     SnapshotCardRenderer.hitTest(layout, mouseX, mouseY, hasShot, false);
@@ -239,6 +257,38 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         } catch (IOException e) {
             this.message = L10n.tr("gsave.message.pin_failed", e.getMessage());
         }
+    }
+
+    private void handleCompareClick(Commit commit) {
+        if (this.compareBaseId == null) {
+            this.compareBaseId = commit.id;
+            return;
+        }
+        if (this.compareBaseId.equals(commit.id)) {
+            this.compareBaseId = null;
+            return;
+        }
+        Commit base = null;
+        for (Commit candidate : this.commits) {
+            if (candidate.id.equals(this.compareBaseId)) {
+                base = candidate;
+                break;
+            }
+        }
+        if (base == null) {
+            this.compareBaseId = commit.id;
+            return;
+        }
+
+        SnapshotRepository repo = new SnapshotRepository(this.worldDir);
+        com.mingdai.savegit.snapshot.Manifest from = repo.getManifest(base.manifestId);
+        com.mingdai.savegit.snapshot.Manifest to = repo.getManifest(commit.manifestId);
+        this.compareMode = false;
+        this.compareBaseId = null;
+        this.message = null;
+        GuiBase.openGui(new GuiSnapshotDiff(
+                com.mingdai.savegit.snapshot.SnapshotDiff.compute(
+                        base.id, commit.id, from, to), this));
     }
 
     @Override

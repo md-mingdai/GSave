@@ -298,6 +298,10 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         private final Path worldDir;
         private boolean createSafetySnapshot = true;
         private com.mingdai.savegit.gui.WidgetCheckBoxSimple safetyCheckBox;
+        private com.mingdai.savegit.gui.WidgetCheckBoxSimple regionBox;
+        private com.mingdai.savegit.gui.WidgetCheckBoxSimple entitiesBox;
+        private com.mingdai.savegit.gui.WidgetCheckBoxSimple poiBox;
+        private com.mingdai.savegit.gui.WidgetCheckBoxSimple otherBox;
 
         public GuiExternalRestoreConfirm(Commit commit, GuiSaveGitWorldManager parent, Path worldDir) {
             this.commit = commit;
@@ -313,17 +317,31 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             this.safetyCheckBox = new com.mingdai.savegit.gui.WidgetCheckBoxSimple(
                     0, 0, L10n.tr("gsave.gui.checkbox.safety_snapshot"), true);
             this.safetyCheckBox.setPosition(
-                    this.width / 2 - this.safetyCheckBox.getWidth() / 2, this.height / 2 + 10);
+                    this.width / 2 - this.safetyCheckBox.getWidth() / 2, this.height / 2 - 6);
             this.addWidget(this.safetyCheckBox);
 
+            this.regionBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_region"),
+                    this.width / 2 - 130, this.height / 2 + 12);
+            this.entitiesBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_entities"),
+                    this.width / 2 - 4, this.height / 2 + 12);
+            this.poiBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_poi"),
+                    this.width / 2 - 130, this.height / 2 + 28);
+            this.otherBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_other"),
+                    this.width / 2 - 4, this.height / 2 + 28);
+
             int buttonWidth = 100;
-            int y = this.height / 2 + 42;
+            int y = this.height / 2 + 52;
             this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
                             L10n.tr("gsave.button.confirm_restore")),
                     (button, mouseButton) -> {
                         this.mc.setScreen(null);
                         startExternalRestore(this.mc, this.worldDir, this.commit,
-                                this.safetyCheckBox.isChecked());
+                                this.safetyCheckBox.isChecked(),
+                                new com.mingdai.savegit.snapshot.WorldRestorer.RestoreFilter(
+                                        this.regionBox.isChecked(),
+                                        this.entitiesBox.isChecked(),
+                                        this.poiBox.isChecked(),
+                                        this.otherBox.isChecked()));
                     });
             this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20,
                             L10n.tr("gsave.button.cancel")),
@@ -349,6 +367,14 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             return super.onKeyTyped(keyCode, scanCode, modifiers);
         }
 
+        private com.mingdai.savegit.gui.WidgetCheckBoxSimple addScopeBox(String label,
+                                                                        int x, int y) {
+            com.mingdai.savegit.gui.WidgetCheckBoxSimple box =
+                    new com.mingdai.savegit.gui.WidgetCheckBoxSimple(x, y, label, true);
+            this.addWidget(box);
+            return box;
+        }
+
         @Override
         protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
@@ -362,6 +388,11 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                         com.mingdai.savegit.util.SnapshotTime.duration(this.commit.durationMs)));
             }
             lines.add(L10n.tr("gsave.gui.label.message", L10n.commitMessage(this.commit.message)));
+            if (this.commit.mcVersion != null && !this.commit.mcVersion.isEmpty()
+                    && !this.commit.mcVersion.equals(com.mingdai.savegit.SaveGitMod.MC_VERSION)) {
+                lines.add(L10n.tr("gsave.gui.message.version_mismatch",
+                        this.commit.mcVersion, com.mingdai.savegit.SaveGitMod.MC_VERSION));
+            }
             lines.add("");
             lines.add(L10n.tr("gsave.gui.message.safety_hint"));
             lines.add(L10n.tr("gsave.gui.message.restore_warning_external"));
@@ -439,6 +470,11 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                         com.mingdai.savegit.util.SnapshotTime.duration(this.commit.durationMs)));
             }
             lines.add(L10n.tr("gsave.gui.label.message", L10n.commitMessage(this.commit.message)));
+            if (this.commit.mcVersion != null && !this.commit.mcVersion.isEmpty()
+                    && !this.commit.mcVersion.equals(com.mingdai.savegit.SaveGitMod.MC_VERSION)) {
+                lines.add(L10n.tr("gsave.gui.message.version_mismatch",
+                        this.commit.mcVersion, com.mingdai.savegit.SaveGitMod.MC_VERSION));
+            }
             lines.add("");
             lines.add(L10n.tr("gsave.gui.message.delete_rebase"));
 
@@ -474,9 +510,10 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
     }
 
     private static void startExternalRestore(MinecraftClient mc, Path worldDir, Commit commit,
-                                             boolean createSafetySnapshot) {
+                                             boolean createSafetySnapshot,
+                                             WorldRestorer.RestoreFilter filter) {
         if (!createSafetySnapshot) {
-            beginExternalRestore(mc, worldDir, commit);
+            beginExternalRestore(mc, worldDir, commit, filter);
             return;
         }
 
@@ -497,11 +534,12 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                         L10n.text("gsave.message.safety_snapshot_failed", t.getMessage())));
                 return;
             }
-            mc.execute(() -> beginExternalRestore(mc, worldDir, commit));
+            mc.execute(() -> beginExternalRestore(mc, worldDir, commit, filter));
         }, "GSave-SafetySnapshot").start();
     }
 
-    private static void beginExternalRestore(MinecraftClient mc, Path worldDir, Commit commit) {
+    private static void beginExternalRestore(MinecraftClient mc, Path worldDir, Commit commit,
+                                             WorldRestorer.RestoreFilter filter) {
         com.mingdai.savegit.snapshot.RestoreProgress.begin(0);
         mc.setScreen(new GuiRestoreProgress());
 
@@ -512,7 +550,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 if (c == null) {
                     throw new IOException(L10n.tr("gsave.message.commit_missing", commit.id));
                 }
-                new WorldRestorer(repo, worldDir).restore(c);
+                new WorldRestorer(repo, worldDir).restore(c, filter);
             } catch (Throwable t) {
                 com.mingdai.savegit.snapshot.RestoreProgress.fail(t.getMessage());
             }

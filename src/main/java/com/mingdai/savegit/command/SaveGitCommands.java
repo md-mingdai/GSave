@@ -54,6 +54,17 @@ public final class SaveGitCommands {
                                                 StringArgumentType.getString(context, "id")))))
                         .then(ClientCommandManager.literal("prune")
                                 .executes(SaveGitCommands::prune))
+                        .then(ClientCommandManager.literal("export")
+                                .executes(context -> export(context, null))
+                                .then(ClientCommandManager.argument(
+                                                "path", StringArgumentType.greedyString())
+                                        .executes(context -> export(context,
+                                                StringArgumentType.getString(context, "path")))))
+                        .then(ClientCommandManager.literal("import")
+                                .then(ClientCommandManager.argument(
+                                                "path", StringArgumentType.greedyString())
+                                        .executes(context -> importArchive(context,
+                                                StringArgumentType.getString(context, "path")))))
                         .then(ClientCommandManager.literal("restore")
                                 .executes(SaveGitCommands::view)
                                 .then(ClientCommandManager.argument(
@@ -105,6 +116,10 @@ public final class SaveGitCommands {
                 "/snapshot pin <id>", L10n.tr("gsave.command.help.pin")));
         context.getSource().sendFeedback(commandLine(
                 "/snapshot prune", L10n.tr("gsave.command.help.prune")));
+        context.getSource().sendFeedback(commandLine(
+                "/snapshot export [path]", L10n.tr("gsave.command.help.export")));
+        context.getSource().sendFeedback(commandLine(
+                "/snapshot import <path>", L10n.tr("gsave.command.help.import")));
         context.getSource().sendFeedback(commandLine(
                 "/snapshot restore [id] [true/false]",
                 L10n.tr("gsave.command.help.restore")));
@@ -239,8 +254,71 @@ public final class SaveGitCommands {
         return 1;
     }
 
-    private static Commit findCommit(Path worldDir, String input) {
-        return new SnapshotRepository(worldDir).listCommits().stream()
+    private static int export(CommandContext<FabricClientCommandSource> context, String path) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(client);
+        if (worldDir == null) {
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
+            return 0;
+        }
+
+        Path target;
+        if (path == null || path.isBlank()) {
+            String world = worldDir.getFileName() == null
+                    ? "world" : worldDir.getFileName().toString();
+            target = client.runDirectory.toPath().resolve("gsave-exports")
+                    .resolve("gsave-" + sanitize(world) + "-"
+                            + System.currentTimeMillis() + ".zip");
+        } else {
+            target = resolvePath(client, path);
+        }
+
+        try {
+            com.mingdai.savegit.snapshot.RepositoryArchive.ExportResult result =
+                    com.mingdai.savegit.snapshot.RepositoryArchive.exportAll(worldDir, target);
+            context.getSource().sendFeedback(L10n.text("gsave.command.export_done",
+                            String.valueOf(result.commits()), target.toString())
+                    .formatted(Formatting.GREEN));
+            return 1;
+        } catch (IOException e) {
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.command.error.op_failed", e.getMessage())));
+            return 0;
+        }
+    }
+
+    private static int importArchive(CommandContext<FabricClientCommandSource> context, String path) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(client);
+        if (worldDir == null) {
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
+            return 0;
+        }
+        Path source = resolvePath(client, path);
+        try {
+            com.mingdai.savegit.snapshot.RepositoryArchive.ImportResult result =
+                    com.mingdai.savegit.snapshot.RepositoryArchive.importArchive(worldDir, source);
+            context.getSource().sendFeedback(L10n.text("gsave.command.import_done",
+                            String.valueOf(result.commits()), String.valueOf(result.blobs()))
+                    .formatted(Formatting.GREEN));
+            return 1;
+        } catch (IOException e) {
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.command.error.op_failed", e.getMessage())));
+            return 0;
+        }
+    }
+
+    private static Path resolvePath(MinecraftClient client, String path) {
+        Path resolved = Path.of(path);
+        return resolved.isAbsolute() ? resolved : client.runDirectory.toPath().resolve(resolved);
+    }
+
+    private static String sanitize(String name) {
+        return name.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    private static Commit findCommit(Path worldDir, String input) {        return new SnapshotRepository(worldDir).listCommits().stream()
                 .filter(commit -> commit.id.startsWith(input) || commit.shortId().equals(input))
                 .findFirst().orElse(null);
     }

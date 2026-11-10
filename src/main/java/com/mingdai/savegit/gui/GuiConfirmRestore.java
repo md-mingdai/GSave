@@ -83,6 +83,11 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
                     com.mingdai.savegit.util.SnapshotTime.duration(this.commit.durationMs)));
         }
         lines.add(L10n.tr("gsave.gui.label.message", L10n.commitMessage(this.commit.message)));
+        if (this.commit.mcVersion != null && !this.commit.mcVersion.isEmpty()
+                && !this.commit.mcVersion.equals(com.mingdai.savegit.SaveGitMod.MC_VERSION)) {
+            lines.add(L10n.tr("gsave.gui.message.version_mismatch",
+                    this.commit.mcVersion, com.mingdai.savegit.SaveGitMod.MC_VERSION));
+        }
         lines.add("");
         lines.add(L10n.tr("gsave.gui.message.safety_hint"));
         lines.add(L10n.tr("gsave.gui.message.restore_warning"));

@@ -16,12 +16,33 @@ public final class WorldRestorer {
     private final SnapshotRepository repo;
     private final Path worldRoot;
 
+    public record RestoreFilter(boolean region, boolean entities, boolean poi, boolean whole) {
+        public static final RestoreFilter ALL = new RestoreFilter(true, true, true, true);
+
+        public boolean accepts(Manifest.FileEntry entry) {
+            if (entry.isMca()) {
+                String type = entry.mcaType == null ? "" : entry.mcaType;
+                return switch (type) {
+                    case "region" -> this.region;
+                    case "entities" -> this.entities;
+                    case "poi" -> this.poi;
+                    default -> this.whole;
+                };
+            }
+            return this.whole;
+        }
+    }
+
     public WorldRestorer(SnapshotRepository repo, Path worldRoot) {
         this.repo = repo;
         this.worldRoot = worldRoot.toAbsolutePath().normalize();
     }
 
     public void restore(Commit commit) throws IOException {
+        restore(commit, RestoreFilter.ALL);
+    }
+
+    public void restore(Commit commit, RestoreFilter filter) throws IOException {
         if (this.repo.isReadOnly()) {
             throw new IOException(L10n.tr("gsave.error.repo_too_new",
                     String.valueOf(this.repo.getFormatVersion())));
@@ -32,11 +53,17 @@ public final class WorldRestorer {
                 throw new IOException(L10n.tr("gsave.error.manifest_missing", commit.manifestId));
             }
 
-            Collection<Manifest.FileEntry> entries = manifest.getAllEntries();
-            RestoreProgress.begin(entries.size());
+            java.util.List<Manifest.FileEntry> targets = new java.util.ArrayList<>();
+            for (Manifest.FileEntry entry : manifest.getAllEntries()) {
+                if (filter == null || filter.accepts(entry)) {
+                    targets.add(entry);
+                }
+            }
+
+            RestoreProgress.begin(targets.size());
             int index = 0;
 
-            for (Manifest.FileEntry entry : entries) {
+            for (Manifest.FileEntry entry : targets) {
                 if (entry.path == null || entry.path.isEmpty()) {
                     throw new IOException(L10n.tr("gsave.error.empty_path"));
                 }

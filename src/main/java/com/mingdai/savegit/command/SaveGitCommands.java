@@ -5,6 +5,7 @@ import com.mingdai.savegit.gui.GuiSnapshotList;
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
+import com.mingdai.savegit.util.L10n;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -71,14 +72,14 @@ public final class SaveGitCommands {
 
     private static int help(CommandContext<FabricClientCommandSource> context) {
         context.getSource().sendFeedback(
-                Text.literal("GSave 命令帮助：").formatted(Formatting.GOLD));
+                L10n.text("gsave.command.help.header").formatted(Formatting.GOLD));
         context.getSource().sendFeedback(commandLine(
-                "/snapshot create", "手动创建一次快照"));
+                "/snapshot create", L10n.tr("gsave.command.help.create")));
         context.getSource().sendFeedback(commandLine(
-                "/snapshot view", "打开快照列表"));
+                "/snapshot view", L10n.tr("gsave.command.help.view")));
         context.getSource().sendFeedback(commandLine(
-                "/snapshot restore [快照ID] [true/false]",
-                "恢复快照，true 表示恢复前创建安全快照（默认），false 表示不创建"));
+                "/snapshot restore [id] [true/false]",
+                L10n.tr("gsave.command.help.restore")));
         return 1;
     }
 
@@ -88,22 +89,22 @@ public final class SaveGitCommands {
 
     private static Text commandLine(String command, String description) {
         return Text.literal(command).formatted(Formatting.AQUA)
-                .append(Text.literal(" —— ").formatted(Formatting.DARK_GRAY))
+                .append(Text.literal(" — ").formatted(Formatting.DARK_GRAY))
                 .append(Text.literal(description).formatted(Formatting.GRAY));
     }
 
     private static int create(CommandContext<FabricClientCommandSource> context) {
         if (!SaveGitConfigs.isEnabled()) {
-            context.getSource().sendError(error("GSave 总开关已关闭"));
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.disabled")));
             return 0;
         }
         if (SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance()) == null) {
-            context.getSource().sendError(error("当前未加载单人世界"));
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
             return 0;
         }
         SaveGitSnapshotManager.manualSnapshot();
         context.getSource().sendFeedback(
-                Text.literal("已请求创建快照，请稍候…").formatted(Formatting.GREEN));
+                L10n.text("gsave.command.snapshot_requested").formatted(Formatting.GREEN));
         return 1;
     }
 
@@ -118,11 +119,11 @@ public final class SaveGitCommands {
         MinecraftClient client = MinecraftClient.getInstance();
         Path worldDir = SaveGitSnapshotManager.getWorldDirectory(client);
         if (worldDir == null) {
-            context.getSource().sendError(error("当前未加载单人世界"));
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
             return 0;
         }
         if (!SaveGitConfigs.isEnabled()) {
-            context.getSource().sendError(error("GSave 总开关已关闭"));
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.disabled")));
             return 0;
         }
 
@@ -131,17 +132,18 @@ public final class SaveGitCommands {
                 .filter(c -> c.id.startsWith(input) || c.shortId().equals(input))
                 .findFirst().orElse(null);
         if (commit == null) {
-            context.getSource().sendError(error("找不到快照 #" + input));
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.command.error.snapshot_not_found", input)));
             return 0;
         }
 
         client.setScreen(null);
         SaveGitSnapshotManager.requestRestore(client, commit, safety);
-        context.getSource().sendFeedback(Text.literal("正在恢复到快照 #" + commit.shortId())
+        context.getSource().sendFeedback(L10n.text("gsave.command.restoring", commit.shortId())
                 .formatted(Formatting.GREEN)
-                .append(Text.literal(safety
-                                ? "（恢复前会自动创建安全快照）"
-                                : "（不创建安全快照）")
+                .append(L10n.text(safety
+                                ? "gsave.command.restoring.safety"
+                                : "gsave.command.restoring.no_safety")
                         .formatted(safety ? Formatting.GRAY : Formatting.YELLOW)));
         return 1;
     }

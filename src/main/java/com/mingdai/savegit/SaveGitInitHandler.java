@@ -36,7 +36,7 @@ public class SaveGitInitHandler implements IInitializationHandler {
             int x = scaledWidth / 2 + 158;
             int y = scaledHeight - 28;
             var button = ButtonWidget.builder(
-                    Text.literal("GSave 管理"),
+                    Text.translatable("gsave.button.world_manager"),
                     b -> {
                         var accessor = (com.mingdai.savegit.mixin.SelectWorldScreenAccessor) screen;
                         var levelList = accessor.savegit$getLevelList();

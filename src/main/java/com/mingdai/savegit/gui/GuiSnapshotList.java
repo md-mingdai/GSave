@@ -3,6 +3,7 @@ package com.mingdai.savegit.gui;
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
+import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.render.RenderUtils;
@@ -42,7 +43,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     private int scrollOffset;
 
     public GuiSnapshotList() {
-        this.setTitle("GSave 快照列表");
+        this.setTitle(L10n.tr("gsave.gui.title.snapshot_list"));
     }
 
     @Override
@@ -51,11 +52,12 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         this.reload();
 
         int y = this.height - 28;
-        this.addButton(new ButtonGeneric(20, y, 60, 20, "刷新"),
+        this.addButton(new ButtonGeneric(20, y, 60, 20, L10n.tr("gsave.button.refresh")),
                 (button, mouseButton) -> this.reload());
 
         int backWidth = 100;
-        this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20, "返回主界面"),
+        this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20,
+                        L10n.tr("gsave.button.back_to_main_menu")),
                 (button, mouseButton) -> GuiBase.openGui(new GuiSaveGitMain()));
     }
 
@@ -88,13 +90,13 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         if (!this.worldAvailable) {
             this.commits = Collections.emptyList();
             this.screenshotIds = Collections.emptySet();
-            this.message = "当前未加载单人世界";
+            this.message = L10n.tr("gsave.gui.message.world_unloaded");
             return;
         }
 
         this.commits = new SnapshotRepository(worldDir).listCommits();
         this.message = this.commits.isEmpty()
-                ? "还没有任何快照。进入世界约 5 秒后会自动创建基线快照。"
+                ? L10n.tr("gsave.gui.message.no_snapshots_hint")
                 : null;
 
         Set<String> shots = new HashSet<>();
@@ -118,12 +120,14 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         drawContext.fill(listLeft, LIST_TOP, listLeft + listWidth, listBottom, 0x50000000);
 
         if (!this.worldAvailable || this.commits.isEmpty()) {
-            String text = this.message == null ? "还没有任何快照" : this.message;
+            String text = this.message == null ? L10n.tr("gsave.gui.message.no_snapshots") : this.message;
             this.drawCentered(drawContext, text, (LIST_TOP + listBottom) / 2 - 4, 0xFFB0B0B0);
             return;
         }
 
-        this.drawString(drawContext, "共 " + this.commits.size() + " 个快照",
+        this.drawString(drawContext,
+                L10n.tr("gsave.gui.value.total_snapshots",
+                        String.valueOf(this.commits.size())),
                 listLeft, LIST_TOP - 13, 0xFFCCCCCC);
 
         int visibleHeight = listBottom - LIST_TOP;
@@ -151,13 +155,15 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             drawContext.fill(listLeft, rowY + ROW_HEIGHT - 1,
                     listLeft + listWidth, rowY + ROW_HEIGHT, 0x50FFFFFF);
 
-            String parent = commit.parent == null ? "无（首个快照）" : "#" + shortId(commit.parent);
+            String parent = commit.parent == null
+                    ? L10n.tr("gsave.gui.value.root_parent")
+                    : "#" + shortId(commit.parent);
             String line1 = "#" + commit.shortId() + "  " + formatTime(commit.timestamp)
-                    + "  " + safe(commit.message);
+                    + "  " + L10n.commitMessage(commit.message);
             line1 = this.textRenderer.trimToWidth(line1,
                     listWidth - THUMB_WIDTH - RESTORE_BUTTON_WIDTH - DELETE_BUTTON_WIDTH
                             - BUTTON_GAP * 2 - 56);
-            String line2 = "父提交: " + parent;
+            String line2 = L10n.tr("gsave.gui.label.parent", parent);
 
             int textX = listLeft + 8 + THUMB_WIDTH + 8;
             this.drawString(drawContext, line1, textX, rowY + 6, 0xFFFFFFFF);
@@ -193,7 +199,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             } else {
                 drawContext.fill(thumbX, thumbY,
                         thumbX + THUMB_WIDTH, thumbY + THUMB_HEIGHT, 0xFF151515);
-                String none = "无";
+                String none = L10n.tr("gsave.gui.value.none");
                 this.drawString(drawContext, none,
                         thumbX + THUMB_WIDTH / 2 - this.getStringWidth(none) / 2,
                         thumbY + THUMB_HEIGHT / 2 - 4, 0xFF606060);
@@ -205,7 +211,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             drawContext.fill(restoreX, buttonY,
                     restoreX + RESTORE_BUTTON_WIDTH, buttonY + ROW_BUTTON_HEIGHT,
                     restoreHovered ? 0xFF3A6EA5 : 0xFF2A4E75);
-            String restoreLabel = "恢复";
+            String restoreLabel = L10n.tr("gsave.button.restore");
             this.drawString(drawContext, restoreLabel,
                     restoreX + RESTORE_BUTTON_WIDTH / 2 - this.getStringWidth(restoreLabel) / 2,
                     buttonY + 5, 0xFFFFFFFF);
@@ -221,7 +227,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                     deleteX + DELETE_BUTTON_WIDTH, buttonY + 1, 0xFF4A4A4A);
             drawContext.fill(deleteX, buttonY + ROW_BUTTON_HEIGHT - 1,
                     deleteX + DELETE_BUTTON_WIDTH, buttonY + ROW_BUTTON_HEIGHT, 0xFF4A4A4A);
-            String deleteLabel = "删除";
+            String deleteLabel = L10n.tr("gsave.button.delete");
             this.drawString(drawContext, deleteLabel,
                     deleteX + DELETE_BUTTON_WIDTH / 2 - this.getStringWidth(deleteLabel) / 2,
                     buttonY + 5, 0xFF808080);
@@ -231,8 +237,8 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
 
         if (deleteButtonHovered) {
             RenderUtils.drawHoverText(drawContext, mouseX, mouseY, List.of(
-                    "正常游戏时不能删除快照",
-                    "退出游戏后可在单人游戏列表的「GSave 管理」中删除"));
+                    L10n.tr("gsave.gui.tooltip.delete_disabled"),
+                    L10n.tr("gsave.gui.tooltip.delete_disabled_hint")));
         }
 
         if (maxScroll > 0) {
@@ -314,10 +320,6 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
-    }
-
-    private static String safe(String value) {
-        return value == null ? "" : value;
     }
 
     private static String shortId(String id) {

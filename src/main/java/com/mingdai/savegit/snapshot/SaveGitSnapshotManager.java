@@ -1,6 +1,7 @@
 package com.mingdai.savegit.snapshot;
 
 import com.mingdai.savegit.SaveGitMod;
+import com.mingdai.savegit.util.L10n;
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.GuiRestoreProgress;
 import com.mingdai.savegit.gui.GuiSaveGitMain;
@@ -61,10 +62,10 @@ public final class SaveGitSnapshotManager {
     public static void manualSnapshot() {
         MinecraftClient client = MinecraftClient.getInstance();
         if (!SaveGitConfigs.isEnabled()) {
-            InfoUtils.sendVanillaMessage(Text.literal("GSave 已关闭"));
+            InfoUtils.sendVanillaMessage(L10n.text("gsave.message.disabled"));
             return;
         }
-        takeSnapshotAsync(client, "手动快照");
+        takeSnapshotAsync(client, L10n.REASON_MANUAL);
     }
 
     public static Path getWorldDirectory(MinecraftClient client) {
@@ -126,7 +127,7 @@ public final class SaveGitSnapshotManager {
             ticksUntilBaseline--;
             if (ticksUntilBaseline <= 0) {
                 ticksUntilBaseline = -1;
-                takeSnapshotAsync(client, "世界加载基线");
+                takeSnapshotAsync(client, L10n.REASON_BASELINE);
             }
         }
 
@@ -138,9 +139,9 @@ public final class SaveGitSnapshotManager {
                     SaveGitConfigs.Generic.SCHEDULED_SNAPSHOT_ENABLED.setBooleanValue(false);
                     SaveGitConfigs.saveToFile();
                     ticksUntilAuto = -1;
-                    InfoUtils.sendVanillaMessage(Text.literal("快照数量已达到阈值，已自动关闭定时快照"));
+                    InfoUtils.sendVanillaMessage(L10n.text("gsave.message.threshold_disabled"));
                 } else {
-                    takeSnapshotAsync(client, "定时快照");
+                    takeSnapshotAsync(client, L10n.REASON_SCHEDULED);
                 }
             }
         }
@@ -169,13 +170,13 @@ public final class SaveGitSnapshotManager {
     private static void takeSnapshotAsync(MinecraftClient client, String message) {
         IntegratedServer server = client.getServer();
         if (server == null || client.world == null) {
-            InfoUtils.sendVanillaMessage(Text.literal("当前不在单人世界中"));
+            InfoUtils.sendVanillaMessage(L10n.text("gsave.message.no_world"));
             return;
         }
 
         Path worldDir = getWorldDirectory(client);
         if (worldDir == null) {
-            InfoUtils.sendVanillaMessage(Text.literal("无法获取世界存档目录"));
+            InfoUtils.sendVanillaMessage(L10n.text("gsave.message.no_world_dir"));
             return;
         }
 
@@ -200,7 +201,7 @@ public final class SaveGitSnapshotManager {
                     } catch (Throwable t) {
                         SnapshotStatus.end();
                         deleteQuietly(shotTemp);
-                        notifyAsync(client, "快照失败: " + t.getMessage());
+                        notifyAsync(client, L10n.tr("gsave.message.snapshot_failed", t.getMessage()));
                         return;
                     }
                     startBackgroundSnapshot(client, worldDir, message, settings, shotTemp);
@@ -208,7 +209,7 @@ public final class SaveGitSnapshotManager {
             } catch (Throwable t) {
                 SnapshotStatus.end();
                 deleteQuietly(shotTemp);
-                notifyAsync(client, "快照失败: " + t.getMessage());
+                notifyAsync(client, L10n.tr("gsave.message.snapshot_failed", t.getMessage()));
             }
         } else {
             try {
@@ -219,7 +220,7 @@ public final class SaveGitSnapshotManager {
                     } catch (Throwable t) {
                         SaveGitMod.LOGGER.error("创建快照失败", t);
                         deleteQuietly(shotTemp);
-                        notifyAsync(client, "快照失败: " + t.getMessage());
+                        notifyAsync(client, L10n.tr("gsave.message.snapshot_failed", t.getMessage()));
                     } finally {
                         SnapshotStatus.end();
                     }
@@ -227,7 +228,7 @@ public final class SaveGitSnapshotManager {
             } catch (Throwable t) {
                 SnapshotStatus.end();
                 deleteQuietly(shotTemp);
-                notifyAsync(client, "快照失败: " + t.getMessage());
+                notifyAsync(client, L10n.tr("gsave.message.snapshot_failed", t.getMessage()));
             }
         }
     }
@@ -240,7 +241,7 @@ public final class SaveGitSnapshotManager {
             } catch (Throwable t) {
                 SaveGitMod.LOGGER.error("创建快照失败", t);
                 deleteQuietly(shotTemp);
-                notifyAsync(client, "快照失败: " + t.getMessage());
+                notifyAsync(client, L10n.tr("gsave.message.snapshot_failed", t.getMessage()));
             } finally {
                 SnapshotStatus.end();
             }
@@ -254,26 +255,27 @@ public final class SaveGitSnapshotManager {
         SnapshotRepository repo = new SnapshotRepository(worldDir);
         Commit commit = new WorldSnapshotter(repo).takeSnapshot(message, settings);
         storeScreenshot(worldDir, shotTemp, commit.id);
-        notifyAsync(client, "快照已创建: " + commit.shortId() + "（" + message + "）");
+        notifyAsync(client, L10n.tr("gsave.message.snapshot_created",
+                commit.shortId(), L10n.commitMessage(message)));
     }
 
     public static void requestRestore(MinecraftClient client, Commit commit, boolean createSafetySnapshot) {
         IntegratedServer server = client.getServer();
         if (server == null || client.world == null) {
-            InfoUtils.sendVanillaMessage(Text.literal("当前不在单人世界中，无法恢复"));
+            InfoUtils.sendVanillaMessage(L10n.text("gsave.message.restore_no_world"));
             return;
         }
 
         Path worldDir = getWorldDirectory(client);
         if (worldDir == null) {
-            InfoUtils.sendVanillaMessage(Text.literal("无法获取世界存档目录"));
+            InfoUtils.sendVanillaMessage(L10n.text("gsave.message.no_world_dir"));
             return;
         }
 
         if (!createSafetySnapshot) {
             server.execute(() -> {
                 if (new SnapshotRepository(worldDir).getCommit(commit.id) == null) {
-                    notifyAsync(client, "恢复失败：找不到所选快照");
+                    notifyAsync(client, L10n.tr("gsave.message.restore_failed_missing"));
                     return;
                 }
                 client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir));
@@ -294,13 +296,13 @@ public final class SaveGitSnapshotManager {
                                                        Commit commit, WorldSnapshotter.Settings safetySettings,
                                                        Path shotTemp) {
         if (SaveGitConfigs.isGameplayPriority()) {
-            SnapshotStatus.begin("恢复前自动快照");
+            SnapshotStatus.begin(L10n.REASON_SAFETY);
             try {
                 server.execute(() -> {
                     if (new SnapshotRepository(worldDir).getCommit(commit.id) == null) {
                         SnapshotStatus.end();
                         deleteQuietly(shotTemp);
-                        notifyAsync(client, "恢复失败：找不到所选快照");
+                        notifyAsync(client, L10n.tr("gsave.message.restore_failed_missing"));
                         return;
                     }
                     try {
@@ -308,17 +310,17 @@ public final class SaveGitSnapshotManager {
                     } catch (Throwable t) {
                         SnapshotStatus.end();
                         deleteQuietly(shotTemp);
-                        notifyAsync(client, "恢复已取消：" + t.getMessage());
+                        notifyAsync(client, L10n.tr("gsave.message.restore_cancelled", t.getMessage()));
                         return;
                     }
 
                     Thread thread = new Thread(() -> {
                         try {
-                            runSnapshot(client, worldDir, "恢复前自动快照", safetySettings, shotTemp);
+                            runSnapshot(client, worldDir, L10n.REASON_SAFETY, safetySettings, shotTemp);
                         } catch (Throwable t) {
                             SaveGitMod.LOGGER.error("恢复前准备失败", t);
                             deleteQuietly(shotTemp);
-                            notifyAsync(client, "恢复已取消：" + t.getMessage());
+                            notifyAsync(client, L10n.tr("gsave.message.restore_cancelled", t.getMessage()));
                             SnapshotStatus.end();
                             return;
                         }
@@ -331,23 +333,23 @@ public final class SaveGitSnapshotManager {
             } catch (Throwable t) {
                 SnapshotStatus.end();
                 deleteQuietly(shotTemp);
-                notifyAsync(client, "恢复已取消：" + t.getMessage());
+                notifyAsync(client, L10n.tr("gsave.message.restore_cancelled", t.getMessage()));
             }
         } else {
-            SnapshotStatus.begin("恢复前自动快照");
+            SnapshotStatus.begin(L10n.REASON_SAFETY);
             try {
                 server.execute(() -> {
                     try {
                         if (new SnapshotRepository(worldDir).getCommit(commit.id) == null) {
-                            notifyAsync(client, "恢复失败：找不到所选快照");
+                            notifyAsync(client, L10n.tr("gsave.message.restore_failed_missing"));
                             return;
                         }
                         server.save(true, true, true);
-                        runSnapshot(client, worldDir, "恢复前自动快照", safetySettings, shotTemp);
+                        runSnapshot(client, worldDir, L10n.REASON_SAFETY, safetySettings, shotTemp);
                     } catch (Throwable t) {
                         SaveGitMod.LOGGER.error("恢复前准备失败", t);
                         deleteQuietly(shotTemp);
-                        notifyAsync(client, "恢复已取消：" + t.getMessage());
+                        notifyAsync(client, L10n.tr("gsave.message.restore_cancelled", t.getMessage()));
                         return;
                     } finally {
                         SnapshotStatus.end();
@@ -357,7 +359,7 @@ public final class SaveGitSnapshotManager {
             } catch (Throwable t) {
                 SnapshotStatus.end();
                 deleteQuietly(shotTemp);
-                notifyAsync(client, "恢复已取消：" + t.getMessage());
+                notifyAsync(client, L10n.tr("gsave.message.restore_cancelled", t.getMessage()));
             }
         }
     }
@@ -425,7 +427,7 @@ public final class SaveGitSnapshotManager {
                 SnapshotRepository repo = new SnapshotRepository(worldDir);
                 Commit commit = repo.getCommit(commitId);
                 if (commit == null) {
-                    throw new IOException("找不到快照提交: " + commitId);
+                    throw new IOException(L10n.tr("gsave.message.commit_missing", commitId));
                 }
                 new WorldRestorer(repo, worldDir).restore(commit);
             } catch (Throwable t) {
@@ -443,13 +445,13 @@ public final class SaveGitSnapshotManager {
             return;
         }
 
-        SnapshotStatus.begin("世界断开");
+        SnapshotStatus.begin(L10n.REASON_DISCONNECT);
         try {
             Path worldDir = server.getSavePath(WorldSavePath.ROOT);
             server.save(true, true, true);
             // 退出快照不复用滚动截图：此时游戏已准备关闭，不提供截图
             new WorldSnapshotter(new SnapshotRepository(worldDir))
-                    .takeSnapshot("世界断开", snapshotSettings(worldName(server, worldDir), SaveGitConfigs.maxSnapshots()));
+                    .takeSnapshot(L10n.REASON_DISCONNECT, snapshotSettings(worldName(server, worldDir), SaveGitConfigs.maxSnapshots()));
         } catch (Throwable t) {
             SaveGitMod.LOGGER.error("创建退出快照失败", t);
         } finally {
@@ -574,7 +576,7 @@ public final class SaveGitSnapshotManager {
             }
         }
         Path name = worldDir == null ? null : worldDir.getFileName();
-        return name == null ? "未知世界" : name.toString();
+        return name == null ? L10n.tr("gsave.gui.value.unknown_world") : name.toString();
     }
 
     private static void notifyAsync(MinecraftClient client, String message) {

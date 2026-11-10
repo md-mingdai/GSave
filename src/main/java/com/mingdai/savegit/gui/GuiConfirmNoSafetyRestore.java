@@ -2,6 +2,7 @@ package com.mingdai.savegit.gui;
 
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
+import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.KeyCodes;
@@ -19,7 +20,7 @@ public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
     public GuiConfirmNoSafetyRestore(Commit commit, GuiSnapshotList parent) {
         this.commit = commit;
         this.parent = parent;
-        this.setTitle("警告：不创建恢复前快照");
+        this.setTitle(L10n.tr("gsave.gui.title.no_safety_restore"));
     }
 
     @Override
@@ -28,12 +29,14 @@ public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
 
         int buttonWidth = 160;
         int y = this.height / 2 + 40;
-        this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20, "我知道我在干什么"),
+        this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
+                        L10n.tr("gsave.button.i_know_what_im_doing")),
                 (button, mouseButton) -> {
                     this.mc.setScreen(null);
                     SaveGitSnapshotManager.requestRestore(this.mc, this.commit, false);
                 });
-        this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20, "取消"),
+        this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20,
+                        L10n.tr("gsave.button.cancel")),
                 (button, mouseButton) -> GuiBase.openGui(new GuiConfirmRestore(this.commit, this.parent)));
     }
 
@@ -52,10 +55,10 @@ public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         List<String> lines = List.of(
-                "你选择不创建恢复前安全快照。",
-                "恢复后，当前世界状态将无法通过本模组回退。",
+                L10n.tr("gsave.gui.message.no_safety.1"),
+                L10n.tr("gsave.gui.message.no_safety.2"),
                 "",
-                "如果确定要继续，请点击「我知道我在干什么」。"
+                L10n.tr("gsave.gui.message.no_safety.3")
         );
 
         int startY = this.height / 2 - lines.size() * 6 - 30;

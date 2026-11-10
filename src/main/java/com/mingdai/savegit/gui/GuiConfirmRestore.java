@@ -2,6 +2,7 @@ package com.mingdai.savegit.gui;
 
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
+import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.KeyCodes;
@@ -19,14 +20,15 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
     public GuiConfirmRestore(Commit commit, GuiSnapshotList parent) {
         this.commit = commit;
         this.parent = parent;
-        this.setTitle("确认恢复快照");
+        this.setTitle(L10n.tr("gsave.gui.title.confirm_restore"));
     }
 
     @Override
     public void initGui() {
         super.initGui();
 
-        this.safetyCheckBox = new WidgetCheckBoxSimple(0, 0, "恢复前创建安全快照", true);
+        this.safetyCheckBox = new WidgetCheckBoxSimple(0, 0,
+                L10n.tr("gsave.gui.checkbox.safety_snapshot"), true);
         this.safetyCheckBox.setPosition(
                 this.width / 2 - this.safetyCheckBox.getWidth() / 2, this.height / 2 + 10);
         this.safetyCheckBox.setChangeListener(
@@ -35,7 +37,8 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
 
         int buttonWidth = 100;
         int y = this.height / 2 + 42;
-        this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20, "确认恢复"),
+        this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
+                        L10n.tr("gsave.button.confirm_restore")),
                 (button, mouseButton) -> {
                     if (this.createSafetySnapshot) {
                         this.mc.setScreen(null);
@@ -44,7 +47,8 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
                         GuiBase.openGui(new GuiConfirmNoSafetyRestore(this.commit, this.parent));
                     }
                 });
-        this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20, "取消"),
+        this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20,
+                        L10n.tr("gsave.button.cancel")),
                 (button, mouseButton) -> this.cancel());
     }
 
@@ -71,12 +75,12 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         List<String> lines = new ArrayList<>();
-        lines.add("即将恢复到快照 #" + this.commit.shortId());
-        lines.add("时间: " + GuiSnapshotList.formatTime(this.commit.timestamp));
-        lines.add("消息: " + (this.commit.message == null ? "" : this.commit.message));
+        lines.add(L10n.tr("gsave.gui.message.restore_target", this.commit.shortId()));
+        lines.add(L10n.tr("gsave.gui.label.time", GuiSnapshotList.formatTime(this.commit.timestamp)));
+        lines.add(L10n.tr("gsave.gui.label.message", L10n.commitMessage(this.commit.message)));
         lines.add("");
-        lines.add("恢复前会自动创建一个安全快照，取消勾选将跳过此步骤。");
-        lines.add("世界将先返回标题界面，恢复过程中请勿关闭游戏。");
+        lines.add(L10n.tr("gsave.gui.message.safety_hint"));
+        lines.add(L10n.tr("gsave.gui.message.restore_warning"));
 
         int startY = this.height / 2 - lines.size() * 6 - 26;
         for (int i = 0; i < lines.size(); i++) {

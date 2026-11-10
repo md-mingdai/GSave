@@ -1,5 +1,6 @@
 package com.mingdai.savegit.gui;
 
+import com.mingdai.savegit.util.L10n;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import fi.dy.masa.malilib.gui.GuiBase;
@@ -24,7 +25,7 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
         this.file = file;
         this.commitId = commitId;
         this.parent = parent;
-        this.setTitle("快照截图 #" + shortId(commitId));
+        this.setTitle(L10n.tr("gsave.gui.title.screenshot", shortId(commitId)));
     }
 
     @Override
@@ -33,9 +34,11 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
         this.image = this.cache.getFull(this.file, this.commitId);
 
         int y = this.height - 40;
-        this.addButton(new ButtonGeneric(this.width / 2 - 105, y, 100, 20, "打开文件"),
+        this.addButton(new ButtonGeneric(this.width / 2 - 105, y, 100, 20,
+                        L10n.tr("gsave.button.open_file")),
                 (button, mouseButton) -> Util.getOperatingSystem().open(this.file));
-        this.addButton(new ButtonGeneric(this.width / 2 + 5, y, 100, 20, "返回"),
+        this.addButton(new ButtonGeneric(this.width / 2 + 5, y, 100, 20,
+                        L10n.tr("gsave.button.back")),
                 (button, mouseButton) -> GuiBase.openGui(this.parent));
     }
 
@@ -44,8 +47,9 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         if (this.image == null) {
-            this.drawString(drawContext, "找不到该快照的截图",
-                    this.width / 2 - this.getStringWidth("找不到该快照的截图") / 2,
+            String message = L10n.tr("gsave.gui.message.screenshot_missing");
+            this.drawString(drawContext, message,
+                    this.width / 2 - this.getStringWidth(message) / 2,
                     this.height / 2 - 4, 0xFFFF8080);
             return;
         }

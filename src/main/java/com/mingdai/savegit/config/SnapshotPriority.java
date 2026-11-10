@@ -6,8 +6,8 @@ import fi.dy.masa.malilib.config.IConfigOptionListEntry;
  * 快照执行优先级。
  */
 public enum SnapshotPriority implements IConfigOptionListEntry {
-    GAMEPLAY("gameplay", "游戏体验优先"),
-    SPEED("speed", "保存速度优先");
+    GAMEPLAY("gameplay", "gsave.config.value.gameplay"),
+    SPEED("speed", "gsave.config.value.speed");
 
     private final String id;
     private final String displayName;
@@ -24,7 +24,7 @@ public enum SnapshotPriority implements IConfigOptionListEntry {
 
     @Override
     public String getDisplayName() {
-        return this.displayName;
+        return com.mingdai.savegit.util.L10n.tr(this.displayName);
     }
 
     @Override

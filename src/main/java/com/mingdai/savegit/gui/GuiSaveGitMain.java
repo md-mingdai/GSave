@@ -7,6 +7,7 @@ import com.mingdai.savegit.input.SaveGitKeyBindings;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
 import com.mingdai.savegit.snapshot.SnapshotStatus;
+import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import net.minecraft.client.gui.DrawContext;
@@ -15,7 +16,7 @@ import net.minecraft.client.gui.screen.Screen;
 import java.nio.file.Path;
 
 /**
- * 主界面：左上角标题 + 双列按钮 + 状态面板。
+ * 主界面：左上角标题 + 单列按钮 + 贴底状态面板。
  */
 public class GuiSaveGitMain extends GuiSaveGitScreen {
     private static final int LEFT = 20;
@@ -42,7 +43,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     public GuiSaveGitMain(Screen parentScreen) {
         this.parentScreen = parentScreen;
         this.setParent(parentScreen);
-        this.setTitle("GSave v" + SaveGitMod.MOD_VERSION + " 主菜单");
+        this.setTitle(L10n.tr("gsave.gui.main.title", SaveGitMod.MOD_VERSION));
     }
 
     @Override
@@ -56,16 +57,20 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
         this.reload();
 
         int x = LEFT;
-        this.addLeftButton(x, ROW_TOP, "立即创建快照", this::onManualSnapshot);
-        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP), "查看快照并恢复",
+        this.addLeftButton(x, ROW_TOP, L10n.tr("gsave.gui.button.create_now"), this::onManualSnapshot);
+        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP),
+                L10n.tr("gsave.gui.button.browse_snapshots"),
                 () -> GuiBase.openGui(new GuiSnapshotList()));
-        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP) * 2, "设置", () -> {
-            GuiSaveGitConfigs gui = new GuiSaveGitConfigs();
-            gui.setParent(this);
-            GuiBase.openGui(gui);
-        });
+        this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP) * 2,
+                L10n.tr("gsave.gui.button.settings"), () -> {
+                    GuiSaveGitConfigs gui = new GuiSaveGitConfigs();
+                    gui.setParent(this);
+                    GuiBase.openGui(gui);
+                });
         this.addLeftButton(x, ROW_TOP + (BUTTON_HEIGHT + ROW_GAP) * 3,
-                this.parentScreen == null ? "返回游戏" : "返回", this::goBack);
+                L10n.tr(this.parentScreen == null
+                        ? "gsave.button.back_to_game" : "gsave.button.back"),
+                this::goBack);
     }
 
     private void goBack() {
@@ -84,15 +89,15 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
 
     private void onManualSnapshot() {
         if (!this.worldAvailable) {
-            this.statusMessage = "当前未加载单人世界";
+            this.statusMessage = L10n.tr("gsave.gui.message.world_unloaded");
             return;
         }
         if (!SaveGitConfigs.isEnabled()) {
-            this.statusMessage = "GSave 总开关已关闭";
+            this.statusMessage = L10n.tr("gsave.gui.message.disabled");
             return;
         }
         SaveGitSnapshotManager.manualSnapshot();
-        this.statusMessage = "已请求创建快照，请稍候…";
+        this.statusMessage = L10n.tr("gsave.gui.message.snapshot_requested");
     }
 
     private void reload() {
@@ -114,7 +119,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
-        this.drawStringWithShadow(drawContext, "存档快照与回滚", LEFT, 26, 0xFF808080);
+        this.drawStringWithShadow(drawContext, L10n.tr("gsave.gui.main.subtitle"), LEFT, 26, 0xFF808080);
 
         boolean snapshotActive = SnapshotStatus.isActive();
         int lines = 5 + (snapshotActive ? 1 : 0) + (this.statusMessage.isEmpty() ? 0 : 1);
@@ -128,37 +133,49 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
         int x = LEFT + 8;
         int y = panelTop + 7;
 
-        String world = this.worldAvailable ? this.worldName : "未加载单人世界";
-        this.drawLabelValue(drawContext, x, y, "当前世界：", world,
+        String world = this.worldAvailable
+                ? this.worldName : L10n.tr("gsave.gui.value.world_unloaded");
+        this.drawLabelValue(drawContext, x, y, L10n.tr("gsave.gui.label.world"), world,
                 this.worldAvailable ? VALUE_COLOR : 0xFFFFAA55);
         y += 12;
 
         String count = this.worldAvailable ? String.valueOf(this.snapshotCount) : "—";
         String limit = SaveGitConfigs.isUnlimitedSnapshots()
-                ? "无限" : SaveGitConfigs.maxSnapshots() + " 个";
-        this.drawLabelValue(drawContext, x, y, "快照数量：", count + "    保留上限：" + limit, VALUE_COLOR);
+                ? L10n.tr("gsave.gui.value.unlimited")
+                : L10n.tr("gsave.gui.value.count", String.valueOf(SaveGitConfigs.maxSnapshots()));
+        this.drawLabelValue(drawContext, x, y,
+                L10n.tr("gsave.gui.label.snapshot_count"),
+                L10n.tr("gsave.gui.value.count_and_limit", count, limit), VALUE_COLOR);
         y += 12;
 
         String scheduled = SaveGitConfigs.isScheduledSnapshotEnabled()
-                ? "开（每 " + SaveGitConfigs.autoSnapshotIntervalMinutes() + " 分钟）" : "关";
-        this.drawLabelValue(drawContext, x, y, "总开关：",
-                onOff(SaveGitConfigs.isEnabled()) + "    定时快照：" + scheduled, VALUE_COLOR);
+                ? L10n.tr("gsave.gui.value.scheduled_on",
+                        String.valueOf(SaveGitConfigs.autoSnapshotIntervalMinutes()))
+                : L10n.tr("gsave.gui.value.off");
+        this.drawLabelValue(drawContext, x, y, L10n.tr("gsave.gui.label.enabled"),
+                onOff(SaveGitConfigs.isEnabled()) + "    "
+                        + L10n.tr("gsave.gui.label.scheduled") + scheduled, VALUE_COLOR);
         y += 12;
 
         SnapshotPriority priority = SaveGitConfigs.snapshotPriority();
-        String priorityText = priority == SnapshotPriority.GAMEPLAY ? "游戏体验优先" : "保存速度优先";
-        this.drawLabelValue(drawContext, x, y, "基线快照：",
-                onOff(SaveGitConfigs.isBaselineSnapshotEnabled())
-                        + "    断开快照：" + onOff(SaveGitConfigs.isDisconnectSnapshotEnabled()),
+        String priorityText = L10n.tr(priority == SnapshotPriority.GAMEPLAY
+                ? "gsave.config.value.gameplay" : "gsave.config.value.speed");
+        this.drawLabelValue(drawContext, x, y, L10n.tr("gsave.gui.label.baseline"),
+                onOff(SaveGitConfigs.isBaselineSnapshotEnabled()) + "    "
+                        + L10n.tr("gsave.gui.label.disconnect")
+                        + onOff(SaveGitConfigs.isDisconnectSnapshotEnabled()),
                 VALUE_COLOR);
         y += 12;
 
-        this.drawLabelValue(drawContext, x, y, "执行优先级：", priorityText, VALUE_COLOR);
+        this.drawLabelValue(drawContext, x, y, L10n.tr("gsave.gui.label.priority"),
+                priorityText, VALUE_COLOR);
         y += 12;
 
         if (snapshotActive) {
-            String label = SnapshotStatus.getLabel();
-            String line = label.isEmpty() ? "快照进行中…" : "快照进行中…（" + label + "）";
+            String label = L10n.commitMessage(SnapshotStatus.getLabel());
+            String line = label.isEmpty()
+                    ? L10n.tr("gsave.gui.message.snapshot_active")
+                    : L10n.tr("gsave.gui.message.snapshot_active_reason", label);
             this.drawStringWithShadow(drawContext, line, x, y, 0xFFFFDD55);
             y += 12;
         }
@@ -169,7 +186,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
 
         String keyName = SaveGitKeyBindings.OPEN_MAIN_MENU.getBoundKeyLocalizedText().getString();
         this.drawStringWithShadow(drawContext,
-                "按键：" + keyName + "    可在 选项 - 控制 - 按键绑定 中修改",
+                L10n.tr("gsave.gui.hint.keybind", keyName),
                 LEFT, panelTop - 12, 0xFF9A9A9A);
     }
 
@@ -179,6 +196,6 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     }
 
     private static String onOff(boolean value) {
-        return value ? "开" : "关";
+        return L10n.tr(value ? "gsave.gui.value.on" : "gsave.gui.value.off");
     }
 }

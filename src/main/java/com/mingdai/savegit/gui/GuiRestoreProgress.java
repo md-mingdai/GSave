@@ -1,6 +1,7 @@
 package com.mingdai.savegit.gui;
 
 import com.mingdai.savegit.snapshot.RestoreProgress;
+import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import net.minecraft.client.gui.DrawContext;
@@ -12,14 +13,15 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
     private ButtonGeneric doneButton;
 
     public GuiRestoreProgress() {
-        this.setTitle("正在恢复世界");
+        this.setTitle(L10n.tr("gsave.progress.title.restoring"));
     }
 
     @Override
     public void initGui() {
         super.initGui();
 
-        this.doneButton = new ButtonGeneric(this.width / 2 - 60, this.height - 40, 120, 20, "恢复中…");
+        this.doneButton = new ButtonGeneric(this.width / 2 - 60, this.height - 40, 120, 20,
+                L10n.tr("gsave.progress.button.restoring"));
         this.doneButton.setEnabled(false);
         this.addButton(this.doneButton, (button, mouseButton) -> this.mc.setScreen(new TitleScreen()));
     }
@@ -27,12 +29,12 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
     @Override
     public String getTitleString() {
         if (RestoreProgress.isFailed()) {
-            return "恢复失败";
+            return L10n.tr("gsave.progress.title.failed");
         }
         if (RestoreProgress.isFinished()) {
-            return "恢复完成";
+            return L10n.tr("gsave.progress.title.finished");
         }
-        return "正在恢复世界";
+        return L10n.tr("gsave.progress.title.restoring");
     }
 
     @Override
@@ -45,11 +47,11 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
         if (this.doneButton != null) {
             this.doneButton.setEnabled(finished);
             if (failed) {
-                this.doneButton.setDisplayString("返回标题界面");
+                this.doneButton.setDisplayString(L10n.tr("gsave.button.back_to_title"));
             } else if (finished) {
-                this.doneButton.setDisplayString("完成");
+                this.doneButton.setDisplayString(L10n.tr("gsave.button.done"));
             } else {
-                this.doneButton.setDisplayString("恢复中…");
+                this.doneButton.setDisplayString(L10n.tr("gsave.progress.button.restoring"));
             }
         }
 
@@ -65,18 +67,21 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
         drawContext.fill(barX, barY, barX + filled, barY + barHeight,
                 failed ? 0xFFAA3333 : 0xFF3CB371);
 
-        String progress = "进度: " + RestoreProgress.getCompleted() + "/" + RestoreProgress.getTotal()
+        String progress = L10n.tr("gsave.progress.label.progress",
+                String.valueOf(RestoreProgress.getCompleted()),
+                String.valueOf(RestoreProgress.getTotal()))
                 + "  (" + percent + "%)";
         this.drawString(drawContext, progress,
                 this.width / 2 - this.getStringWidth(progress) / 2, barY + barHeight + 10, 0xFFFFFFFF);
 
         String detail;
         if (failed) {
-            detail = "错误: " + safe(RestoreProgress.getErrorMessage());
+            detail = L10n.tr("gsave.progress.label.error", safe(RestoreProgress.getErrorMessage()));
         } else if (finished) {
-            detail = "恢复完成，可以重新进入世界。";
+            detail = L10n.tr("gsave.progress.message.finished");
         } else {
-            detail = "当前文件: " + safe(RestoreProgress.getCurrentFile());
+            detail = L10n.tr("gsave.progress.label.current_file",
+                    safe(RestoreProgress.getCurrentFile()));
         }
         detail = this.textRenderer.trimToWidth(detail, this.width - 80);
         this.drawString(drawContext, detail,

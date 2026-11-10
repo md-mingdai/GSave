@@ -1,6 +1,7 @@
 package com.mingdai.savegit.snapshot;
 
 import com.mingdai.savegit.mca.RawMca;
+import com.mingdai.savegit.util.L10n;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -24,7 +25,7 @@ public final class WorldRestorer {
         try {
             Manifest manifest = repo.getManifest(commit.manifestId);
             if (manifest == null) {
-                throw new IOException("找不到快照清单: " + commit.manifestId);
+                throw new IOException(L10n.tr("gsave.error.manifest_missing", commit.manifestId));
             }
 
             Collection<Manifest.FileEntry> entries = manifest.getAllEntries();
@@ -33,13 +34,13 @@ public final class WorldRestorer {
 
             for (Manifest.FileEntry entry : entries) {
                 if (entry.path == null || entry.path.isEmpty()) {
-                    throw new IOException("快照中存在空文件路径");
+                    throw new IOException(L10n.tr("gsave.error.empty_path"));
                 }
                 RestoreProgress.startFile(index, entry.path);
 
                 Path target = worldRoot.resolve(entry.path).normalize();
                 if (!target.startsWith(worldRoot)) {
-                    throw new IOException("非法的快照路径: " + entry.path);
+                    throw new IOException(L10n.tr("gsave.error.illegal_path", entry.path));
                 }
 
                 if (entry.isMca()) {
@@ -70,7 +71,7 @@ public final class WorldRestorer {
 
     private void restoreWholeFile(Manifest.FileEntry entry, Path target) throws IOException {
         if (entry.hash == null) {
-            throw new IOException("快照缺少文件哈希: " + entry.path);
+            throw new IOException(L10n.tr("gsave.error.missing_hash", entry.path));
         }
         repo.getBlobStore().copyTo(entry.hash, target);
     }

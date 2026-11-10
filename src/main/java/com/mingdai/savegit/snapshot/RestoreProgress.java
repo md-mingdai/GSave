@@ -1,5 +1,7 @@
 package com.mingdai.savegit.snapshot;
 
+import com.mingdai.savegit.util.L10n;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,13 +33,13 @@ public final class RestoreProgress {
         failed = false;
         finished = false;
         active = true;
-        addLog("开始恢复，共 " + total + " 个文件");
+        addLog(L10n.tr("gsave.progress.log.begin", String.valueOf(total)));
     }
 
     public static void startFile(int index, String path) {
         completed = index;
         currentFile = path == null ? "" : path;
-        addLog("正在恢复: " + currentFile);
+        addLog(L10n.tr("gsave.progress.log.file", currentFile));
     }
 
     public static void completeFile() {
@@ -51,15 +53,15 @@ public final class RestoreProgress {
         currentFile = "";
         finished = true;
         active = false;
-        addLog("恢复完成");
+        addLog(L10n.tr("gsave.progress.log.finished"));
     }
 
     public static void fail(String message) {
-        errorMessage = message == null ? "未知错误" : message;
+        errorMessage = message == null ? L10n.tr("gsave.progress.error.unknown") : message;
         failed = true;
         finished = true;
         active = false;
-        addLog("恢复失败: " + errorMessage);
+        addLog(L10n.tr("gsave.progress.log.failed", errorMessage));
     }
 
     public static void addLog(String line) {

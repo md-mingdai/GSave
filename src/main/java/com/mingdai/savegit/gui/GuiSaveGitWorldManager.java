@@ -5,6 +5,7 @@ import com.mingdai.savegit.snapshot.RestoreProgress;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
 import com.mingdai.savegit.snapshot.WorldRestorer;
 import com.mingdai.savegit.snapshot.WorldSnapshotter;
+import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
@@ -13,7 +14,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,7 +57,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         this.worldDisplayName = worldDisplayName;
         this.returnScreen = returnScreen;
         this.setParent(returnScreen);
-        this.setTitle("GSave 存档管理 - " + worldDisplayName);
+        this.setTitle(L10n.tr("gsave.gui.title.world_manager", worldDisplayName));
     }
 
     @Override
@@ -66,11 +66,12 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         this.reload();
 
         int y = this.height - 28;
-        this.addButton(new ButtonGeneric(20, y, 60, 20, "刷新"),
+        this.addButton(new ButtonGeneric(20, y, 60, 20, L10n.tr("gsave.button.refresh")),
                 (button, mouseButton) -> this.reload());
 
         int backWidth = 100;
-        this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20, "返回"),
+        this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20,
+                        L10n.tr("gsave.button.back")),
                 (button, mouseButton) -> this.goBack());
     }
 
@@ -105,7 +106,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         if (!Files.isDirectory(worldDir)) {
             this.commits = Collections.emptyList();
             this.screenshotIds = Collections.emptySet();
-            this.message = "世界存档目录不存在";
+            this.message = L10n.tr("gsave.gui.message.world_dir_missing");
             return;
         }
 
@@ -113,13 +114,13 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         if (!Files.isDirectory(saveGitDir)) {
             this.commits = Collections.emptyList();
             this.screenshotIds = Collections.emptySet();
-            this.message = "该世界还没有任何 SaveGit 数据。";
+            this.message = L10n.tr("gsave.gui.message.no_data");
             return;
         }
 
         this.commits = new SnapshotRepository(worldDir).listCommits();
         this.message = this.commits.isEmpty()
-                ? "该世界还没有任何快照。"
+                ? L10n.tr("gsave.gui.message.no_snapshots_world")
                 : null;
 
         Set<String> shots = new HashSet<>();
@@ -149,12 +150,13 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         drawContext.fill(listLeft, LIST_TOP, listLeft + listWidth, listBottom, 0x50000000);
 
         if (this.commits.isEmpty()) {
-            String text = this.message == null ? "还没有任何快照" : this.message;
+            String text = this.message == null ? L10n.tr("gsave.gui.message.no_snapshots") : this.message;
             this.drawCentered(drawContext, text, (LIST_TOP + listBottom) / 2 - 4, 0xFFB0B0B0);
             return;
         }
 
-        this.drawString(drawContext, "共 " + this.commits.size() + " 个快照",
+        this.drawString(drawContext,
+                L10n.tr("gsave.gui.value.total_snapshots", String.valueOf(this.commits.size())),
                 listLeft, LIST_TOP - 13, 0xFFCCCCCC);
 
         int visibleHeight = listBottom - LIST_TOP;
@@ -182,13 +184,15 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             drawContext.fill(listLeft, rowY + ROW_HEIGHT - 1,
                     listLeft + listWidth, rowY + ROW_HEIGHT, 0x50FFFFFF);
 
-            String parent = commit.parent == null ? "无（首个快照）" : "#" + shortId(commit.parent);
+            String parent = commit.parent == null
+                    ? L10n.tr("gsave.gui.value.root_parent")
+                    : "#" + shortId(commit.parent);
             String line1 = "#" + commit.shortId() + "  " + GuiSnapshotList.formatTime(commit.timestamp)
-                    + "  " + safe(commit.message);
+                    + "  " + L10n.commitMessage(commit.message);
             line1 = this.textRenderer.trimToWidth(line1,
                     listWidth - THUMB_WIDTH - RESTORE_BUTTON_WIDTH - DELETE_BUTTON_WIDTH
                             - BUTTON_GAP * 2 - 56);
-            String line2 = "父提交: " + parent;
+            String line2 = L10n.tr("gsave.gui.label.parent", parent);
 
             int textX = listLeft + 8 + THUMB_WIDTH + 8;
             this.drawString(drawContext, line1, textX, rowY + 6, 0xFFFFFFFF);
@@ -224,7 +228,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             } else {
                 drawContext.fill(thumbX, thumbY,
                         thumbX + THUMB_WIDTH, thumbY + THUMB_HEIGHT, 0xFF151515);
-                String none = "无";
+                String none = L10n.tr("gsave.gui.value.none");
                 this.drawString(drawContext, none,
                         thumbX + THUMB_WIDTH / 2 - this.getStringWidth(none) / 2,
                         thumbY + THUMB_HEIGHT / 2 - 4, 0xFF606060);
@@ -236,7 +240,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             drawContext.fill(restoreX, buttonY,
                     restoreX + RESTORE_BUTTON_WIDTH, buttonY + ROW_BUTTON_HEIGHT,
                     restoreHovered ? 0xFF3A6EA5 : 0xFF2A4E75);
-            String restoreLabel = "恢复";
+            String restoreLabel = L10n.tr("gsave.button.restore");
             this.drawString(drawContext, restoreLabel,
                     restoreX + RESTORE_BUTTON_WIDTH / 2 - this.getStringWidth(restoreLabel) / 2,
                     buttonY + 5, 0xFFFFFFFF);
@@ -247,7 +251,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             drawContext.fill(deleteX, buttonY,
                     deleteX + DELETE_BUTTON_WIDTH, buttonY + ROW_BUTTON_HEIGHT,
                     deleteHovered ? 0xFFAA3333 : 0xFF5A2A2A);
-            String deleteLabel = "删除";
+            String deleteLabel = L10n.tr("gsave.button.delete");
             this.drawString(drawContext, deleteLabel,
                     deleteX + DELETE_BUTTON_WIDTH / 2 - this.getStringWidth(deleteLabel) / 2,
                     buttonY + 5, 0xFFFFFFFF);
@@ -345,10 +349,6 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         return Math.max(min, Math.min(max, value));
     }
 
-    private static String safe(String value) {
-        return value == null ? "" : value;
-    }
-
     private static String shortId(String id) {
         return id.length() <= 8 ? id : id.substring(0, 8);
     }
@@ -367,7 +367,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             this.commit = commit;
             this.parent = parent;
             this.worldDir = worldDir;
-            this.setTitle("确认恢复快照");
+            this.setTitle(L10n.tr("gsave.gui.title.confirm_restore"));
         }
 
         @Override
@@ -375,20 +375,22 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             super.initGui();
 
             this.safetyCheckBox = new com.mingdai.savegit.gui.WidgetCheckBoxSimple(
-                    0, 0, "恢复前创建安全快照", true);
+                    0, 0, L10n.tr("gsave.gui.checkbox.safety_snapshot"), true);
             this.safetyCheckBox.setPosition(
                     this.width / 2 - this.safetyCheckBox.getWidth() / 2, this.height / 2 + 10);
             this.addWidget(this.safetyCheckBox);
 
             int buttonWidth = 100;
             int y = this.height / 2 + 42;
-            this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20, "确认恢复"),
+            this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
+                            L10n.tr("gsave.button.confirm_restore")),
                     (button, mouseButton) -> {
                         this.mc.setScreen(null);
                         startExternalRestore(this.mc, this.worldDir, this.commit,
                                 this.safetyCheckBox.isChecked());
                     });
-            this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20, "取消"),
+            this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20,
+                            L10n.tr("gsave.button.cancel")),
                     (button, mouseButton) -> {
                         if (this.parent != null) {
                             GuiBase.openGui(this.parent);
@@ -416,12 +418,13 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
             List<String> lines = new ArrayList<>();
-            lines.add("即将恢复到快照 #" + this.commit.shortId());
-            lines.add("时间: " + com.mingdai.savegit.gui.GuiSnapshotList.formatTime(this.commit.timestamp));
-            lines.add("消息: " + (this.commit.message == null ? "" : this.commit.message));
+            lines.add(L10n.tr("gsave.gui.message.restore_target", this.commit.shortId()));
+            lines.add(L10n.tr("gsave.gui.label.time",
+                    com.mingdai.savegit.gui.GuiSnapshotList.formatTime(this.commit.timestamp)));
+            lines.add(L10n.tr("gsave.gui.label.message", L10n.commitMessage(this.commit.message)));
             lines.add("");
-            lines.add("恢复前会自动创建一个安全快照，取消勾选将跳过此步骤。");
-            lines.add("恢复过程中请勿关闭游戏。");
+            lines.add(L10n.tr("gsave.gui.message.safety_hint"));
+            lines.add(L10n.tr("gsave.gui.message.restore_warning_external"));
 
             int startY = this.height / 2 - lines.size() * 6 - 26;
             for (int i = 0; i < lines.size(); i++) {
@@ -445,7 +448,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             this.commit = commit;
             this.parent = parent;
             this.worldDir = worldDir;
-            this.setTitle("确认删除快照");
+            this.setTitle(L10n.tr("gsave.gui.title.confirm_delete"));
         }
 
         @Override
@@ -454,9 +457,11 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
             int buttonWidth = 100;
             int y = this.height / 2 + 40;
-            this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20, "确认删除"),
+            this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
+                            L10n.tr("gsave.button.confirm_delete")),
                     (button, mouseButton) -> this.performDelete());
-            this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20, "取消"),
+            this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20,
+                            L10n.tr("gsave.button.cancel")),
                     (button, mouseButton) -> {
                         if (this.parent != null) {
                             GuiBase.openGui(this.parent);
@@ -484,11 +489,12 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
             List<String> lines = new ArrayList<>();
-            lines.add("即将删除快照 #" + this.commit.shortId());
-            lines.add("时间: " + com.mingdai.savegit.gui.GuiSnapshotList.formatTime(this.commit.timestamp));
-            lines.add("消息: " + (this.commit.message == null ? "" : this.commit.message));
+            lines.add(L10n.tr("gsave.gui.message.delete_target", this.commit.shortId()));
+            lines.add(L10n.tr("gsave.gui.label.time",
+                    com.mingdai.savegit.gui.GuiSnapshotList.formatTime(this.commit.timestamp)));
+            lines.add(L10n.tr("gsave.gui.label.message", L10n.commitMessage(this.commit.message)));
             lines.add("");
-            lines.add("删除后子提交将自动 rebase 到父提交，无法撤销。");
+            lines.add(L10n.tr("gsave.gui.message.delete_rebase"));
 
             int startY = this.height / 2 - lines.size() * 6 - 20;
             for (int i = 0; i < lines.size(); i++) {
@@ -503,15 +509,15 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             SnapshotRepository repo = new SnapshotRepository(this.worldDir);
             try {
                 if (repo.deleteCommit(this.commit.id)) {
-                    InfoUtils.sendVanillaMessage(
-                            Text.literal("快照已删除: " + this.commit.shortId()));
+                    InfoUtils.sendVanillaMessage(L10n.text(
+                            "gsave.message.snapshot_deleted", this.commit.shortId()));
                 } else {
                     InfoUtils.sendVanillaMessage(
-                            Text.literal("删除失败：找不到该快照"));
+                            L10n.text("gsave.message.delete_failed_missing"));
                 }
             } catch (IOException e) {
                 InfoUtils.sendVanillaMessage(
-                        Text.literal("删除失败：" + e.getMessage()));
+                        L10n.text("gsave.message.delete_failed", e.getMessage()));
             }
             // 删除后刷新并回到存档管理列表，而不是退回主菜单
             GuiBase.openGui(new GuiSaveGitWorldManager(
@@ -528,17 +534,19 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
         WorldSnapshotter.Settings safetySettings = new WorldSnapshotter.Settings(
                 true, true, true, true, true, Integer.MAX_VALUE,
-                worldDir.getFileName() == null ? "未知世界" : worldDir.getFileName().toString(),
+                worldDir.getFileName() == null
+                        ? L10n.tr("gsave.gui.value.unknown_world")
+                        : worldDir.getFileName().toString(),
                 "1.21.8"
         );
 
         new Thread(() -> {
             try {
                 SnapshotRepository repo = new SnapshotRepository(worldDir);
-                new WorldSnapshotter(repo).takeSnapshot("恢复前自动快照", safetySettings);
+                new WorldSnapshotter(repo).takeSnapshot(L10n.REASON_SAFETY, safetySettings);
             } catch (Throwable t) {
                 mc.execute(() -> InfoUtils.sendVanillaMessage(
-                        Text.literal("恢复已取消：安全快照创建失败（" + t.getMessage() + "）")));
+                        L10n.text("gsave.message.safety_snapshot_failed", t.getMessage())));
                 return;
             }
             mc.execute(() -> beginExternalRestore(mc, worldDir, commit));
@@ -554,7 +562,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 SnapshotRepository repo = new SnapshotRepository(worldDir);
                 Commit c = repo.getCommit(commit.id);
                 if (c == null) {
-                    throw new IOException("找不到快照提交: " + commit.id);
+                    throw new IOException(L10n.tr("gsave.message.commit_missing", commit.id));
                 }
                 new WorldRestorer(repo, worldDir).restore(c);
             } catch (Throwable t) {

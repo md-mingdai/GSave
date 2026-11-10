@@ -1,6 +1,7 @@
 package com.mingdai.savegit.util;
 
 import net.minecraft.client.resource.language.I18n;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
 /**
@@ -20,7 +21,7 @@ public final class L10n {
         return I18n.translate(key, args);
     }
 
-    public static Text text(String key, Object... args) {
+    public static MutableText text(String key, Object... args) {
         return Text.translatable(key, args);
     }
 

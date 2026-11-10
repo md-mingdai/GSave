@@ -242,6 +242,10 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                     this.togglePin(rowCommit);
                     return true;
                 }
+                case EDIT_NOTE -> {
+                    GuiBase.openGui(new GuiEditNote(rowCommit, this.worldDir, this));
+                    return true;
+                }
                 default -> {
                 }
             }
@@ -477,7 +481,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }
 
         WorldSnapshotter.Settings safetySettings = new WorldSnapshotter.Settings(
-                true, true, true, true, true, Integer.MAX_VALUE,
+                true, true, true, true, true, Integer.MAX_VALUE, false, false,
                 worldDir.getFileName() == null
                         ? L10n.tr("gsave.gui.value.unknown_world")
                         : worldDir.getFileName().toString(),

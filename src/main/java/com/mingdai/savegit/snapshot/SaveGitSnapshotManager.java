@@ -181,7 +181,10 @@ public final class SaveGitSnapshotManager {
         }
 
         String worldName = worldName(server, worldDir);
-        WorldSnapshotter.Settings settings = snapshotSettings(worldName, SaveGitConfigs.maxSnapshots());
+        boolean skipUnchanged = SaveGitConfigs.skipUnchangedAutomatic()
+                && !L10n.REASON_MANUAL.equals(message);
+        WorldSnapshotter.Settings settings =
+                snapshotSettings(worldName, SaveGitConfigs.maxSnapshots(), skipUnchanged);
         Path shotTemp = newTempShotPath(worldDir);
 
         captureScreenshot(client, shotTemp,
@@ -253,7 +256,14 @@ public final class SaveGitSnapshotManager {
     private static void runSnapshot(MinecraftClient client, Path worldDir, String message,
                                     WorldSnapshotter.Settings settings, Path shotTemp) throws IOException {
         SnapshotRepository repo = new SnapshotRepository(worldDir);
-        Commit commit = new WorldSnapshotter(repo).takeSnapshot(message, settings);
+        Commit commit;
+        try {
+            commit = new WorldSnapshotter(repo).takeSnapshot(message, settings);
+        } catch (WorldSnapshotter.UnchangedSnapshotException e) {
+            deleteQuietly(shotTemp);
+            notifyAsync(client, L10n.tr("gsave.message.snapshot_unchanged"));
+            return;
+        }
         storeScreenshot(worldDir, shotTemp, commit.id);
         notifyAsync(client, L10n.tr("gsave.message.snapshot_created",
                 commit.shortId(), L10n.commitMessage(message)));
@@ -285,7 +295,8 @@ public final class SaveGitSnapshotManager {
 
         String worldName = worldName(server, worldDir);
         // 安全快照不触发旧快照清理，避免清理掉用户正要恢复的目标快照
-        WorldSnapshotter.Settings safetySettings = snapshotSettings(worldName, Integer.MAX_VALUE);
+        WorldSnapshotter.Settings safetySettings =
+                snapshotSettings(worldName, Integer.MAX_VALUE, false);
         Path shotTemp = newTempShotPath(worldDir);
 
         captureScreenshot(client, shotTemp, () ->
@@ -451,7 +462,10 @@ public final class SaveGitSnapshotManager {
             server.save(true, true, true);
             // 退出快照不复用滚动截图：此时游戏已准备关闭，不提供截图
             new WorldSnapshotter(new SnapshotRepository(worldDir))
-                    .takeSnapshot(L10n.REASON_DISCONNECT, snapshotSettings(worldName(server, worldDir), SaveGitConfigs.maxSnapshots()));
+                    .takeSnapshot(L10n.REASON_DISCONNECT, snapshotSettings(
+                            worldName(server, worldDir),
+                            SaveGitConfigs.maxSnapshots(),
+                            SaveGitConfigs.skipUnchangedAutomatic()));
         } catch (Throwable t) {
             SaveGitMod.LOGGER.error("创建退出快照失败", t);
         } finally {
@@ -552,7 +566,8 @@ public final class SaveGitSnapshotManager {
         }
     }
 
-    private static WorldSnapshotter.Settings snapshotSettings(String worldName, int maxSnapshots) {
+    private static WorldSnapshotter.Settings snapshotSettings(String worldName, int maxSnapshots,
+                                                              boolean skipUnchanged) {
         return new WorldSnapshotter.Settings(
                 SaveGitConfigs.snapshotRegion(),
                 SaveGitConfigs.snapshotEntities(),
@@ -560,6 +575,8 @@ public final class SaveGitSnapshotManager {
                 SaveGitConfigs.snapshotLevelDat(),
                 SaveGitConfigs.snapshotPlayerdata(),
                 maxSnapshots,
+                skipUnchanged,
+                SaveGitConfigs.protectManualSnapshots(),
                 worldName,
                 SaveGitMod.MC_VERSION
         );

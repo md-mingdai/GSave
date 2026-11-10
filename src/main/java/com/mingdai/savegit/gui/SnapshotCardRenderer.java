@@ -28,7 +28,8 @@ public final class SnapshotCardRenderer {
         THUMBNAIL,
         PIN,
         RESTORE,
-        DELETE
+        DELETE,
+        EDIT_NOTE
     }
 
     public record Layout(int x1, int y1, int x2, int y2,
@@ -71,10 +72,12 @@ public final class SnapshotCardRenderer {
                 && mouseY >= layout.buttonY() && mouseY < layout.buttonY() + BUTTON_HEIGHT) {
             return Action.RESTORE;
         }
-        if (deleteEnabled
-                && mouseX >= layout.deleteX() && mouseX < layout.deleteX() + DELETE_WIDTH
+        if (mouseX >= layout.deleteX() && mouseX < layout.deleteX() + DELETE_WIDTH
                 && mouseY >= layout.buttonY() && mouseY < layout.buttonY() + BUTTON_HEIGHT) {
-            return Action.DELETE;
+            return deleteEnabled ? Action.DELETE : Action.NONE;
+        }
+        if (isInsideCard(layout, mouseX, mouseY)) {
+            return Action.EDIT_NOTE;
         }
         return Action.NONE;
     }

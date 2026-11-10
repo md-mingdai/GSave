@@ -38,6 +38,10 @@ public final class SaveGitConfigs implements IConfigHandler {
                 new ConfigBoolean("baselineSnapshotEnabled", true).apply(GENERIC_KEY);
         public static final ConfigBoolean DISCONNECT_SNAPSHOT_ENABLED =
                 new ConfigBoolean("disconnectSnapshotEnabled", true).apply(GENERIC_KEY);
+        public static final ConfigBoolean SKIP_UNCHANGED_AUTOMATIC =
+                new ConfigBoolean("skipUnchangedAutomatic", true).apply(GENERIC_KEY);
+        public static final ConfigBoolean PROTECT_MANUAL_SNAPSHOTS =
+                new ConfigBoolean("protectManualSnapshots", true).apply(GENERIC_KEY);
         public static final ConfigBoolean UNLIMITED_SNAPSHOTS =
                 new ConfigBoolean("unlimitedSnapshots", false).apply(GENERIC_KEY);
         public static final ConfigInteger MAX_SNAPSHOTS =
@@ -62,6 +66,8 @@ public final class SaveGitConfigs implements IConfigHandler {
                 SCHEDULED_SNAPSHOT_STOP_COUNT,
                 BASELINE_SNAPSHOT_ENABLED,
                 DISCONNECT_SNAPSHOT_ENABLED,
+                SKIP_UNCHANGED_AUTOMATIC,
+                PROTECT_MANUAL_SNAPSHOTS,
                 UNLIMITED_SNAPSHOTS,
                 MAX_SNAPSHOTS,
                 SNAPSHOT_PRIORITY,
@@ -89,6 +95,14 @@ public final class SaveGitConfigs implements IConfigHandler {
 
     public static boolean isDisconnectSnapshotEnabled() {
         return Generic.DISCONNECT_SNAPSHOT_ENABLED.getBooleanValue();
+    }
+
+    public static boolean skipUnchangedAutomatic() {
+        return Generic.SKIP_UNCHANGED_AUTOMATIC.getBooleanValue();
+    }
+
+    public static boolean protectManualSnapshots() {
+        return Generic.PROTECT_MANUAL_SNAPSHOTS.getBooleanValue();
     }
 
     public static boolean snapshotRegion() {

@@ -6,6 +6,7 @@ import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
 import com.mingdai.savegit.util.L10n;
+import com.mingdai.savegit.util.SnapshotTime;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -17,7 +18,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * 注册 /snapshot 客户端命令，包含 create、restore、view 三个子命令。
@@ -34,6 +37,23 @@ public final class SaveGitCommands {
                                 .executes(SaveGitCommands::create))
                         .then(ClientCommandManager.literal("view")
                                 .executes(SaveGitCommands::view))
+                        .then(ClientCommandManager.literal("list")
+                                .executes(SaveGitCommands::list))
+                        .then(ClientCommandManager.literal("note")
+                                .then(ClientCommandManager.argument(
+                                                "id", StringArgumentType.word())
+                                        .then(ClientCommandManager.argument(
+                                                        "text", StringArgumentType.greedyString())
+                                                .executes(context -> note(context,
+                                                        StringArgumentType.getString(context, "id"),
+                                                        StringArgumentType.getString(context, "text"))))))
+                        .then(ClientCommandManager.literal("pin")
+                                .then(ClientCommandManager.argument(
+                                                "id", StringArgumentType.word())
+                                        .executes(context -> togglePin(context,
+                                                StringArgumentType.getString(context, "id")))))
+                        .then(ClientCommandManager.literal("prune")
+                                .executes(SaveGitCommands::prune))
                         .then(ClientCommandManager.literal("restore")
                                 .executes(SaveGitCommands::view)
                                 .then(ClientCommandManager.argument(
@@ -78,6 +98,14 @@ public final class SaveGitCommands {
         context.getSource().sendFeedback(commandLine(
                 "/snapshot view", L10n.tr("gsave.command.help.view")));
         context.getSource().sendFeedback(commandLine(
+                "/snapshot list", L10n.tr("gsave.command.help.list")));
+        context.getSource().sendFeedback(commandLine(
+                "/snapshot note <id> <text>", L10n.tr("gsave.command.help.note")));
+        context.getSource().sendFeedback(commandLine(
+                "/snapshot pin <id>", L10n.tr("gsave.command.help.pin")));
+        context.getSource().sendFeedback(commandLine(
+                "/snapshot prune", L10n.tr("gsave.command.help.prune")));
+        context.getSource().sendFeedback(commandLine(
                 "/snapshot restore [id] [true/false]",
                 L10n.tr("gsave.command.help.restore")));
         return 1;
@@ -113,6 +141,108 @@ public final class SaveGitCommands {
         // 命令执行时聊天栏随后会 setScreen(null)，延后一帧再打开界面
         client.execute(() -> GuiBase.openGui(new GuiSnapshotList()));
         return 1;
+    }
+
+    private static int list(CommandContext<FabricClientCommandSource> context) {
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        if (worldDir == null) {
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
+            return 0;
+        }
+        List<Commit> commits = new SnapshotRepository(worldDir).listCommits();
+        if (commits.isEmpty()) {
+            context.getSource().sendFeedback(L10n.text("gsave.gui.message.no_snapshots"));
+            return 1;
+        }
+
+        context.getSource().sendFeedback(L10n.text("gsave.command.list.header",
+                String.valueOf(commits.size())).formatted(Formatting.GOLD));
+        int shown = 0;
+        for (Commit commit : commits) {
+            if (shown >= 15) {
+                context.getSource().sendFeedback(L10n.text("gsave.command.list.more",
+                        String.valueOf(commits.size() - shown)).formatted(Formatting.DARK_GRAY));
+                break;
+            }
+            String message = commit.note != null && !commit.note.isEmpty()
+                    ? commit.note : L10n.commitMessage(commit.message);
+            context.getSource().sendFeedback(L10n.text("gsave.command.list.line",
+                            commit.shortId(), SnapshotTime.full(commit.timestamp), message)
+                    .formatted(Formatting.GRAY));
+            shown++;
+        }
+        return 1;
+    }
+
+    private static int note(CommandContext<FabricClientCommandSource> context,
+                            String input, String text) {
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        if (worldDir == null) {
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
+            return 0;
+        }
+        Commit commit = findCommit(worldDir, input);
+        if (commit == null) {
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.command.error.snapshot_not_found", input)));
+            return 0;
+        }
+        try {
+            new SnapshotRepository(worldDir).setNote(commit.id, text);
+        } catch (IOException e) {
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.message.note_failed", e.getMessage())));
+            return 0;
+        }
+        context.getSource().sendFeedback(L10n.text("gsave.command.note_saved", commit.shortId())
+                .formatted(Formatting.GREEN));
+        return 1;
+    }
+
+    private static int togglePin(CommandContext<FabricClientCommandSource> context, String input) {
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        if (worldDir == null) {
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
+            return 0;
+        }
+        Commit commit = findCommit(worldDir, input);
+        if (commit == null) {
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.command.error.snapshot_not_found", input)));
+            return 0;
+        }
+        boolean pinned = !commit.pinned;
+        try {
+            new SnapshotRepository(worldDir).setPinned(commit.id, pinned);
+        } catch (IOException e) {
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.message.pin_failed", e.getMessage())));
+            return 0;
+        }
+        context.getSource().sendFeedback(L10n.text(
+                        pinned ? "gsave.command.pin_on" : "gsave.command.pin_off",
+                        commit.shortId())
+                .formatted(Formatting.GREEN));
+        return 1;
+    }
+
+    private static int prune(CommandContext<FabricClientCommandSource> context) {
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        if (worldDir == null) {
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
+            return 0;
+        }
+        int removed = new SnapshotRepository(worldDir).cleanupOldSnapshots(
+                SaveGitConfigs.maxSnapshots(), SaveGitConfigs.protectManualSnapshots());
+        context.getSource().sendFeedback(L10n.text("gsave.command.prune_done",
+                String.valueOf(removed)).formatted(Formatting.GREEN));
+        return 1;
+    }
+
+    private static Commit findCommit(Path worldDir, String input) {
+        return new SnapshotRepository(worldDir).listCommits().stream()
+                .filter(commit -> commit.id.startsWith(input) || commit.shortId().equals(input))
+                .findFirst().orElse(null);
     }
 
     private static int restore(CommandContext<FabricClientCommandSource> context, boolean safety) {

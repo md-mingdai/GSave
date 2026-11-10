@@ -233,11 +233,16 @@ public final class SnapshotRepository {
         return commits;
     }
 
+    public int cleanupOldSnapshots(int maxSnapshots) {
+        return cleanupOldSnapshots(maxSnapshots, false);
+    }
+
     /**
      * 只保留最新的 maxSnapshots 个快照，返回删除的数量。
      * blob 不做回收：多个提交可能共享同一份数据。
+     * 收藏的快照与（可选）手动快照不计入上限。
      */
-    public int cleanupOldSnapshots(int maxSnapshots) {
+    public int cleanupOldSnapshots(int maxSnapshots, boolean protectManual) {
         int max = Math.max(1, maxSnapshots);
         List<Commit> commits = listCommits();
         if (commits.size() <= max) {
@@ -249,7 +254,9 @@ public final class SnapshotRepository {
         List<Commit> kept = new ArrayList<>();
         List<Commit> removed = new ArrayList<>();
         for (Commit commit : commits) {
-            if (kept.size() < max || commit.id.equals(head) || commit.pinned) {
+            boolean manual = protectManual
+                    && com.mingdai.savegit.util.L10n.REASON_MANUAL.equals(commit.message);
+            if (kept.size() < max || commit.id.equals(head) || commit.pinned || manual) {
                 kept.add(commit);
                 keptManifests.add(commit.manifestId);
             } else {

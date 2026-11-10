@@ -221,6 +221,10 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                     this.togglePin(commit);
                     return true;
                 }
+                case EDIT_NOTE -> {
+                    GuiBase.openGui(new GuiEditNote(commit, this.worldDir, this));
+                    return true;
+                }
                 default -> {
                 }
             }

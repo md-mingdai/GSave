@@ -28,7 +28,15 @@ public final class WorldSnapshotter {
     }
 
     public record Settings(boolean region, boolean entities, boolean poi, boolean levelDat,
-                           boolean playerdata, int maxSnapshots, String worldName, String mcVersion) {
+                           boolean playerdata, int maxSnapshots, boolean skipUnchanged,
+                           boolean protectManual, String worldName, String mcVersion) {
+    }
+
+    /** 自动快照检测到与 HEAD 完全一致时抛出，用于跳过重复提交。 */
+    public static final class UnchangedSnapshotException extends IOException {
+        public UnchangedSnapshotException() {
+            super("snapshot unchanged");
+        }
     }
 
     @FunctionalInterface
@@ -82,6 +90,11 @@ public final class WorldSnapshotter {
         }
         Manifest oldManifest = parent == null ? null : repo.getManifest(parent.manifestId);
 
+        if (settings.skipUnchanged() && parent != null
+                && manifestId.equals(parent.manifestId)) {
+            throw new UnchangedSnapshotException();
+        }
+
         Commit commit = Commit.create(parentId, manifestId, System.currentTimeMillis(),
                 message, settings.worldName(), settings.mcVersion());
         commit.durationMs = Math.max(0L, System.currentTimeMillis() - startedAt);
@@ -90,7 +103,7 @@ public final class WorldSnapshotter {
         repo.savePatch(patch);
         repo.saveCommit(commit);
         repo.writeHead(commit.id);
-        repo.cleanupOldSnapshots(settings.maxSnapshots());
+        repo.cleanupOldSnapshots(settings.maxSnapshots(), settings.protectManual());
         return commit;
         } finally {
             repo.getBlobStore().close();

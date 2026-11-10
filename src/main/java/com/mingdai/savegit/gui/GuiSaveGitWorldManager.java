@@ -68,6 +68,10 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         int y = this.height - 28;
         this.addButton(new ButtonGeneric(20, y, 60, 20, L10n.tr("gsave.button.refresh")),
                 (button, mouseButton) -> this.reload());
+        this.addButton(new ButtonGeneric(88, y, 110, 20, L10n.tr("gsave.button.maintenance")),
+                (button, mouseButton) -> GuiBase.openGui(
+                        new GuiRepositoryMaintenance(this.worldDir,
+                                this.worldDisplayName, this)));
 
         int backWidth = 100;
         this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20,

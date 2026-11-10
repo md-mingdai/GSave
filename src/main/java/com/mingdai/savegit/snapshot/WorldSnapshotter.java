@@ -31,6 +31,18 @@ public final class WorldSnapshotter {
                            boolean playerdata, int maxSnapshots, String worldName, String mcVersion) {
     }
 
+    @FunctionalInterface
+    public interface LockedTask {
+        void run() throws Exception;
+    }
+
+    /** 与快照创建共用一把锁，维护任务（自检/清理）据此串行执行。 */
+    public static void runLocked(LockedTask task) throws Exception {
+        synchronized (SNAPSHOT_LOCK) {
+            task.run();
+        }
+    }
+
     public Commit takeSnapshot(String message, Settings settings) throws IOException {
         synchronized (SNAPSHOT_LOCK) {
             return takeSnapshotLocked(message, settings);

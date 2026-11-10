@@ -144,6 +144,216 @@ public final class BlobStore implements AutoCloseable {
         return hasBlob(hash);
     }
 
+    /** 当前存储中所有 blob 的哈希（pack + 旧版散文件）。 */
+    public synchronized java.util.Set<String> listHashes() {
+        try {
+            ensureLoaded();
+        } catch (IOException e) {
+            return java.util.Set.of();
+        }
+        java.util.Set<String> hashes = new java.util.HashSet<>(index.keySet());
+        hashes.addAll(listLegacyHashes());
+        return hashes;
+    }
+
+    public synchronized long sizeOf(String hash) {
+        try {
+            ensureLoaded();
+        } catch (IOException e) {
+            return 0L;
+        }
+        BlobLocation location = index.get(hash);
+        if (location != null) {
+            return location.length();
+        }
+        try {
+            return Files.size(legacyPath(hash));
+        } catch (IOException e) {
+            return 0L;
+        }
+    }
+
+    public synchronized long totalPackedBytes() {
+        try {
+            ensureLoaded();
+        } catch (IOException e) {
+            return 0L;
+        }
+        long total = 0L;
+        for (BlobLocation location : index.values()) {
+            total += location.length();
+        }
+        return total;
+    }
+
+    /**
+     * 只保留 keep 中的 blob：写入新的 pack 编号并逐个校验 SHA-256，
+     * 全部完成后再删除旧 pack，中断时最多留下重复数据，可再次执行收敛。
+     */
+    public synchronized RepackResult repack(java.util.Set<String> keep) throws IOException {
+        ensureMigrated();
+        if (currentPack != null) {
+            currentPack.finish();
+            currentPack = null;
+        }
+
+        java.util.List<Integer> oldPackIds = listPackIds();
+        java.util.Map<String, BlobLocation> snapshot = new java.util.HashMap<>(index);
+
+        // 任何被引用的 blob 缺失时中止，避免把损坏固化成永久丢失
+        for (String hash : keep) {
+            if (!snapshot.containsKey(hash) && !Files.isRegularFile(legacyPath(hash))) {
+                throw new IOException("缺少被引用的 blob: " + hash);
+            }
+        }
+
+        long totalBefore = 0L;
+        for (BlobLocation location : snapshot.values()) {
+            totalBefore += location.length();
+        }
+
+        long keptBytes = 0L;
+        int kept = 0;
+        int removed = 0;
+        int newPacks = 0;
+        java.util.List<Integer> writtenPackIds = new java.util.ArrayList<>();
+
+        try {
+            PackWriter writer = null;
+            for (java.util.Map.Entry<String, BlobLocation> entry : snapshot.entrySet()) {
+                String hash = entry.getKey();
+                BlobLocation location = entry.getValue();
+                if (!keep.contains(hash)) {
+                    removed++;
+                    continue;
+                }
+                if (writer == null
+                        || (!writer.isEmpty()
+                        && writer.position + 8 + location.length() > MAX_PACK_BYTES)) {
+                    if (writer != null) {
+                        writer.finish();
+                        writtenPackIds.add(writer.id);
+                        newPacks++;
+                    }
+                    writer = new PackWriter(nextPackId++);
+                }
+                writer.appendFromChannel(readChannel(location.packId()),
+                        location.offset(), location.length(), hash);
+                keptBytes += location.length();
+                kept++;
+            }
+            if (writer != null) {
+                writer.finish();
+                writtenPackIds.add(writer.id);
+                newPacks++;
+            }
+        } catch (IOException e) {
+            for (int id : writtenPackIds) {
+                deleteQuietly(packPath(id));
+                deleteQuietly(packIndexPath(id));
+            }
+            throw e;
+        }
+
+        closeReadChannels();
+        for (int id : oldPackIds) {
+            deleteQuietly(packPath(id));
+            deleteQuietly(packIndexPath(id));
+        }
+        reloadIndex();
+
+        // 旧版散文件：保留集合中的并入 pack，其余删除
+        for (String hash : listLegacyHashes()) {
+            Path legacy = legacyPath(hash);
+            if (!keep.contains(hash)) {
+                deleteQuietly(legacy);
+                removed++;
+                continue;
+            }
+            if (index.containsKey(hash)) {
+                deleteQuietly(legacy);
+                continue;
+            }
+            if (packLegacyFile(legacy, hash)) {
+                deleteQuietly(legacy);
+                kept++;
+            }
+        }
+        flush();
+        deleteEmptyDirectories();
+
+        long freed = Math.max(0L, totalBefore - keptBytes);
+        return new RepackResult(freed, kept, removed, newPacks);
+    }
+
+    /** 磁盘上仍有但索引未加载的旧版散文件哈希。 */
+    private java.util.Set<String> listLegacyHashes() {
+        java.util.Set<String> hashes = new java.util.HashSet<>();
+        if (!Files.isDirectory(blobsDir)) {
+            return hashes;
+        }
+        try (DirectoryStream<Path> dirs = Files.newDirectoryStream(blobsDir)) {
+            for (Path dir : dirs) {
+                if (!Files.isDirectory(dir)) {
+                    continue;
+                }
+                try (DirectoryStream<Path> files = Files.newDirectoryStream(dir)) {
+                    for (Path file : files) {
+                        String name = file.getFileName().toString();
+                        if (HASH_PATTERN.matcher(name).matches()) {
+                            hashes.add(name);
+                        }
+                    }
+                }
+            }
+        } catch (IOException ignored) {
+        }
+        return hashes;
+    }
+
+    private boolean packLegacyFile(Path file, String hash) {
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
+            PackWriter writer = packWriter();
+            long length = Files.size(file);
+            if (!writer.isEmpty() && writer.position + 8 + length > MAX_PACK_BYTES) {
+                rotatePack();
+                writer = packWriter();
+            }
+            writer.appendStream(hash, in, length, sha256());
+            return true;
+        } catch (IOException e) {
+            SaveGitMod.LOGGER.warn("迁移旧 blob 失败: {}", hash, e);
+            return false;
+        }
+    }
+
+    private void reloadIndex() throws IOException {
+        closeReadChannels();
+        index.clear();
+        loaded = false;
+        ensureLoaded();
+    }
+
+    private void closeReadChannels() {
+        for (FileChannel channel : readChannels.values()) {
+            try {
+                channel.close();
+            } catch (IOException ignored) {
+            }
+        }
+        readChannels.clear();
+    }
+
+    private static void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException ignored) {
+        }
+    }
+
+    public record RepackResult(long freedBytes, int keptBlobs, int removedBlobs, int newPacks) {
+    }
+
     /** 把当前 pack 的数据和索引落盘。 */
     public synchronized void flush() throws IOException {
         if (currentPack != null) {
@@ -537,6 +747,46 @@ public final class BlobStore implements AutoCloseable {
             }
         }
 
+        private void appendFromChannel(FileChannel source, long sourceOffset,
+                                       long length, String hash) throws IOException {
+            long start = position;
+            try {
+                writeLong(length);
+                long dataOffset = position;
+                long offset = sourceOffset;
+                long remaining = length;
+                MessageDigest digest = sha256();
+                byte[] buffer = new byte[COPY_BUFFER_SIZE];
+
+                while (remaining > 0) {
+                    int toRead = (int) Math.min(buffer.length, remaining);
+                    ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, toRead);
+                    int read = source.read(byteBuffer, offset);
+                    if (read < 0) {
+                        throw new EOFException("pack 数据被截断");
+                    }
+                    digest.update(buffer, 0, read);
+                    writeFully(ByteBuffer.wrap(buffer, 0, read));
+                    position += read;
+                    offset += read;
+                    remaining -= read;
+                }
+
+                String actual = toHex(digest.digest());
+                if (!actual.equals(hash)) {
+                    throw new IOException("blob 校验失败: " + hash);
+                }
+
+                BlobLocation location = new BlobLocation(id, dataOffset, length);
+                entries.put(hash, location);
+            } catch (IOException e) {
+                channel.truncate(start);
+                channel.position(start);
+                position = start;
+                throw e;
+            }
+        }
+
         private void writeLong(long value) throws IOException {
             ByteBuffer buffer = ByteBuffer.allocate(8);
             buffer.putLong(value);
@@ -572,7 +822,7 @@ public final class BlobStore implements AutoCloseable {
 
         private void finish() throws IOException {
             try {
-                flushData();
+                channel.force(true);
                 writeIndex();
             } finally {
                 channel.close();

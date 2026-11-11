@@ -93,13 +93,6 @@ public final class SnapshotRepository {
         }
     }
 
-    private static void deleteQuietly(Path path) {
-        try {
-            Files.deleteIfExists(path);
-        } catch (IOException ignored) {
-        }
-    }
-
     private static void renameIfMissing(Path from, Path to) {
         if (Files.exists(to) || !Files.isDirectory(from)) {
             return;

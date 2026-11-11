@@ -25,7 +25,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
 
     private RepositoryStats.Stats stats;
     private boolean statsLoading;
-    private boolean sawActiveTask;
+    private int seenFinishedLogs = -1;
 
     public GuiRepositoryMaintenance(Path worldDir, String worldDisplayName, Screen returnScreen) {
         this.worldDir = worldDir;
@@ -69,9 +69,9 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
         }
     }
 
-    private void refreshStats() {
+    private boolean refreshStats() {
         if (this.statsLoading) {
-            return;
+            return false;
         }
         this.statsLoading = true;
         Thread thread = new Thread(() -> {
@@ -88,6 +88,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
         }, "GSave-Stats");
         thread.setDaemon(true);
         thread.start();
+        return true;
     }
 
     @Override
@@ -96,12 +97,12 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
 
         boolean active = MaintenanceProgress.isActive();
         boolean finished = MaintenanceProgress.isFinished();
-        if (this.sawActiveTask && !active && finished) {
-            this.sawActiveTask = false;
-            this.refreshStats();
-        }
-        if (active) {
-            this.sawActiveTask = true;
+        if (!active && finished) {
+            // 任务完成（即使在本帧之前就结束）后刷新一次统计
+            int logCount = MaintenanceProgress.getLogs().size();
+            if (logCount != this.seenFinishedLogs && this.refreshStats()) {
+                this.seenFinishedLogs = logCount;
+            }
         }
 
         int left = 20;
@@ -193,8 +194,15 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
     }
 
     private int drawResults(DrawContext drawContext, int x, int y, int maxX) {
-        RepositoryChecker.Report report = RepositoryMaintenance.getLastReport();
-        if (report != null) {
+        RepositoryMaintenance.Action action = RepositoryMaintenance.getLastAction();
+
+        if (action == RepositoryMaintenance.Action.CHECK) {
+            RepositoryChecker.Report report = RepositoryMaintenance.getLastReport();
+            if (report == null) {
+                this.drawString(drawContext, L10n.tr("gsave.maintenance.label.no_result"),
+                        x, y, GuiTheme.TEXT_FAINT);
+                return y + 12;
+            }
             this.drawString(drawContext, L10n.tr("gsave.maintenance.label.last_check",
                             String.valueOf(report.count(RepositoryChecker.Level.ERROR)),
                             String.valueOf(report.count(RepositoryChecker.Level.WARNING)),
@@ -228,14 +236,16 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
             return y + 4;
         }
 
-        if (RepositoryMaintenance.getLastRepairCount() >= 0) {
+        if (action == RepositoryMaintenance.Action.REPAIR
+                && RepositoryMaintenance.getLastRepairCount() >= 0) {
             this.drawString(drawContext, L10n.tr("gsave.maintenance.label.last_repair",
                             String.valueOf(RepositoryMaintenance.getLastRepairCount())),
                     x, y, GuiTheme.TEXT_MAIN);
             return y + 12;
         }
 
-        if (RepositoryMaintenance.getLastGcResult() != null) {
+        if (action == RepositoryMaintenance.Action.GC
+                && RepositoryMaintenance.getLastGcResult() != null) {
             this.drawString(drawContext, L10n.tr("gsave.maintenance.label.last_gc",
                             RepositoryMaintenance.formatBytes(
                                     RepositoryMaintenance.getLastGcResult().freedBytes()),
@@ -257,10 +267,21 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
             return;
         }
 
-        String title = MaintenanceProgress.isFinished()
-                ? L10n.tr(MaintenanceProgress.isFailed()
-                ? "gsave.progress.title.failed" : "gsave.progress.title.finished")
-                : L10n.tr(MaintenanceProgress.getTitleKey());
+        String title;
+        if (MaintenanceProgress.isFinished()) {
+            if (MaintenanceProgress.isFailed()) {
+                title = L10n.tr("gsave.progress.title.failed");
+            } else {
+                title = L10n.tr(switch (RepositoryMaintenance.getLastAction()) {
+                    case CHECK -> "gsave.maintenance.title.check_done";
+                    case REPAIR -> "gsave.maintenance.title.repair_done";
+                    case GC -> "gsave.maintenance.title.gc_done";
+                    default -> "gsave.maintenance.log.finished";
+                });
+            }
+        } else {
+            title = L10n.tr(MaintenanceProgress.getTitleKey());
+        }
         int titleColor = MaintenanceProgress.isFailed() ? GuiTheme.DANGER : GuiTheme.TEXT_MAIN;
         this.drawString(drawContext, title, x, y, titleColor);
         y += 12;

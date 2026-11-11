@@ -10,9 +10,17 @@ import java.util.function.BiConsumer;
  * 在后台线程执行仓库自检/修复/清理，并与快照创建共用同一把锁。
  */
 public final class RepositoryMaintenance {
+    public enum Action {
+        NONE,
+        CHECK,
+        REPAIR,
+        GC
+    }
+
     private static volatile RepositoryChecker.Report lastReport;
     private static volatile RepositoryGc.Result lastGcResult;
     private static volatile int lastRepairCount = -1;
+    private static volatile Action lastAction = Action.NONE;
 
     private RepositoryMaintenance() {
     }
@@ -23,6 +31,7 @@ public final class RepositoryMaintenance {
     }
 
     public static boolean startCheck(Path worldRoot) {
+        lastAction = Action.CHECK;
         return start("gsave.maintenance.title.check", progress -> {
             RepositoryChecker.Report report = RepositoryChecker.check(worldRoot, progress);
             lastReport = report;
@@ -35,6 +44,7 @@ public final class RepositoryMaintenance {
     }
 
     public static boolean startRepair(Path worldRoot) {
+        lastAction = Action.REPAIR;
         return start("gsave.maintenance.title.repair", progress -> {
             progress.accept(10, L10n.tr("gsave.repair.log.start"));
             int repaired = RepositoryChecker.repair(worldRoot);
@@ -45,6 +55,7 @@ public final class RepositoryMaintenance {
     }
 
     public static boolean startGc(Path worldRoot) {
+        lastAction = Action.GC;
         return start("gsave.maintenance.title.gc", progress -> {
             RepositoryGc.Result result = RepositoryGc.collect(worldRoot, progress);
             lastGcResult = result;
@@ -90,10 +101,15 @@ public final class RepositoryMaintenance {
         return lastRepairCount;
     }
 
+    public static Action getLastAction() {
+        return lastAction;
+    }
+
     public static void clearLastResults() {
         lastReport = null;
         lastGcResult = null;
         lastRepairCount = -1;
+        lastAction = Action.NONE;
     }
 
     public static String formatBytes(long bytes) {

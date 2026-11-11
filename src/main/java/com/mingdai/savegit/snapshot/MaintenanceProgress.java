@@ -51,7 +51,6 @@ public final class MaintenanceProgress {
         percent = 100;
         finished = true;
         active = false;
-        addLog(com.mingdai.savegit.util.L10n.tr("gsave.maintenance.log.finished"));
     }
 
     public static void fail(String message) {

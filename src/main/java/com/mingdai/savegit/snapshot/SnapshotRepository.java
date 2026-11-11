@@ -93,6 +93,23 @@ public final class SnapshotRepository {
         }
     }
 
+    /** 停止跟踪：删除该世界全部 GSave 数据（含旧版 savegit 目录）。 */
+    public static void deleteAllData(Path worldRoot) throws IOException {
+        deleteRecursively(worldRoot.resolve(SaveGitMod.MOD_ID));
+        deleteRecursively(worldRoot.resolve(LEGACY_DATA_DIR_NAME));
+    }
+
+    private static void deleteRecursively(Path dir) throws IOException {
+        if (!Files.exists(dir)) {
+            return;
+        }
+        try (var stream = Files.walk(dir)) {
+            for (Path path : stream.sorted(Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(path);
+            }
+        }
+    }
+
     public Path getWorldRoot() {
         return worldRoot;
     }

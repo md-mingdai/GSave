@@ -48,6 +48,8 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
         x = this.addButton(x, y, 110, L10n.tr("gsave.maintenance.button.gc"),
                 () -> GuiBase.openGui(new GuiConfirmMaintenance(this.worldDir,
                         this.worldDisplayName, this)));
+        x = this.addButton(x, y, 80, L10n.tr("gsave.maintenance.button.export"),
+                this::exportSnapshots);
         this.addButton(x, y, 60, L10n.tr("gsave.button.refresh"), this::refreshStats);
 
         int backWidth = 100;
@@ -59,6 +61,14 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
         this.addButton(new ButtonGeneric(x, y, width, 20, label),
                 (button, mouseButton) -> action.run());
         return x + width + 8;
+    }
+
+    private void exportSnapshots() {
+        String world = this.worldDisplayName == null
+                ? "world" : this.worldDisplayName.replaceAll("[^a-zA-Z0-9._-]", "_");
+        Path target = this.mc.runDirectory.toPath().resolve("gsave-exports")
+                .resolve("gsave-" + world + "-" + System.currentTimeMillis() + ".zip");
+        RepositoryMaintenance.startExport(this.worldDir, target);
     }
 
     private void goBack() {
@@ -255,6 +265,16 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
             return y + 12;
         }
 
+        if (action == RepositoryMaintenance.Action.EXPORT
+                && RepositoryMaintenance.getLastExportResult() != null) {
+            String line = L10n.tr("gsave.maintenance.label.last_export",
+                    String.valueOf(RepositoryMaintenance.getLastExportResult().commits()),
+                    RepositoryMaintenance.getLastExportResult().file().toString());
+            line = this.textRenderer.trimToWidth(line, maxX - x);
+            this.drawString(drawContext, line, x, y, GuiTheme.TEXT_MAIN);
+            return y + 12;
+        }
+
         this.drawString(drawContext, L10n.tr("gsave.maintenance.label.no_result"),
                 x, y, GuiTheme.TEXT_FAINT);
         return y + 12;
@@ -276,6 +296,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
                     case CHECK -> "gsave.maintenance.title.check_done";
                     case REPAIR -> "gsave.maintenance.title.repair_done";
                     case GC -> "gsave.maintenance.title.gc_done";
+                    case EXPORT -> "gsave.maintenance.title.export_done";
                     default -> "gsave.maintenance.log.finished";
                 });
             }

@@ -8,6 +8,7 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.util.InfoUtils;
 import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.gui.DrawContext;
 
@@ -56,9 +57,19 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                     this.message = this.compareMode
                             ? L10n.tr("gsave.gui.message.compare_hint") : null;
                 });
+        int exportX = 156;
+        int exportY = y;
+        int backLeft = this.width - 20 - 100;
+        if (exportX + 60 > backLeft - 8) {
+            exportX = 20;
+            exportY = y - 24;
+        }
+        this.addButton(new ButtonGeneric(exportX, exportY, 60, 20,
+                        L10n.tr("gsave.button.export")),
+                (button, mouseButton) -> this.exportSnapshots());
 
         int backWidth = 100;
-        this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20,
+        this.addButton(new ButtonGeneric(backLeft, y, backWidth, 20,
                         L10n.tr("gsave.button.back_to_main_menu")),
                 (button, mouseButton) -> GuiBase.openGui(new GuiSaveGitMain()));
     }
@@ -248,6 +259,35 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             }
         }
         return false;
+    }
+
+    private void exportSnapshots() {
+        if (!this.worldAvailable || this.worldDir == null) {
+            this.message = L10n.tr("gsave.gui.message.world_unloaded");
+            return;
+        }
+        String world = SaveGitSnapshotManager.getWorldName(this.mc)
+                .replaceAll("[^a-zA-Z0-9._-]", "_");
+        if (world.isEmpty()) {
+            world = "world";
+        }
+        Path target = this.mc.runDirectory.toPath().resolve("gsave-exports")
+                .resolve("gsave-" + world + "-" + System.currentTimeMillis() + ".zip");
+        Thread thread = new Thread(() -> {
+            try {
+                com.mingdai.savegit.snapshot.RepositoryArchive.ExportResult result =
+                        com.mingdai.savegit.snapshot.RepositoryArchive.exportAll(
+                                this.worldDir, target);
+                InfoUtils.sendVanillaMessage(L10n.text("gsave.message.export_done",
+                        String.valueOf(result.commits()), target.toString()));
+            } catch (IOException e) {
+                InfoUtils.sendVanillaMessage(
+                        L10n.text("gsave.message.export_failed", e.getMessage()));
+            }
+        }, "GSave-Export");
+        thread.setDaemon(true);
+        thread.start();
+        this.message = L10n.tr("gsave.message.export_started");
     }
 
     private void togglePin(Commit commit) {

@@ -14,12 +14,14 @@ public final class RepositoryMaintenance {
         NONE,
         CHECK,
         REPAIR,
-        GC
+        GC,
+        EXPORT
     }
 
     private static volatile RepositoryChecker.Report lastReport;
     private static volatile RepositoryGc.Result lastGcResult;
     private static volatile int lastRepairCount = -1;
+    private static volatile RepositoryArchive.ExportResult lastExportResult;
     private static volatile Action lastAction = Action.NONE;
 
     private RepositoryMaintenance() {
@@ -66,6 +68,17 @@ public final class RepositoryMaintenance {
         });
     }
 
+    public static boolean startExport(Path worldRoot, Path target) {
+        lastAction = Action.EXPORT;
+        return start("gsave.maintenance.title.export", progress -> {
+            progress.accept(5, L10n.tr("gsave.export.log.start", target.toString()));
+            RepositoryArchive.ExportResult result = RepositoryArchive.exportAll(worldRoot, target);
+            lastExportResult = result;
+            progress.accept(100, L10n.tr("gsave.export.log.done",
+                    String.valueOf(result.commits()), target.toString()));
+        });
+    }
+
     private static boolean start(String titleKey, Task task) {
         if (MaintenanceProgress.isActive()) {
             return false;
@@ -97,6 +110,10 @@ public final class RepositoryMaintenance {
         return lastGcResult;
     }
 
+    public static RepositoryArchive.ExportResult getLastExportResult() {
+        return lastExportResult;
+    }
+
     public static int getLastRepairCount() {
         return lastRepairCount;
     }
@@ -109,6 +126,7 @@ public final class RepositoryMaintenance {
         lastReport = null;
         lastGcResult = null;
         lastRepairCount = -1;
+        lastExportResult = null;
         lastAction = Action.NONE;
     }
 

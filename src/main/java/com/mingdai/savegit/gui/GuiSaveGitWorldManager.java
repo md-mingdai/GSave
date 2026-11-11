@@ -68,9 +68,20 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 (button, mouseButton) -> GuiBase.openGui(
                         new GuiRepositoryMaintenance(this.worldDir,
                                 this.worldDisplayName, this)));
-
         int backWidth = 100;
-        this.addButton(new ButtonGeneric(this.width - 20 - backWidth, y, backWidth, 20,
+        int backLeft = this.width - 20 - backWidth;
+        int stopX = 206;
+        int stopY = y;
+        if (stopX + 90 > backLeft - 8) {
+            stopX = 20;
+            stopY = y - 24;
+        }
+        this.addButton(new ButtonGeneric(stopX, stopY, 90, 20,
+                        L10n.tr("gsave.button.stop_tracking")),
+                (button, mouseButton) -> GuiBase.openGui(new GuiConfirmStopTracking(
+                        this.worldDir, this.worldDisplayName, this)));
+
+        this.addButton(new ButtonGeneric(backLeft, y, backWidth, 20,
                         L10n.tr("gsave.button.back")),
                 (button, mouseButton) -> this.goBack());
     }

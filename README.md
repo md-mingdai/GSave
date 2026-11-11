@@ -100,13 +100,13 @@
 └── .data-migrated       # 数据迁移标记
 ```
 
-旧版本遗留的 `savegit/` 数据目录会在首次打开时自动迁移为 `gsave/`；旧配置文件 `config/savegit.json` 也会自动迁移为 `config/gsave.json`。旧版子目录（`commits`/`manifests`/`patches`/`packs`/`shots`、`HEAD` 与 `pack-*.pack/.idx`）同样会在首次打开时自动重命名为上表的新名称。
+旧版本遗留的数据目录与配置文件会在首次打开时自动迁移为新的 `gsave/` 目录与 `config/gsave.json`。旧版的数据子目录、最新快照标记与数据文件同样会在首次打开时自动重命名为上表的新名称。
 
-旧版本遗留的 `blobs/` 零散数据会在首次使用时自动合并进数据文件，校验后清理。
+旧版本遗留的零散数据文件会在首次使用时自动合并进数据文件，校验后清理。
 
 ## 构建
 
-本项目在 GitHub Actions 上构建，需要 JDK 21 与 Gradle 9.x：
+本项目通过云端 CI 自动构建，需要 JDK 21 与 Gradle 9.x：
 
 ```bash
 ./gradlew build

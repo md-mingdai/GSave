@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 public class SaveGitMod implements ClientModInitializer {
     public static final String MOD_ID = "gsave";
     public static final String MOD_NAME = "GSave";
-    public static final String MOD_VERSION = "1.1.1";
+    public static final String MOD_VERSION = "1.1.2";
     public static final String MC_VERSION = "1.21.8";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 

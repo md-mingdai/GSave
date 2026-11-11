@@ -50,6 +50,9 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
                         this.worldDisplayName, this)));
         x = this.addButton(x, y, 80, L10n.tr("gsave.maintenance.button.export"),
                 this::exportSnapshots);
+        x = this.addButton(x, y, 80, L10n.tr("gsave.maintenance.button.import"),
+                () -> GuiBase.openGui(new GuiImportArchive(this.worldDir,
+                        this.worldDisplayName, this, this.returnScreen)));
         this.addButton(x, y, 60, L10n.tr("gsave.button.refresh"), this::refreshStats);
 
         int backWidth = 100;
@@ -275,6 +278,15 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
             return y + 12;
         }
 
+        if (action == RepositoryMaintenance.Action.IMPORT
+                && RepositoryMaintenance.getLastImportResult() != null) {
+            this.drawString(drawContext, L10n.tr("gsave.maintenance.label.last_import",
+                            String.valueOf(RepositoryMaintenance.getLastImportResult().commits()),
+                            String.valueOf(RepositoryMaintenance.getLastImportResult().blobs())),
+                    x, y, GuiTheme.TEXT_MAIN);
+            return y + 12;
+        }
+
         this.drawString(drawContext, L10n.tr("gsave.maintenance.label.no_result"),
                 x, y, GuiTheme.TEXT_FAINT);
         return y + 12;
@@ -297,6 +309,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
                     case REPAIR -> "gsave.maintenance.title.repair_done";
                     case GC -> "gsave.maintenance.title.gc_done";
                     case EXPORT -> "gsave.maintenance.title.export_done";
+                    case IMPORT -> "gsave.maintenance.title.import_done";
                     default -> "gsave.maintenance.log.finished";
                 });
             }

@@ -50,6 +50,7 @@ public final class RepositoryArchive {
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(targetZip))) {
             JsonObject meta = new JsonObject();
             meta.addProperty("format", RepositoryFormat.CURRENT);
+            meta.addProperty("generator", com.mingdai.savegit.SaveGitMod.MOD_VERSION);
             meta.addProperty("created", System.currentTimeMillis());
             meta.addProperty("commits", commits.size());
             writeEntry(zip, "archive.json",
@@ -61,6 +62,8 @@ public final class RepositoryArchive {
                         "commits/" + commit.id + ".json");
                 addFileIfExists(zip, dataDir.resolve("patches").resolve(commit.id + ".json"),
                         "patches/" + commit.id + ".json");
+                addFileIfExists(zip, dataDir.resolve("shots").resolve(commit.id + ".png"),
+                        "shots/" + commit.id + ".png");
                 manifestIds.add(commit.manifestId);
             }
             for (String manifestId : manifestIds) {
@@ -142,6 +145,13 @@ public final class RepositoryArchive {
                             Files.copy(patch,
                                     repo.getSaveGitDir().resolve("patches")
                                             .resolve(commit.id + ".json"),
+                                    StandardCopyOption.REPLACE_EXISTING);
+                        }
+                        Path shot = tempData.resolve("shots").resolve(commit.id + ".png");
+                        if (Files.isRegularFile(shot)) {
+                            Files.createDirectories(repo.getShotsDir());
+                            Files.copy(shot,
+                                    repo.getShotsDir().resolve(commit.id + ".png"),
                                     StandardCopyOption.REPLACE_EXISTING);
                         }
                         importedCommits++;

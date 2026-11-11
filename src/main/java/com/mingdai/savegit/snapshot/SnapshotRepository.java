@@ -88,6 +88,15 @@ public final class SnapshotRepository {
             } catch (IOException e) {
                 SaveGitMod.LOGGER.warn("迁移最新快照标记失败", e);
             }
+        } else if (Files.exists(latest) && Files.exists(legacyLatest)) {
+            deleteQuietly(legacyLatest);
+        }
+    }
+
+    private static void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException ignored) {
         }
     }
 

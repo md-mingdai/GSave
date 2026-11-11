@@ -463,6 +463,7 @@ public final class BlobStore implements AutoCloseable {
         }
         nextPackId = maxId + 1;
         deleteEmptyDirectory(legacyPacksDir);
+        deleteEmptyDirectory(blobsDir);
         loaded = true;
     }
 

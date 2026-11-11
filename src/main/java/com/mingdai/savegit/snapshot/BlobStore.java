@@ -477,35 +477,38 @@ public final class BlobStore implements AutoCloseable {
         for (int id : ids) {
             Path newPack = packPath(id);
             Path newIndex = packIndexPath(id);
-            Path oldPack = legacyPackPath(id);
-            Path oldIndex = legacyPackIndexPath(id);
 
-            if (!Files.exists(newPack) && Files.isRegularFile(oldPack)) {
-                try {
-                    Files.move(oldPack, newPack);
-                } catch (IOException e) {
-                    SaveGitMod.LOGGER.warn("迁移快照数据文件失败: {}", oldPack, e);
-                }
+            moveIfMissing(oldPackInData(id), newPack);
+            moveIfMissing(oldIndexInData(id), newIndex);
+            moveIfMissing(legacyPackPath(id), newPack);
+            moveIfMissing(legacyPackIndexPath(id), newIndex);
+
+            if (Files.exists(newPack)) {
+                deleteQuietly(oldPackInData(id));
+                deleteQuietly(legacyPackPath(id));
             }
-            if (!Files.exists(newIndex) && Files.isRegularFile(oldIndex)) {
-                try {
-                    Files.move(oldIndex, newIndex);
-                } catch (IOException e) {
-                    SaveGitMod.LOGGER.warn("迁移快照索引文件失败: {}", oldIndex, e);
-                }
+            if (Files.exists(newIndex)) {
+                deleteQuietly(oldIndexInData(id));
+                deleteQuietly(legacyPackIndexPath(id));
             }
-            if (Files.exists(newPack) && Files.isRegularFile(oldPack)) {
-                deleteQuietly(oldPack);
-            }
-            if (Files.exists(newIndex) && Files.isRegularFile(oldIndex)) {
-                deleteQuietly(oldIndex);
-            }
+        }
+    }
+
+    private static void moveIfMissing(Path from, Path to) {
+        if (Files.exists(to) || !Files.isRegularFile(from)) {
+            return;
+        }
+        try {
+            Files.move(from, to);
+        } catch (IOException e) {
+            SaveGitMod.LOGGER.warn("迁移快照数据文件失败: {}", from, e);
         }
     }
 
     private List<Integer> listPackIds() throws IOException {
         List<Integer> ids = new ArrayList<>();
         collectPackIds(dataDir, DATA_PATTERN, ids);
+        collectPackIds(dataDir, LEGACY_PACK_PATTERN, ids);
         collectPackIds(legacyPacksDir, LEGACY_PACK_PATTERN, ids);
         return ids;
     }
@@ -724,6 +727,14 @@ public final class BlobStore implements AutoCloseable {
 
     private Path legacyPackIndexPath(int packId) {
         return legacyPacksDir.resolve(String.format(Locale.ROOT, "pack-%06d.idx", packId));
+    }
+
+    private Path oldPackInData(int packId) {
+        return dataDir.resolve(String.format(Locale.ROOT, "pack-%06d.pack", packId));
+    }
+
+    private Path oldIndexInData(int packId) {
+        return dataDir.resolve(String.format(Locale.ROOT, "pack-%06d.idx", packId));
     }
 
     private Path legacyPath(String hash) {

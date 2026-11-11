@@ -38,6 +38,8 @@ public final class RepositoryArchive {
     public static ExportResult exportAll(Path worldRoot, Path targetZip) throws IOException {
         SnapshotRepository repo = new SnapshotRepository(worldRoot);
         repo.getBlobStore().flush();
+        // 触发旧数据文件改名，保证导出目录里是新命名
+        repo.getBlobStore().listHashes();
         List<Commit> commits = repo.listCommits();
         Path dataDir = repo.getSaveGitDir();
 

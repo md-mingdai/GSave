@@ -293,6 +293,8 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
      * 外部模式的恢复确认界面。
      */
     public static class GuiExternalRestoreConfirm extends GuiSaveGitScreen {
+        private static final int SCOPE_ROW_GAP = 16;
+        private static final int SCOPE_COLUMN_GAP = 24;
         private final Commit commit;
         private final GuiSaveGitWorldManager parent;
         private final Path worldDir;
@@ -321,17 +323,31 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                     this.width / 2 - this.safetyCheckBox.getWidth() / 2, panelBottom + 10);
             this.addWidget(this.safetyCheckBox);
 
-            this.regionBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_region"),
-                    this.width / 2 - 130, panelBottom + 28);
-            this.entitiesBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_entities"),
-                    this.width / 2 - 4, panelBottom + 28);
-            this.poiBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_poi"),
-                    this.width / 2 - 130, panelBottom + 44);
-            this.otherBox = this.addScopeBox(L10n.tr("gsave.gui.checkbox.scope_other"),
-                    this.width / 2 - 4, panelBottom + 44);
+            this.regionBox = new com.mingdai.savegit.gui.WidgetCheckBoxSimple(
+                    0, 0, L10n.tr("gsave.gui.checkbox.scope_region"), true);
+            this.entitiesBox = new com.mingdai.savegit.gui.WidgetCheckBoxSimple(
+                    0, 0, L10n.tr("gsave.gui.checkbox.scope_entities"), true);
+            this.poiBox = new com.mingdai.savegit.gui.WidgetCheckBoxSimple(
+                    0, 0, L10n.tr("gsave.gui.checkbox.scope_poi"), true);
+            this.otherBox = new com.mingdai.savegit.gui.WidgetCheckBoxSimple(
+                    0, 0, L10n.tr("gsave.gui.checkbox.scope_other"), true);
+
+            int columnOne = Math.max(this.regionBox.getWidth(), this.poiBox.getWidth());
+            int columnTwo = Math.max(this.entitiesBox.getWidth(), this.otherBox.getWidth());
+            int blockLeft = this.width / 2 - (columnOne + SCOPE_COLUMN_GAP + columnTwo) / 2;
+            int gridTop = panelBottom + 50;
+            this.regionBox.setPosition(blockLeft, gridTop);
+            this.poiBox.setPosition(blockLeft, gridTop + SCOPE_ROW_GAP);
+            this.entitiesBox.setPosition(blockLeft + columnOne + SCOPE_COLUMN_GAP, gridTop);
+            this.otherBox.setPosition(blockLeft + columnOne + SCOPE_COLUMN_GAP,
+                    gridTop + SCOPE_ROW_GAP);
+            this.addWidget(this.regionBox);
+            this.addWidget(this.entitiesBox);
+            this.addWidget(this.poiBox);
+            this.addWidget(this.otherBox);
 
             int buttonWidth = 100;
-            int y = panelBottom + 68;
+            int y = gridTop + SCOPE_ROW_GAP + 28;
             this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
                             L10n.tr("gsave.button.confirm_restore")),
                     (button, mouseButton) -> {
@@ -366,14 +382,6 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 return true;
             }
             return super.onKeyTyped(keyCode, scanCode, modifiers);
-        }
-
-        private com.mingdai.savegit.gui.WidgetCheckBoxSimple addScopeBox(String label,
-                                                                        int x, int y) {
-            com.mingdai.savegit.gui.WidgetCheckBoxSimple box =
-                    new com.mingdai.savegit.gui.WidgetCheckBoxSimple(x, y, label, true);
-            this.addWidget(box);
-            return box;
         }
 
         private List<String> buildLines() {
@@ -420,6 +428,18 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 this.drawString(drawContext, line,
                         this.width / 2 - this.getStringWidth(line) / 2, startY + i * 12, color);
             }
+
+            int labelY = this.panelBottom() + 34;
+            String label = L10n.tr("gsave.gui.label.restore_scope");
+            int labelWidth = this.getStringWidth(label);
+            int labelX = this.width / 2 - labelWidth / 2;
+            this.drawString(drawContext, label, labelX, labelY,
+                    com.mingdai.savegit.gui.theme.GuiTheme.TEXT_DIM);
+            com.mingdai.savegit.gui.theme.GuiTheme.drawDivider(drawContext,
+                    labelX - 46, labelY + 4, labelX - 8, 0x40FFFFFF);
+            com.mingdai.savegit.gui.theme.GuiTheme.drawDivider(drawContext,
+                    labelX + labelWidth + 8, labelY + 4,
+                    labelX + labelWidth + 46, 0x40FFFFFF);
         }
     }
 

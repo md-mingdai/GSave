@@ -78,6 +78,7 @@
   "gsave.gui.checkbox.scope_entities": "Entities",
   "gsave.gui.checkbox.scope_poi": "POI",
   "gsave.gui.checkbox.scope_other": "Other files",
+  "gsave.gui.label.restore_scope": "Restore scope",
   "gsave.gui.tooltip.delete_disabled": "Snapshots cannot be deleted while in game",
   "gsave.gui.tooltip.delete_disabled_hint": "Quit the world, then use \"GSave Manager\" in the singleplayer world list",
   "gsave.gui.hint.keybind": "Key: %s    rebind in Options - Controls - Key Binds",

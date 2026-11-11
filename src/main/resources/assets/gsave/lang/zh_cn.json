@@ -78,6 +78,7 @@
   "gsave.gui.checkbox.scope_entities": "实体区块",
   "gsave.gui.checkbox.scope_poi": "兴趣点区块",
   "gsave.gui.checkbox.scope_other": "其他文件",
+  "gsave.gui.label.restore_scope": "恢复范围",
   "gsave.gui.tooltip.delete_disabled": "正常游戏时不能删除快照",
   "gsave.gui.tooltip.delete_disabled_hint": "退出游戏后可在单人游戏列表的「GSave 管理」中删除",
   "gsave.gui.hint.keybind": "按键：%s    可在 选项 - 控制 - 按键绑定 中修改",

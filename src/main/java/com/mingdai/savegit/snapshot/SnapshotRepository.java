@@ -30,6 +30,20 @@ public final class SnapshotRepository {
     private static final String LEGACY_DATA_DIR_NAME = "savegit";
     private static final Object MIGRATION_LOCK = new Object();
 
+    public static final String DIR_SNAPSHOTS = "snapshots";
+    public static final String DIR_FILELISTS = "filelists";
+    public static final String DIR_CHANGES = "changes";
+    public static final String DIR_DATA = "data";
+    public static final String DIR_SCREENSHOTS = "screenshots";
+    public static final String FILE_LATEST = "LATEST";
+
+    private static final String LEGACY_DIR_SNAPSHOTS = "commits";
+    private static final String LEGACY_DIR_FILELISTS = "manifests";
+    private static final String LEGACY_DIR_CHANGES = "patches";
+    private static final String LEGACY_DIR_DATA = "packs";
+    private static final String LEGACY_DIR_SCREENSHOTS = "shots";
+    private static final String LEGACY_FILE_LATEST = "HEAD";
+
     private final Path worldRoot;
     private final Path saveGitDir;
     private final Path commitsDir;
@@ -42,12 +56,50 @@ public final class SnapshotRepository {
     public SnapshotRepository(Path worldRoot) {
         this.worldRoot = worldRoot.toAbsolutePath().normalize();
         this.saveGitDir = dataDir(this.worldRoot);
-        this.commitsDir = saveGitDir.resolve("commits");
-        this.manifestsDir = saveGitDir.resolve("manifests");
-        this.patchesDir = saveGitDir.resolve("patches");
-        this.headFile = saveGitDir.resolve("HEAD");
+        migrateLayout(this.saveGitDir);
+        this.commitsDir = saveGitDir.resolve(DIR_SNAPSHOTS);
+        this.manifestsDir = saveGitDir.resolve(DIR_FILELISTS);
+        this.patchesDir = saveGitDir.resolve(DIR_CHANGES);
+        this.headFile = saveGitDir.resolve(FILE_LATEST);
         this.formatVersion = RepositoryFormat.ensureIfExists(saveGitDir);
         this.blobStore = new BlobStore(saveGitDir);
+    }
+
+    /** 旧版目录/文件名自动迁移为新的非 Git 命名。 */
+    private static void migrateLayout(Path saveGitDir) {
+        if (!Files.isDirectory(saveGitDir)) {
+            return;
+        }
+        renameIfMissing(saveGitDir.resolve(LEGACY_DIR_SNAPSHOTS),
+                saveGitDir.resolve(DIR_SNAPSHOTS));
+        renameIfMissing(saveGitDir.resolve(LEGACY_DIR_FILELISTS),
+                saveGitDir.resolve(DIR_FILELISTS));
+        renameIfMissing(saveGitDir.resolve(LEGACY_DIR_CHANGES),
+                saveGitDir.resolve(DIR_CHANGES));
+        renameIfMissing(saveGitDir.resolve(LEGACY_DIR_DATA), saveGitDir.resolve(DIR_DATA));
+        renameIfMissing(saveGitDir.resolve(LEGACY_DIR_SCREENSHOTS),
+                saveGitDir.resolve(DIR_SCREENSHOTS));
+
+        Path latest = saveGitDir.resolve(FILE_LATEST);
+        Path legacyLatest = saveGitDir.resolve(LEGACY_FILE_LATEST);
+        if (!Files.exists(latest) && Files.isRegularFile(legacyLatest)) {
+            try {
+                Files.move(legacyLatest, latest);
+            } catch (IOException e) {
+                SaveGitMod.LOGGER.warn("迁移最新快照标记失败", e);
+            }
+        }
+    }
+
+    private static void renameIfMissing(Path from, Path to) {
+        if (Files.exists(to) || !Files.isDirectory(from)) {
+            return;
+        }
+        try {
+            Files.move(from, to);
+        } catch (IOException e) {
+            SaveGitMod.LOGGER.warn("迁移快照数据目录失败: {} -> {}", from, to, e);
+        }
     }
 
     public int getFormatVersion() {
@@ -119,7 +171,7 @@ public final class SnapshotRepository {
     }
 
     public Path getShotsDir() {
-        return saveGitDir.resolve("shots");
+        return saveGitDir.resolve(DIR_SCREENSHOTS);
     }
 
     public BlobStore getBlobStore() {
@@ -127,11 +179,17 @@ public final class SnapshotRepository {
     }
 
     public String readHead() {
-        if (!Files.isRegularFile(headFile)) {
-            return null;
+        Path file = this.headFile;
+        if (!Files.isRegularFile(file)) {
+            Path legacy = this.saveGitDir.resolve(LEGACY_FILE_LATEST);
+            if (Files.isRegularFile(legacy)) {
+                file = legacy;
+            } else {
+                return null;
+            }
         }
         try {
-            String head = Files.readString(headFile, StandardCharsets.UTF_8).trim();
+            String head = Files.readString(file, StandardCharsets.UTF_8).trim();
             return head.isEmpty() ? null : head;
         } catch (IOException e) {
             return null;

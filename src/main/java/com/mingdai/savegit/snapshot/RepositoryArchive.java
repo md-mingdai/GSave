@@ -52,36 +52,45 @@ public final class RepositoryArchive {
             meta.addProperty("format", RepositoryFormat.CURRENT);
             meta.addProperty("generator", com.mingdai.savegit.SaveGitMod.MOD_VERSION);
             meta.addProperty("created", System.currentTimeMillis());
-            meta.addProperty("commits", commits.size());
+            meta.addProperty("snapshots", commits.size());
             writeEntry(zip, "archive.json",
                     GSON.toJson(meta).getBytes(StandardCharsets.UTF_8));
 
             Set<String> manifestIds = new HashSet<>();
             for (Commit commit : commits) {
-                addFileIfExists(zip, dataDir.resolve("commits").resolve(commit.id + ".json"),
-                        "commits/" + commit.id + ".json");
-                addFileIfExists(zip, dataDir.resolve("patches").resolve(commit.id + ".json"),
-                        "patches/" + commit.id + ".json");
-                addFileIfExists(zip, dataDir.resolve("shots").resolve(commit.id + ".png"),
-                        "shots/" + commit.id + ".png");
+                addFileIfExists(zip,
+                        dataDir.resolve(SnapshotRepository.DIR_SNAPSHOTS)
+                                .resolve(commit.id + ".json"),
+                        SnapshotRepository.DIR_SNAPSHOTS + "/" + commit.id + ".json");
+                addFileIfExists(zip,
+                        dataDir.resolve(SnapshotRepository.DIR_CHANGES)
+                                .resolve(commit.id + ".json"),
+                        SnapshotRepository.DIR_CHANGES + "/" + commit.id + ".json");
+                addFileIfExists(zip,
+                        dataDir.resolve(SnapshotRepository.DIR_SCREENSHOTS)
+                                .resolve(commit.id + ".png"),
+                        SnapshotRepository.DIR_SCREENSHOTS + "/" + commit.id + ".png");
                 manifestIds.add(commit.manifestId);
             }
             for (String manifestId : manifestIds) {
-                addFileIfExists(zip, dataDir.resolve("manifests").resolve(manifestId + ".json"),
-                        "manifests/" + manifestId + ".json");
+                addFileIfExists(zip,
+                        dataDir.resolve(SnapshotRepository.DIR_FILELISTS)
+                                .resolve(manifestId + ".json"),
+                        SnapshotRepository.DIR_FILELISTS + "/" + manifestId + ".json");
             }
 
-            Path packsDir = dataDir.resolve("packs");
+            Path packsDir = dataDir.resolve(SnapshotRepository.DIR_DATA);
             if (Files.isDirectory(packsDir)) {
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(packsDir)) {
                     for (Path pack : stream) {
                         String name = pack.getFileName().toString();
                         if (!Files.isRegularFile(pack)
-                                || !(name.endsWith(".pack") || name.endsWith(".idx"))) {
+                                || !(name.endsWith(".bin") || name.endsWith(".index"))) {
                             continue;
                         }
-                        addFileIfExists(zip, pack, "packs/" + name);
-                        if (name.endsWith(".pack")) {
+                        addFileIfExists(zip, pack,
+                                SnapshotRepository.DIR_DATA + "/" + name);
+                        if (name.endsWith(".bin")) {
                             packCount++;
                         }
                     }
@@ -112,9 +121,9 @@ public final class RepositoryArchive {
             int importedCommits = 0;
             int importedBlobs = 0;
             try {
-                Path commitsDir = tempData.resolve("commits");
+                Path commitsDir = tempData.resolve(SnapshotRepository.DIR_SNAPSHOTS);
                 if (!Files.isDirectory(commitsDir)) {
-                    throw new IOException("archive has no commits");
+                    throw new IOException("archive has no snapshots");
                 }
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(commitsDir, "*.json")) {
                     for (Path path : stream) {
@@ -140,14 +149,16 @@ public final class RepositoryArchive {
                         repo.saveManifest(manifest);
                         repo.saveCommit(commit);
 
-                        Path patch = tempData.resolve("patches").resolve(commit.id + ".json");
+                        Path patch = tempData.resolve(SnapshotRepository.DIR_CHANGES)
+                                .resolve(commit.id + ".json");
                         if (Files.isRegularFile(patch)) {
                             Files.copy(patch,
-                                    repo.getSaveGitDir().resolve("patches")
+                                    repo.getSaveGitDir().resolve(SnapshotRepository.DIR_CHANGES)
                                             .resolve(commit.id + ".json"),
                                     StandardCopyOption.REPLACE_EXISTING);
                         }
-                        Path shot = tempData.resolve("shots").resolve(commit.id + ".png");
+                        Path shot = tempData.resolve(SnapshotRepository.DIR_SCREENSHOTS)
+                                .resolve(commit.id + ".png");
                         if (Files.isRegularFile(shot)) {
                             Files.createDirectories(repo.getShotsDir());
                             Files.copy(shot,

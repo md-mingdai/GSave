@@ -39,11 +39,13 @@ public final class BlobStore implements AutoCloseable {
     private static final int MAX_PACK_BYTES = 64 * 1024 * 1024;
     private static final int COPY_BUFFER_SIZE = 8192;
     private static final Pattern HASH_PATTERN = Pattern.compile("[0-9a-f]{64}");
-    private static final Pattern PACK_PATTERN = Pattern.compile("pack-(\\d+)\\.(?:pack|idx)");
+    private static final Pattern DATA_PATTERN = Pattern.compile("data-(\\d+)\\.(?:bin|index)");
+    private static final Pattern LEGACY_PACK_PATTERN = Pattern.compile("pack-(\\d+)\\.(?:pack|idx)");
 
-    private final Path packsDir;
+    private final Path dataDir;
+    private final Path legacyPacksDir;
     private final Path blobsDir;
-    private final Path legacyMarker;
+    private final Path migratedMarker;
     private final Map<String, BlobLocation> index = new HashMap<>();
     private final Map<Integer, FileChannel> readChannels = new HashMap<>();
 
@@ -53,9 +55,10 @@ public final class BlobStore implements AutoCloseable {
     private PackWriter currentPack;
 
     public BlobStore(Path saveGitDir) {
-        this.packsDir = saveGitDir.resolve("packs");
+        this.dataDir = saveGitDir.resolve(SnapshotRepository.DIR_DATA);
+        this.legacyPacksDir = saveGitDir.resolve("packs");
         this.blobsDir = saveGitDir.resolve("blobs");
-        this.legacyMarker = packsDir.resolve(".legacy-migrated");
+        this.migratedMarker = dataDir.resolve(".data-migrated");
     }
 
     public String store(byte[] bytes) {
@@ -402,7 +405,7 @@ public final class BlobStore implements AutoCloseable {
 
     private PackWriter packWriter() throws IOException {
         if (currentPack == null) {
-            Files.createDirectories(packsDir);
+            Files.createDirectories(dataDir);
             currentPack = new PackWriter(nextPackId++);
         }
         return currentPack;
@@ -419,7 +422,8 @@ public final class BlobStore implements AutoCloseable {
         if (loaded) {
             return;
         }
-        Files.createDirectories(packsDir);
+        Files.createDirectories(dataDir);
+        migratePackFileNames();
 
         List<Integer> packIds = listPackIds();
         for (int packId : packIds) {
@@ -458,21 +462,66 @@ public final class BlobStore implements AutoCloseable {
             maxId = Math.max(maxId, packId);
         }
         nextPackId = maxId + 1;
+        deleteEmptyDirectory(legacyPacksDir);
         loaded = true;
+    }
+
+    /** 旧版 pack-XXXXXX.pack/.idx 迁移为 data-XXXXXX.bin/.index。 */
+    private void migratePackFileNames() {
+        List<Integer> ids;
+        try {
+            ids = listPackIds();
+        } catch (IOException e) {
+            return;
+        }
+        for (int id : ids) {
+            Path newPack = packPath(id);
+            Path newIndex = packIndexPath(id);
+            Path oldPack = legacyPackPath(id);
+            Path oldIndex = legacyPackIndexPath(id);
+
+            if (!Files.exists(newPack) && Files.isRegularFile(oldPack)) {
+                try {
+                    Files.move(oldPack, newPack);
+                } catch (IOException e) {
+                    SaveGitMod.LOGGER.warn("迁移快照数据文件失败: {}", oldPack, e);
+                }
+            }
+            if (!Files.exists(newIndex) && Files.isRegularFile(oldIndex)) {
+                try {
+                    Files.move(oldIndex, newIndex);
+                } catch (IOException e) {
+                    SaveGitMod.LOGGER.warn("迁移快照索引文件失败: {}", oldIndex, e);
+                }
+            }
+            if (Files.exists(newPack) && Files.isRegularFile(oldPack)) {
+                deleteQuietly(oldPack);
+            }
+            if (Files.exists(newIndex) && Files.isRegularFile(oldIndex)) {
+                deleteQuietly(oldIndex);
+            }
+        }
     }
 
     private List<Integer> listPackIds() throws IOException {
         List<Integer> ids = new ArrayList<>();
-        if (!Files.isDirectory(packsDir)) {
-            return ids;
+        collectPackIds(dataDir, DATA_PATTERN, ids);
+        collectPackIds(legacyPacksDir, LEGACY_PACK_PATTERN, ids);
+        return ids;
+    }
+
+    private void collectPackIds(Path dir, Pattern pattern, List<Integer> ids)
+            throws IOException {
+        if (!Files.isDirectory(dir)) {
+            return;
         }
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(packsDir, "pack-*")) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path path : stream) {
                 String name = path.getFileName().toString();
                 if (name.endsWith(".tmp")) {
                     continue;
                 }
-                Matcher matcher = PACK_PATTERN.matcher(name);
+                Matcher matcher = pattern.matcher(name);
                 if (matcher.matches()) {
                     int id = Integer.parseInt(matcher.group(1));
                     if (!ids.contains(id)) {
@@ -481,7 +530,6 @@ public final class BlobStore implements AutoCloseable {
                 }
             }
         }
-        return ids;
     }
 
     private void ensureMigrated() throws IOException {
@@ -491,7 +539,9 @@ public final class BlobStore implements AutoCloseable {
         }
         migrated = true;
 
-        if (Files.isRegularFile(legacyMarker)) {
+        if (Files.isRegularFile(migratedMarker)
+                || Files.isRegularFile(dataDir.resolve(".legacy-migrated"))
+                || Files.isRegularFile(legacyPacksDir.resolve(".legacy-migrated"))) {
             return;
         }
         if (!Files.isDirectory(blobsDir)) {
@@ -579,16 +629,31 @@ public final class BlobStore implements AutoCloseable {
             }
         } catch (IOException ignored) {
         }
+        deleteEmptyDirectory(blobsDir);
+    }
+
+    private static void deleteEmptyDirectory(Path dir) {
+        if (!Files.isDirectory(dir)) {
+            return;
+        }
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
+            if (!entries.iterator().hasNext()) {
+                Files.deleteIfExists(dir);
+            }
+        } catch (IOException ignored) {
+        }
     }
 
     private void writeMarker() {
         try {
-            Files.createDirectories(packsDir);
-            Path temp = legacyMarker.resolveSibling(legacyMarker.getFileName() + ".tmp");
+            Files.createDirectories(dataDir);
+            Path temp = migratedMarker.resolveSibling(migratedMarker.getFileName() + ".tmp");
             Files.writeString(temp, "ok\n", StandardCharsets.UTF_8);
-            moveAtomic(temp, legacyMarker);
+            moveAtomic(temp, migratedMarker);
+            deleteQuietly(dataDir.resolve(".legacy-migrated"));
+            deleteQuietly(legacyPacksDir.resolve(".legacy-migrated"));
         } catch (IOException e) {
-            SaveGitMod.LOGGER.warn("写入 blob 迁移标记失败", e);
+            SaveGitMod.LOGGER.warn("写入数据迁移标记失败", e);
         }
     }
 
@@ -646,11 +711,19 @@ public final class BlobStore implements AutoCloseable {
     }
 
     private Path packPath(int packId) {
-        return packsDir.resolve(String.format(Locale.ROOT, "pack-%06d.pack", packId));
+        return dataDir.resolve(String.format(Locale.ROOT, "data-%06d.bin", packId));
     }
 
     private Path packIndexPath(int packId) {
-        return packsDir.resolve(String.format(Locale.ROOT, "pack-%06d.idx", packId));
+        return dataDir.resolve(String.format(Locale.ROOT, "data-%06d.index", packId));
+    }
+
+    private Path legacyPackPath(int packId) {
+        return legacyPacksDir.resolve(String.format(Locale.ROOT, "pack-%06d.pack", packId));
+    }
+
+    private Path legacyPackIndexPath(int packId) {
+        return legacyPacksDir.resolve(String.format(Locale.ROOT, "pack-%06d.idx", packId));
     }
 
     private Path legacyPath(String hash) {

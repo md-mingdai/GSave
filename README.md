@@ -88,18 +88,19 @@
 
 ```
 <world>/gsave/
-├── VERSION             # 数据格式版本
-├── HEAD                # 最新快照标记
-├── commits/<id>.json   # 快照记录（上一个快照、文件清单、时间、消息）
-├── manifests/          # 文件清单（路径 → 内容哈希）
-├── patches/            # 相邻快照之间的变化记录
-├── packs/              # 快照数据文件（≤64 MiB）+ 索引
-│   ├── pack-000000.pack
-│   └── pack-000000.idx
-└── shots/<id>.png      # 快照截图（断开世界快照不含截图）
+├── VERSION              # 数据格式版本
+├── LATEST               # 最新快照标记
+├── snapshots/<id>.json  # 快照记录（上一个快照、文件清单、时间、消息）
+├── filelists/           # 文件清单（路径 → 内容哈希）
+├── changes/             # 相邻快照之间的变化记录
+├── data/                # 快照数据文件（≤64 MiB）+ 索引
+│   ├── data-000000.bin
+│   └── data-000000.index
+├── screenshots/<id>.png # 快照截图（断开世界快照不含截图）
+└── .data-migrated       # 数据迁移标记
 ```
 
-旧版本遗留的 `savegit/` 数据目录会在首次打开时自动迁移为 `gsave/`；旧配置文件 `config/savegit.json` 也会自动迁移为 `config/gsave.json`。
+旧版本遗留的 `savegit/` 数据目录会在首次打开时自动迁移为 `gsave/`；旧配置文件 `config/savegit.json` 也会自动迁移为 `config/gsave.json`。旧版子目录（`commits`/`manifests`/`patches`/`packs`/`shots`、`HEAD` 与 `pack-*.pack/.idx`）同样会在首次打开时自动重命名为上表的新名称。
 
 旧版本遗留的 `blobs/` 零散数据会在首次使用时自动合并进数据文件，校验后清理。
 

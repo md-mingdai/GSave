@@ -109,7 +109,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                 : null;
 
         Set<String> shots = new HashSet<>();
-        Path shotsDir = SnapshotRepository.dataDir(worldDir).resolve("shots");
+        Path shotsDir = SnapshotRepository.dataDir(worldDir).resolve(SnapshotRepository.DIR_SCREENSHOTS);
         for (Commit commit : this.commits) {
             if (Files.isRegularFile(shotsDir.resolve(commit.id + ".png"))) {
                 shots.add(commit.id);
@@ -163,7 +163,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
 
             SnapshotThumbnailCache.Entry thumbnail = null;
             if (hasShot) {
-                Path shotFile = SnapshotRepository.dataDir(this.worldDir).resolve("shots")
+                Path shotFile = SnapshotRepository.dataDir(this.worldDir).resolve(SnapshotRepository.DIR_SCREENSHOTS)
                         .resolve(commit.id + ".png");
                 thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
             }
@@ -237,7 +237,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
 
             switch (action) {
                 case THUMBNAIL -> {
-                    Path shotFile = SnapshotRepository.dataDir(this.worldDir).resolve("shots")
+                    Path shotFile = SnapshotRepository.dataDir(this.worldDir).resolve(SnapshotRepository.DIR_SCREENSHOTS)
                             .resolve(commit.id + ".png");
                     GuiBase.openGui(new GuiScreenshotViewer(shotFile, commit.id, this));
                     return true;

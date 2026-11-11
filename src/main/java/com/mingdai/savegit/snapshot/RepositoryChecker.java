@@ -185,7 +185,7 @@ public final class RepositoryChecker {
             issues.add(new Issue(Level.INFO, "gsave.check.temp_files",
                     String.valueOf(temps)));
         }
-        if (!Files.isDirectory(repo.getSaveGitDir().resolve("packs"))
+        if (!Files.isDirectory(repo.getSaveGitDir().resolve(SnapshotRepository.DIR_DATA))
                 && !commits.isEmpty()) {
             issues.add(new Issue(Level.ERROR, "gsave.check.packs_missing"));
         }

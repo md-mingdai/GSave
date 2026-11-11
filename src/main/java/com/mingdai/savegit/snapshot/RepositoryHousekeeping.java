@@ -15,15 +15,18 @@ public final class RepositoryHousekeeping {
     }
 
     public static long countOrphanShots(Path saveGitDir, Set<String> commitIds) {
-        return countMatching(saveGitDir.resolve("shots"), ".png", commitIds);
+        return countMatching(saveGitDir.resolve(SnapshotRepository.DIR_SCREENSHOTS),
+                ".png", commitIds);
     }
 
     public static long countOrphanPatches(Path saveGitDir, Set<String> commitIds) {
-        return countMatching(saveGitDir.resolve("patches"), ".json", commitIds);
+        return countMatching(saveGitDir.resolve(SnapshotRepository.DIR_CHANGES),
+                ".json", commitIds);
     }
 
     public static long countOrphanManifests(Path saveGitDir, Set<String> manifestIds) {
-        return countMatching(saveGitDir.resolve("manifests"), ".json", manifestIds);
+        return countMatching(saveGitDir.resolve(SnapshotRepository.DIR_FILELISTS),
+                ".json", manifestIds);
     }
 
     public static long countTempFiles(Path saveGitDir) {
@@ -31,15 +34,18 @@ public final class RepositoryHousekeeping {
     }
 
     public static int deleteOrphanShots(Path saveGitDir, Set<String> commitIds) {
-        return deleteMatching(saveGitDir.resolve("shots"), ".png", commitIds);
+        return deleteMatching(saveGitDir.resolve(SnapshotRepository.DIR_SCREENSHOTS),
+                ".png", commitIds);
     }
 
     public static int deleteOrphanPatches(Path saveGitDir, Set<String> commitIds) {
-        return deleteMatching(saveGitDir.resolve("patches"), ".json", commitIds);
+        return deleteMatching(saveGitDir.resolve(SnapshotRepository.DIR_CHANGES),
+                ".json", commitIds);
     }
 
     public static int deleteOrphanManifests(Path saveGitDir, Set<String> manifestIds) {
-        return deleteMatching(saveGitDir.resolve("manifests"), ".json", manifestIds);
+        return deleteMatching(saveGitDir.resolve(SnapshotRepository.DIR_FILELISTS),
+                ".json", manifestIds);
     }
 
     public static int deleteTempFiles(Path saveGitDir) {

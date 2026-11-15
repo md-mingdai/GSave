@@ -37,6 +37,10 @@ repositories {
         name = 'TerraformersMC'
         url = 'https://maven.terraformersmc.com/releases/'
     }
+    maven {
+        name = 'FallenBreath'
+        url = 'https://maven.fallenbreath.me/releases'
+    }
 }
 
 dependencies {

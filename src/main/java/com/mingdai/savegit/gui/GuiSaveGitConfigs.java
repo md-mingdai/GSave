@@ -18,6 +18,15 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
         super(10, 50, SaveGitMod.MOD_ID, null, "gsave.gui.title.configs");
     }
 
+    /**
+     * MaLiLib 的 GuiBase 默认不暂停游戏，这里需要与 GSave 主界面保持一致：
+     * 在世界中打开配置界面时暂停游戏。
+     */
+    @Override
+    public boolean shouldPause() {
+        return true;
+    }
+
     @Override
     public List<ConfigOptionWrapper> getConfigs() {
         List<ConfigOptionWrapper> wrappers = new ArrayList<>();

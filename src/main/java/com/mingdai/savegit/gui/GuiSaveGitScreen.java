@@ -8,6 +8,15 @@ import net.minecraft.client.gui.DrawContext;
  * 在世界内则保留原版的世界背景。
  */
 public abstract class GuiSaveGitScreen extends GuiBase {
+    /**
+     * MaLiLib 的 GuiBase 默认不暂停游戏，而 GSave 的界面都属于“暂停类”界面，
+     * 在世界中打开时需要像原版暂停菜单一样暂停游戏。
+     */
+    @Override
+    public boolean shouldPause() {
+        return true;
+    }
+
     @Override
     protected void drawScreenBackground(DrawContext drawContext, int mouseX, int mouseY) {
         if (this.mc.world == null) {

@@ -5,8 +5,11 @@ import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
+import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.util.Identifier;
+
+import java.util.List;
 
 //? if >=1.21.6 {
 import net.minecraft.client.gl.RenderPipelines;
@@ -63,6 +66,33 @@ public final class ClientCompat {
         client.disconnectWithSavingScreen();
         //?} else {
         /*client.disconnect();
+        *///?}
+    }
+
+    /** 读取像素颜色（1.21.2 起为 ...Argb 命名）。 */
+    public static int getPixel(NativeImage image, int x, int y) {
+        //? if >=1.21.2 {
+        return image.getColorArgb(x, y);
+        //?} else {
+        /*return image.getColor(x, y);
+        *///?}
+    }
+
+    public static void setPixel(NativeImage image, int x, int y, int color) {
+        //? if >=1.21.2 {
+        image.setColorArgb(x, y, color);
+        //?} else {
+        /*image.setColor(x, y, color);
+        *///?}
+    }
+
+    /** 绘制多行悬浮提示（MaLiLib 旧版本参数顺序不同）。 */
+    public static void drawHoverText(DrawContext context, int mouseX, int mouseY,
+                                     List<String> lines) {
+        //? if >=1.21.6 {
+        RenderUtils.drawHoverText(context, mouseX, mouseY, lines);
+        //?} else {
+        /*RenderUtils.drawHoverText(mouseX, mouseY, lines, context);
         *///?}
     }
 }

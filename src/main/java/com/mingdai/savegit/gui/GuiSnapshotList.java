@@ -1,5 +1,6 @@
 package com.mingdai.savegit.gui;
 
+import com.mingdai.savegit.compat.ClientCompat;
 import com.mingdai.savegit.gui.theme.GuiTheme;
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
@@ -7,7 +8,6 @@ import com.mingdai.savegit.snapshot.SnapshotRepository;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.InfoUtils;
 import net.minecraft.client.gui.DrawContext;
 
@@ -191,7 +191,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                     && mouseX < layout.deleteX() + SnapshotCardRenderer.DELETE_WIDTH
                     && mouseY >= layout.buttonY()
                     && mouseY < layout.buttonY() + SnapshotCardRenderer.BUTTON_HEIGHT) {
-                RenderUtils.drawHoverText(drawContext, mouseX, mouseY, List.of(
+                ClientCompat.drawHoverText(drawContext, mouseX, mouseY, List.of(
                         L10n.tr("gsave.gui.tooltip.delete_disabled"),
                         L10n.tr("gsave.gui.tooltip.delete_disabled_hint")));
                 return;

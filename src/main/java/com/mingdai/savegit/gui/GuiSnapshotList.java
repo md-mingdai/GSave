@@ -9,7 +9,7 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -115,7 +115,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         int listLeft = LIST_LEFT;
@@ -125,7 +125,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         if (!this.worldAvailable || this.commits.isEmpty()) {
             String title = this.message == null
                     ? L10n.tr("gsave.gui.message.no_snapshots") : this.message;
-            GuiTheme.drawEmptyState(drawContext, this.textRenderer, this.width / 2,
+            GuiTheme.drawEmptyState(drawContext, this.font, this.width / 2,
                     (LIST_TOP + listBottom) / 2 - 4, title,
                     this.worldAvailable ? L10n.tr("gsave.gui.empty.hint") : null);
             return;
@@ -164,7 +164,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                 thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
             }
 
-            SnapshotCardRenderer.draw(drawContext, this.textRenderer, layout, commit,
+            SnapshotCardRenderer.draw(drawContext, this.font, layout, commit,
                     thumbnail, hasShot, commit.pinned, false,
                     hovered, this.compareMode && commit.id.equals(this.compareBaseId),
                     mouseX, mouseY);
@@ -178,7 +178,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         this.drawDeleteTooltip(drawContext, mouseX, mouseY, listLeft, listWidth, listBottom);
     }
 
-    private void drawDeleteTooltip(GuiGraphicsExtractor drawContext, int mouseX, int mouseY,
+    private void drawDeleteTooltip(GuiContext drawContext, int mouseX, int mouseY,
                                    int listLeft, int listWidth, int listBottom) {
         if (mouseY < LIST_TOP || mouseY >= listBottom) {
             return;

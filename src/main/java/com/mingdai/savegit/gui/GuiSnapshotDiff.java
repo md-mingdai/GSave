@@ -5,7 +5,7 @@ import com.mingdai.savegit.snapshot.SnapshotDiff;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.screens.Screen;
 
 /**
@@ -37,12 +37,12 @@ public class GuiSnapshotDiff extends GuiSaveGitScreen {
         if (this.parent != null) {
             GuiBase.openGui(this.parent);
         } else {
-            this.close();
+            this.onClose();
         }
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         int left = 20;
@@ -98,7 +98,7 @@ public class GuiSnapshotDiff extends GuiSaveGitScreen {
                     String.valueOf(file.addedChunks()),
                     String.valueOf(file.removedChunks()),
                     String.valueOf(file.modifiedChunks()));
-            line = this.textRenderer.plainSubstrByWidth(line, right - x - 20);
+            line = this.font.plainSubstrByWidth(line, right - x - 20);
             this.drawString(drawContext, line, x, y, color);
             y += 11;
         }

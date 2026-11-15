@@ -2,10 +2,10 @@ package com.mingdai.savegit.compat;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.NativeImage;
+import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -23,7 +23,7 @@ public final class ClientCompat {
     }
 
     /** 绘制一张 GUI 贴图（1.21.1 / 1.21.2+ / 1.21.6+ 三种 API）。 */
-    public static void drawTexture(GuiGraphicsExtractor graphics, Identifier texture,
+    public static void drawTexture(GuiContext graphics, Identifier texture,
                                    int x, int y, float u, float v,
                                    int width, int height, int textureWidth, int textureHeight) {
         graphics.blit(RenderPipelines.GUI_TEXTURED, texture,
@@ -55,7 +55,7 @@ public final class ClientCompat {
     }
 
     /** 绘制多行悬浮提示（MaLiLib 旧版本参数顺序不同）。 */
-    public static void drawHoverText(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
+    public static void drawHoverText(GuiContext graphics, int mouseX, int mouseY,
                                      List<String> lines) {
         RenderUtils.drawHoverText(graphics, mouseX, mouseY, lines);
     }

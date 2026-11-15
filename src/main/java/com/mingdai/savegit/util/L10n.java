@@ -31,6 +31,6 @@ public final class L10n {
         if (message == null || message.isEmpty()) {
             return "";
         }
-        return message.startsWith("gsave.") ? I18n.translate(message) : message;
+        return message.startsWith("gsave.") ? Component.translatable(message).getString() : message;
     }
 }

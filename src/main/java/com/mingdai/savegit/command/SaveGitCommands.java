@@ -12,8 +12,8 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import fi.dy.masa.malilib.gui.GuiBase;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -32,43 +32,43 @@ public final class SaveGitCommands {
 
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-                dispatcher.register(ClientCommandManager.literal("snapshot")
+                dispatcher.register(ClientCommands.literal("snapshot")
                         .executes(SaveGitCommands::help)
-                        .then(ClientCommandManager.literal("create")
+                        .then(ClientCommands.literal("create")
                                 .executes(SaveGitCommands::create))
-                        .then(ClientCommandManager.literal("view")
+                        .then(ClientCommands.literal("view")
                                 .executes(SaveGitCommands::view))
-                        .then(ClientCommandManager.literal("list")
+                        .then(ClientCommands.literal("list")
                                 .executes(SaveGitCommands::list))
-                        .then(ClientCommandManager.literal("note")
-                                .then(ClientCommandManager.argument(
+                        .then(ClientCommands.literal("note")
+                                .then(ClientCommands.argument(
                                                 "id", StringArgumentType.word())
-                                        .then(ClientCommandManager.argument(
+                                        .then(ClientCommands.argument(
                                                         "text", StringArgumentType.greedyString())
                                                 .executes(context -> note(context,
                                                         StringArgumentType.getString(context, "id"),
                                                         StringArgumentType.getString(context, "text"))))))
-                        .then(ClientCommandManager.literal("pin")
-                                .then(ClientCommandManager.argument(
+                        .then(ClientCommands.literal("pin")
+                                .then(ClientCommands.argument(
                                                 "id", StringArgumentType.word())
                                         .executes(context -> togglePin(context,
                                                 StringArgumentType.getString(context, "id")))))
-                        .then(ClientCommandManager.literal("prune")
+                        .then(ClientCommands.literal("prune")
                                 .executes(SaveGitCommands::prune))
-                        .then(ClientCommandManager.literal("export")
+                        .then(ClientCommands.literal("export")
                                 .executes(context -> export(context, null))
-                                .then(ClientCommandManager.argument(
+                                .then(ClientCommands.argument(
                                                 "path", StringArgumentType.greedyString())
                                         .executes(context -> export(context,
                                                 StringArgumentType.getString(context, "path")))))
-                        .then(ClientCommandManager.literal("import")
-                                .then(ClientCommandManager.argument(
+                        .then(ClientCommands.literal("import")
+                                .then(ClientCommands.argument(
                                                 "path", StringArgumentType.greedyString())
                                         .executes(context -> importArchive(context,
                                                 StringArgumentType.getString(context, "path")))))
-                        .then(ClientCommandManager.literal("restore")
+                        .then(ClientCommands.literal("restore")
                                 .executes(SaveGitCommands::view)
-                                .then(ClientCommandManager.argument(
+                                .then(ClientCommands.argument(
                                                 "id", StringArgumentType.word())
                                         .suggests((context, builder) -> {
                                             Path worldDir = SaveGitSnapshotManager.getWorldDirectory(
@@ -92,7 +92,7 @@ public final class SaveGitCommands {
                                             return builder.buildFuture();
                                         })
                                         .executes(context -> restore(context, true))
-                                        .then(ClientCommandManager.argument(
+                                        .then(ClientCommands.argument(
                                                         "safety", BoolArgumentType.bool())
                                                 .suggests((context, builder) ->
                                                         builder.suggest("true")

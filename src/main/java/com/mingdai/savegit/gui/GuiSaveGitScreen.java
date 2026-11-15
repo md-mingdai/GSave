@@ -1,8 +1,8 @@
 package com.mingdai.savegit.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import fi.dy.masa.malilib.gui.GuiBase;
-import fi.dy.masa.malilib.util.KeyCodes;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 
@@ -22,7 +22,7 @@ public abstract class GuiSaveGitScreen extends GuiBase {
 
     @Override
     public boolean onKeyTyped(KeyEvent input) {
-        if (input.key() == KeyCodes.KEY_ESCAPE && this.onEscapePressed()) {
+        if (input.key() == InputConstants.KEY_ESCAPE && this.onEscapePressed()) {
             return true;
         }
         return super.onKeyTyped(input);
@@ -61,9 +61,9 @@ public abstract class GuiSaveGitScreen extends GuiBase {
     }
 
     @Override
-    protected void drawScreenBackground(GuiGraphicsExtractor drawContext, int mouseX, int mouseY) {
+    protected void drawScreenBackground(GuiContext drawContext, int mouseX, int mouseY) {
         if (this.mc.level == null) {
-            this.renderPanoramaBackground(drawContext, 0.0F);
+            this.extractPanorama(drawContext, 0.0F);
             drawContext.fill(0, 0, this.width, this.height, 0x60000000);
         } else {
             super.drawScreenBackground(drawContext, mouseX, mouseY);

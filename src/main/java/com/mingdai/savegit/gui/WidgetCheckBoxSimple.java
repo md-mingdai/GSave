@@ -1,7 +1,7 @@
 package com.mingdai.savegit.gui;
 
+import fi.dy.masa.malilib.render.GuiContext;
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 
 /**
@@ -45,12 +45,12 @@ public class WidgetCheckBoxSimple extends WidgetBase {
     }
 
     @Override
-    public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, boolean selected) {
+    public void render(GuiContext drawContext, int mouseX, int mouseY, boolean selected) {
         super.render(drawContext, mouseX, mouseY, selected);
         this.drawBox(drawContext, mouseX, mouseY);
     }
 
-    private void drawBox(GuiGraphicsExtractor drawContext, int mouseX, int mouseY) {
+    private void drawBox(GuiContext drawContext, int mouseX, int mouseY) {
         boolean hovered = this.isMouseOver(mouseX, mouseY);
         drawContext.fill(this.x, this.y, this.x + BOX_SIZE, this.y + BOX_SIZE,
                 hovered ? 0xFFFFFFFF : 0xFFA0A0A0);

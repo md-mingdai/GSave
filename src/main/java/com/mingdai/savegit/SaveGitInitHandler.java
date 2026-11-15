@@ -36,7 +36,7 @@ public class SaveGitInitHandler implements IInitializationHandler {
             if (!(screen instanceof SelectWorldScreen)) {
                 return;
             }
-            var buttons = Screens.getButtons(screen);
+            var buttons = Screens.getWidgets(screen);
             int x = scaledWidth / 2 + 158;
             int y = scaledHeight - 28;
             var button = Button.builder(
@@ -56,12 +56,12 @@ public class SaveGitInitHandler implements IInitializationHandler {
                             }
                         });
                     }
-            ).dimensions(x, y, 72, 20).build();
+            ).bounds(x, y, 72, 20).build();
             button.active = false;
             buttons.add(button);
 
             // 未选中世界时按钮置灰
-            ScreenEvents.beforeRender(screen).register((renderedScreen, drawContext, mouseX, mouseY, tickDelta) -> {
+            ScreenEvents.beforeExtract(screen).register((renderedScreen, drawContext, mouseX, mouseY, tickDelta) -> {
                 var accessor = (com.mingdai.savegit.mixin.SelectWorldScreenAccessor) renderedScreen;
                 var levelList = accessor.savegit$getLevelList();
                 button.active = levelList != null && levelList.getSelectedOpt().isPresent();

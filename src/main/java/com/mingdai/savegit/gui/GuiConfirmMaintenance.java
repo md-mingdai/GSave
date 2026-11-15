@@ -4,7 +4,7 @@ import com.mingdai.savegit.snapshot.RepositoryMaintenance;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.nio.file.Path;
@@ -54,12 +54,12 @@ public class GuiConfirmMaintenance extends GuiSaveGitScreen {
         if (this.parent != null) {
             GuiBase.openGui(this.parent);
         } else {
-            this.close();
+            this.onClose();
         }
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         List<String> lines = List.of(
@@ -71,7 +71,7 @@ public class GuiConfirmMaintenance extends GuiSaveGitScreen {
 
         int startY = this.height / 2 - lines.size() * 6 - 16;
         com.mingdai.savegit.gui.theme.GuiTheme.drawDialogPanel(drawContext,
-                this.textRenderer, this.width / 2, startY, lines);
+                this.font, this.width / 2, startY, lines);
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             int color = i == 0 ? 0xFFFF6060 : 0xFFB0B0B0;

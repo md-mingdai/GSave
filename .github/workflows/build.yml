@@ -37,18 +37,19 @@ jobs:
         continue-on-error: true
         run: |
           gradle :${{ matrix.mc }}:compileJava --no-daemon || true
-          JAR=$(find ~/.gradle/caches/modules-2/files-2.1/fi.dy.masa.malilib -name '*.jar' ! -name '*-sources.jar' 2>/dev/null | head -1)
+          JAR=$(find ~/.gradle/caches/modules-2/files-2.1/fi.dy.masa.malilib/malilib-fabric-${{ matrix.mc }} -name '*.jar' ! -name '*-sources.jar' 2>/dev/null | head -1)
           echo "MALILIB JAR: $JAR"
           if [ -n "$JAR" ]; then
             javap -classpath "$JAR" \
               fi.dy.masa.malilib.gui.GuiBase \
               fi.dy.masa.malilib.gui.GuiConfigsBase \
               fi.dy.masa.malilib.gui.widgets.WidgetBase \
+              fi.dy.masa.malilib.render.GuiContext \
               fi.dy.masa.malilib.gui.button.ButtonGeneric \
               fi.dy.masa.malilib.gui.GuiTextFieldGeneric \
               fi.dy.masa.malilib.util.InfoUtils \
               fi.dy.masa.malilib.render.RenderUtils \
-              fi.dy.masa.malilib.interfaces.IRenderer 2>&1 | head -600
+              fi.dy.masa.malilib.interfaces.IRenderer 2>&1 | head -800
           fi
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3G

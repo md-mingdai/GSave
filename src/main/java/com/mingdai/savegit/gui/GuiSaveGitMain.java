@@ -11,7 +11,7 @@ import com.mingdai.savegit.snapshot.SnapshotStatus;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.nio.file.Path;
@@ -78,7 +78,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
         if (this.parentScreen != null) {
             GuiBase.openGui(this.parentScreen);
         } else {
-            this.close();
+            this.onClose();
         }
     }
 
@@ -117,7 +117,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         GuiTheme.drawHeader(drawContext, 0, 0, this.width, 32);
@@ -191,7 +191,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
                 LEFT, panelTop - 12, 0xFF9A9A9A);
     }
 
-    private void drawLabelValue(GuiGraphicsExtractor drawContext, int x, int y, String label, String value, int valueColor) {
+    private void drawLabelValue(GuiContext drawContext, int x, int y, String label, String value, int valueColor) {
         this.drawStringWithShadow(drawContext, label, x, y, LABEL_COLOR);
         this.drawStringWithShadow(drawContext, value, x + this.getStringWidth(label), y, valueColor);
     }

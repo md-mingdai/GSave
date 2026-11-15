@@ -6,10 +6,11 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
-import fi.dy.masa.malilib.util.KeyCodes;
+import com.mojang.blaze3d.platform.InputConstants;
+import fi.dy.masa.malilib.render.GuiContext;
 import com.mingdai.savegit.compat.ClientCompat;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiContext;
 import net.minecraft.client.input.KeyEvent;
 
 import java.util.ArrayList;
@@ -53,10 +54,10 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawScreenBackground(GuiGraphicsExtractor drawContext, int mouseX, int mouseY) {
+    protected void drawScreenBackground(GuiContext drawContext, int mouseX, int mouseY) {
         // 未加载世界时(标题界面 / Mod Menu)使用原版滚动全景背景
         if (this.mc.level == null) {
-            this.renderPanoramaBackground(drawContext, 0.0F);
+            this.extractPanorama(drawContext, 0.0F);
             drawContext.fill(0, 0, this.width, this.height, 0x60000000);
         } else {
             super.drawScreenBackground(drawContext, mouseX, mouseY);
@@ -67,7 +68,7 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
     @Override
     public boolean onKeyTyped(KeyEvent input) {
         // 按 ESC 返回 GSave 主界面(正在编辑热键时保留 MaLiLib 的取消逻辑)
-        if (input.key() == KeyCodes.KEY_ESCAPE && this.activeKeybindButton == null) {
+        if (input.key() == InputConstants.KEY_ESCAPE && this.activeKeybindButton == null) {
             GuiBase.openGui(new GuiSaveGitMain());
             return true;
         }
@@ -77,7 +78,7 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
     /*@Override
     public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
         // 按 ESC 返回 GSave 主界面(正在编辑热键时保留 MaLiLib 的取消逻辑)
-        if (keyCode == KeyCodes.KEY_ESCAPE && this.activeKeybindButton == null) {
+        if (keyCode == InputConstants.KEY_ESCAPE && this.activeKeybindButton == null) {
             GuiBase.openGui(new GuiSaveGitMain());
             return true;
         }

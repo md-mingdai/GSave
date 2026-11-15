@@ -6,7 +6,7 @@ import com.mingdai.savegit.util.L10n;
 import com.mingdai.savegit.util.SnapshotTime;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.io.IOException;
@@ -110,7 +110,7 @@ public class GuiImportArchive extends GuiSaveGitScreen {
         if (this.parent != null) {
             GuiBase.openGui(this.parent);
         } else {
-            this.close();
+            this.onClose();
         }
     }
 
@@ -121,7 +121,7 @@ public class GuiImportArchive extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         if (this.importButton != null) {
@@ -135,12 +135,12 @@ public class GuiImportArchive extends GuiSaveGitScreen {
         GuiTheme.drawPanel(drawContext, left, top, right, bottom);
 
         String hint = L10n.tr("gsave.gui.message.import_hint", this.exportsDir.toString());
-        this.drawString(drawContext, this.textRenderer.plainSubstrByWidth(hint, right - left - 20),
+        this.drawString(drawContext, this.font.plainSubstrByWidth(hint, right - left - 20),
                 left + 10, top + 10, GuiTheme.TEXT_DIM);
 
         int listTop = Math.max(LIST_TOP, top + 28);
         if (this.archives.isEmpty()) {
-            GuiTheme.drawEmptyState(drawContext, this.textRenderer, this.width / 2,
+            GuiTheme.drawEmptyState(drawContext, this.font, this.width / 2,
                     (listTop + bottom) / 2, L10n.tr("gsave.gui.message.import_empty"), null);
             return;
         }
@@ -162,7 +162,7 @@ public class GuiImportArchive extends GuiSaveGitScreen {
             GuiTheme.drawCard(drawContext, left + 4, rowY, right - 4, rowY + ROW_HEIGHT - 2,
                     hovered, isSelected);
 
-            String name = this.textRenderer.plainSubstrByWidth(
+            String name = this.font.plainSubstrByWidth(
                     archive.getFileName().toString(), right - left - 180);
             this.drawString(drawContext, name, left + 12, rowY + 5, GuiTheme.TEXT_MAIN);
 

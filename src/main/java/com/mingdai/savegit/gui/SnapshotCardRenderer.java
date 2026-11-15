@@ -5,8 +5,8 @@ import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.util.L10n;
 import com.mingdai.savegit.util.SnapshotTime;
 import com.mingdai.savegit.compat.ClientCompat;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * 快照卡片行：缩略图 + ID/消息 + 绝对/相对时间 + 右侧动作按钮。
@@ -87,7 +87,7 @@ public final class SnapshotCardRenderer {
                 && mouseY >= layout.y1() && mouseY < layout.y2();
     }
 
-    public static void draw(GuiGraphicsExtractor context, Font font, Layout layout, Commit commit,
+    public static void draw(GuiContext context, Font font, Layout layout, Commit commit,
                             SnapshotThumbnailCache.Entry thumbnail, boolean hasShot,
                             boolean pinned, boolean deleteEnabled,
                             boolean hovered, boolean selected, int mouseX, int mouseY) {
@@ -141,7 +141,7 @@ public final class SnapshotCardRenderer {
                         && isOver(layout.deleteX(), layout.buttonY(), DELETE_WIDTH, mouseX, mouseY));
     }
 
-    private static void drawThumbnail(GuiGraphicsExtractor context, Font font, Layout layout,
+    private static void drawThumbnail(GuiContext context, Font font, Layout layout,
                                       SnapshotThumbnailCache.Entry thumbnail, boolean hasShot,
                                       int mouseX, int mouseY) {
         int x = layout.thumbX();

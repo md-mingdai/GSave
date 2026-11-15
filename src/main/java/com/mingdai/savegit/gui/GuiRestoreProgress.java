@@ -6,7 +6,7 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import com.mingdai.savegit.compat.ClientCompat;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 
@@ -48,7 +48,7 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         boolean failed = RestoreProgress.isFailed();
@@ -98,7 +98,7 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
             detail = L10n.tr("gsave.progress.label.current_file",
                     safe(RestoreProgress.getCurrentFile()));
         }
-        detail = this.textRenderer.plainSubstrByWidth(detail, this.width - 80);
+        detail = this.font.plainSubstrByWidth(detail, this.width - 80);
         this.drawString(drawContext, detail,
                 this.width / 2 - this.getStringWidth(detail) / 2, barY + barHeight + 26,
                 failed ? 0xFFFF6060 : 0xFFCCCCCC);
@@ -108,14 +108,14 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
         int start = Math.max(0, logs.size() - logLines);
         int logY = barY + barHeight + 50;
         for (int i = start; i < logs.size(); i++) {
-            String line = this.textRenderer.plainSubstrByWidth(logs.get(i), this.width - 80);
+            String line = this.font.plainSubstrByWidth(logs.get(i), this.width - 80);
             this.drawString(drawContext, line, 40, logY, 0xFF909090);
             logY += 12;
         }
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         if (RestoreProgress.isFinished()) {
             ClientCompat.setScreen(this.mc,new TitleScreen());
         }

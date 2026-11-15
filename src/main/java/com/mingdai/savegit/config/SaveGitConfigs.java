@@ -1,8 +1,11 @@
 package com.mingdai.savegit.config;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mingdai.savegit.SaveGitMod;
 import fi.dy.masa.malilib.config.ConfigUtils;
 import fi.dy.masa.malilib.config.IConfigBase;
@@ -11,7 +14,6 @@ import fi.dy.masa.malilib.config.options.ConfigBoolean;
 import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.config.options.ConfigOptionList;
 import fi.dy.masa.malilib.util.FileUtils;
-import fi.dy.masa.malilib.util.JsonUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -168,7 +170,12 @@ public final class SaveGitConfigs implements IConfigHandler {
         migrateLegacyConfig(configFile);
 
         if (Files.exists(configFile) && Files.isReadable(configFile)) {
-            JsonElement element = JsonUtils.parseJsonFileAsPath(configFile);
+            JsonElement element = null;
+            try {
+                element = JsonParser.parseString(Files.readString(configFile));
+            } catch (Exception e) {
+                SaveGitMod.LOGGER.error("无法读取配置文件: {}", configFile.toAbsolutePath(), e);
+            }
 
             if (element != null && element.isJsonObject()) {
                 JsonObject root = element.getAsJsonObject();
@@ -207,6 +214,11 @@ public final class SaveGitConfigs implements IConfigHandler {
 
         JsonObject root = new JsonObject();
         ConfigUtils.writeConfigBase(root, "Generic", Generic.OPTIONS);
-        JsonUtils.writeJsonToFileAsPath(root, dir.resolve(CONFIG_FILE_NAME));
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        try {
+            Files.writeString(dir.resolve(CONFIG_FILE_NAME), gson.toJson(root));
+        } catch (IOException e) {
+            SaveGitMod.LOGGER.error("无法写入配置文件", e);
+        }
     }
 }

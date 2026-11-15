@@ -6,7 +6,7 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiTextFieldGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.io.IOException;
@@ -35,7 +35,7 @@ public class GuiEditNote extends GuiSaveGitScreen {
 
         int fieldWidth = Math.min(320, this.width - 80);
         this.noteField = new GuiTextFieldGeneric(this.width / 2 - fieldWidth / 2,
-                this.height / 2 - 8, fieldWidth, 20, this.textRenderer);
+                this.height / 2 - 8, fieldWidth, 20, this.font);
         this.noteField.setMaxLength(120);
         this.noteField.setTextWrapper(this.commit.note == null ? "" : this.commit.note);
         this.addTextField(this.noteField, field -> true);
@@ -68,7 +68,7 @@ public class GuiEditNote extends GuiSaveGitScreen {
         if (this.parent != null) {
             GuiBase.openGui(this.parent);
         } else {
-            this.close();
+            this.onClose();
         }
     }
 
@@ -79,7 +79,7 @@ public class GuiEditNote extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         String label = L10n.tr("gsave.gui.label.note");

@@ -6,7 +6,7 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.io.IOException;
@@ -59,7 +59,7 @@ public class GuiConfirmStopTracking extends GuiSaveGitScreen {
         if (this.parent != null) {
             GuiBase.openGui(this.parent);
         } else {
-            this.close();
+            this.onClose();
         }
     }
 
@@ -88,12 +88,12 @@ public class GuiConfirmStopTracking extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         List<String> lines = this.buildLines();
         int startY = this.panelStartY();
-        GuiTheme.drawDialogPanel(drawContext, this.textRenderer, this.width / 2, startY, lines);
+        GuiTheme.drawDialogPanel(drawContext, this.font, this.width / 2, startY, lines);
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             int color = i == 0 ? 0xFFFF6060 : GuiTheme.TEXT_DIM;

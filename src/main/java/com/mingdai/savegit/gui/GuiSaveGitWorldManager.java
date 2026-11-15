@@ -11,8 +11,8 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
 import com.mingdai.savegit.compat.ClientCompat;
+import fi.dy.masa.malilib.render.GuiContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.io.IOException;
@@ -90,7 +90,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         if (this.returnScreen != null) {
             ClientCompat.setScreen(this.mc, this.returnScreen);
         } else {
-            this.close();
+            this.onClose();
         }
     }
 
@@ -148,7 +148,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         int listLeft = LIST_SIDE_MARGIN;
@@ -158,7 +158,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         if (this.commits.isEmpty()) {
             String text = this.message == null
                     ? L10n.tr("gsave.gui.message.no_snapshots") : this.message;
-            GuiTheme.drawEmptyState(drawContext, this.textRenderer, this.width / 2,
+            GuiTheme.drawEmptyState(drawContext, this.font, this.width / 2,
                     (LIST_TOP + listBottom) / 2 - 4, text, null);
             return;
         }
@@ -193,7 +193,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
             }
 
-            SnapshotCardRenderer.draw(drawContext, this.textRenderer, layout, commit,
+            SnapshotCardRenderer.draw(drawContext, this.font, layout, commit,
                     thumbnail, hasShot, commit.pinned, true, hovered, false, mouseX, mouseY);
         }
 
@@ -369,7 +369,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                         if (this.parent != null) {
                             GuiBase.openGui(this.parent);
                         } else {
-                            this.close();
+                            this.onClose();
                         }
                     });
         }
@@ -379,7 +379,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             if (this.parent != null) {
                 GuiBase.openGui(this.parent);
             } else {
-                this.close();
+                this.onClose();
             }
             return true;
         }
@@ -415,13 +415,13 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }
 
         @Override
-        protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+        protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
             List<String> lines = this.buildLines();
             int startY = this.panelStartY();
             com.mingdai.savegit.gui.theme.GuiTheme.drawDialogPanel(drawContext,
-                    this.textRenderer, this.width / 2, startY, lines);
+                    this.font, this.width / 2, startY, lines);
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i);
                 int color = i == 0 ? 0xFFFFFFFF : 0xFFB0B0B0;
@@ -473,7 +473,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                         if (this.parent != null) {
                             GuiBase.openGui(this.parent);
                         } else {
-                            this.close();
+                            this.onClose();
                         }
                     });
         }
@@ -483,13 +483,13 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             if (this.parent != null) {
                 GuiBase.openGui(this.parent);
             } else {
-                this.close();
+                this.onClose();
             }
             return true;
         }
 
         @Override
-        protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
+        protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
             List<String> lines = new ArrayList<>();
@@ -511,7 +511,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
             int startY = this.height / 2 - lines.size() * 6 - 20;
             com.mingdai.savegit.gui.theme.GuiTheme.drawDialogPanel(drawContext,
-                    this.textRenderer, this.width / 2, startY, lines);
+                    this.font, this.width / 2, startY, lines);
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i);
                 int color = i == 0 ? 0xFFFF6060 : 0xFFB0B0B0;

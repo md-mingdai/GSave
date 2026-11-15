@@ -46,6 +46,48 @@ public abstract class GuiSaveGitScreen extends GuiBase {
         return false;
     }
 
+    //? if >=1.21.9 {
+    @Override
+    public boolean onMouseClicked(net.minecraft.client.gui.Click click, boolean doubleClick) {
+        return this.handleMouseClicked((int) click.x(), (int) click.y(),
+                click.button(), doubleClick)
+                || super.onMouseClicked(click, doubleClick);
+    }
+
+    @Override
+    public boolean onMouseScrolled(double mouseX, double mouseY,
+                                   double horizontalAmount, double verticalAmount) {
+        return this.handleMouseScrolled((int) mouseX, (int) mouseY,
+                horizontalAmount, verticalAmount)
+                || super.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+    //?} else {
+    /*@Override
+    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
+        return this.handleMouseClicked(mouseX, mouseY, mouseButton, false)
+                || super.onMouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    public boolean onMouseScrolled(int mouseX, int mouseY,
+                                   double horizontalAmount, double verticalAmount) {
+        return this.handleMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
+                || super.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+    *///?}
+
+    /** 子界面自定义的鼠标点击处理（列表行、卡片等）。 */
+    protected boolean handleMouseClicked(int mouseX, int mouseY, int mouseButton,
+                                         boolean doubleClick) {
+        return false;
+    }
+
+    /** 子界面自定义的滚轮处理。 */
+    protected boolean handleMouseScrolled(int mouseX, int mouseY,
+                                          double horizontalAmount, double verticalAmount) {
+        return false;
+    }
+
     @Override
     protected void drawScreenBackground(DrawContext drawContext, int mouseX, int mouseY) {
         if (this.mc.world == null) {

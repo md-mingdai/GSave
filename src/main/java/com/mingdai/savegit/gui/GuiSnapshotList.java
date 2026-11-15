@@ -200,10 +200,8 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     }
 
     @Override
-    public boolean onMouseClicked(int mouseX, int mouseY, int mouseButton) {
-        if (super.onMouseClicked(mouseX, mouseY, mouseButton)) {
-            return true;
-        }
+    protected boolean handleMouseClicked(int mouseX, int mouseY, int mouseButton,
+                                         boolean doubleClick) {
         if (mouseButton != 0 || this.commits.isEmpty() || !this.worldAvailable) {
             return false;
         }
@@ -328,10 +326,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     }
 
     @Override
-    public boolean onMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
-        if (super.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
-            return true;
-        }
+    protected boolean handleMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
         if (verticalAmount == 0 || this.commits.isEmpty()) {
             return false;
         }

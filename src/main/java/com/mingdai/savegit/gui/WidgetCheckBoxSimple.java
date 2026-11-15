@@ -51,7 +51,7 @@ public class WidgetCheckBoxSimple extends WidgetBase {
         }
     }
 
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     @Override
     public void render(DrawContext drawContext, int mouseX, int mouseY, boolean selected) {
         super.render(drawContext, mouseX, mouseY, selected);
@@ -72,7 +72,7 @@ public class WidgetCheckBoxSimple extends WidgetBase {
         drawContext.fill(this.x + 1, this.y + 1, this.x + BOX_SIZE - 1, this.y + BOX_SIZE - 1,
                 this.checked ? 0xFF3CB371 : 0xFF101010);
         int color = hovered ? 0xFFFFFFFF : 0xFFDDDDDD;
-        //? if >=1.21.9 {
+        //? if >=1.21.6 {
         this.drawStringWithShadow(drawContext, this.x + BOX_SIZE + LABEL_GAP, this.y + 2,
                 color, this.label);
         //?} else {

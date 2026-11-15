@@ -9,12 +9,18 @@ import org.lwjgl.glfw.GLFW;
  * 注册到原版“选项 → 控制 → 按键绑定”的热键。
  */
 public final class SaveGitKeyBindings {
-    public static final KeyBinding OPEN_MAIN_MENU = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "key.gsave.open_main_menu",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_H,
-            "key.categories.gsave"
-    ));
+    public static final KeyBinding OPEN_MAIN_MENU =
+            KeyBindingHelper.registerKeyBinding(createKeyBinding());
+
+    private static KeyBinding createKeyBinding() {
+        //? if >=1.21.9 {
+        return new KeyBinding("key.gsave.open_main_menu", InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_H, KeyBinding.Category.MISC);
+        //?} else {
+        /*return new KeyBinding("key.gsave.open_main_menu", InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_H, "key.categories.gsave");
+        *///?}
+    }
 
     private SaveGitKeyBindings() {
     }

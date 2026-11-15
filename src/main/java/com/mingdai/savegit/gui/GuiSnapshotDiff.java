@@ -108,10 +108,7 @@ public class GuiSnapshotDiff extends GuiSaveGitScreen {
     }
 
     @Override
-    public boolean onMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
-        if (super.onMouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
-            return true;
-        }
+    protected boolean handleMouseScrolled(int mouseX, int mouseY, double horizontalAmount, double verticalAmount) {
         if (verticalAmount != 0) {
             this.scrollOffset -= (int) verticalAmount;
             return true;

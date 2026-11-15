@@ -5,8 +5,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import fi.dy.masa.malilib.util.KeyCodes;
-import net.minecraft.client.gl.RenderPipelines;
+import com.mingdai.savegit.compat.ClientCompat;
 import net.minecraft.util.Util;
 
 import java.nio.file.Path;
@@ -65,20 +64,16 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
         int y = Math.max(36, (this.height - drawHeight) / 2);
 
         drawContext.fill(x - 2, y - 2, x + drawWidth + 2, y + drawHeight + 2, 0xFF000000);
-        drawContext.drawTexture(RenderPipelines.GUI_TEXTURED, this.image.id(),
+        ClientCompat.drawTexture(drawContext, this.image.id(),
                 x, y, 0.0F, 0.0F, drawWidth, drawHeight,
-                this.image.width(), this.image.height(),
                 this.image.width(), this.image.height());
     }
 
     @Override
-    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+    protected boolean onEscapePressed() {
         // 按 ESC 返回快照列表
-        if (keyCode == KeyCodes.KEY_ESCAPE) {
-            GuiBase.openGui(this.parent);
-            return true;
-        }
-        return super.onKeyTyped(keyCode, scanCode, modifiers);
+        GuiBase.openGui(this.parent);
+        return true;
     }
 
     @Override

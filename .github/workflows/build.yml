@@ -11,6 +11,17 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mc:
+          - '1.21'
+          - '1.21.3'
+          - '1.21.4'
+          - '1.21.5'
+          - '1.21.8'
+          - '1.21.10'
+          - '1.21.11'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,16 +37,16 @@ jobs:
         with:
           gradle-version: '9.8.2'
 
-      - name: Build with Gradle
-        run: gradle build --stacktrace --no-daemon
+      - name: Build for Minecraft ${{ matrix.mc }}
+        run: gradle :${{ matrix.mc }}:build --stacktrace --no-daemon
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3G
 
-      - name: Upload mod jar
+      - name: Upload mod jar for ${{ matrix.mc }}
         uses: actions/upload-artifact@v4
         with:
-          name: gsave-jar
+          name: gsave-jar-${{ matrix.mc }}
           path: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
+            versions/${{ matrix.mc }}/build/libs/*.jar
+            !versions/${{ matrix.mc }}/build/libs/*-sources.jar
           if-no-files-found: error

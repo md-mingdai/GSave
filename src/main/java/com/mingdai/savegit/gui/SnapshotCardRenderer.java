@@ -4,8 +4,8 @@ import com.mingdai.savegit.gui.theme.GuiTheme;
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.util.L10n;
 import com.mingdai.savegit.util.SnapshotTime;
+import com.mingdai.savegit.compat.ClientCompat;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 
 /**
@@ -151,9 +151,8 @@ public final class SnapshotCardRenderer {
                 hasShot && hovered);
 
         if (hasShot && thumbnail != null) {
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, thumbnail.id(),
+            ClientCompat.drawTexture(context, thumbnail.id(),
                     x, y, 0.0F, 0.0F, THUMB_WIDTH, THUMB_HEIGHT,
-                    thumbnail.width(), thumbnail.height(),
                     thumbnail.width(), thumbnail.height());
         } else {
             context.fill(x, y, x + THUMB_WIDTH, y + THUMB_HEIGHT, 0xFF15181C);

@@ -3,7 +3,7 @@
   "id": "gsave",
   "version": "${version}",
   "name": "GSave",
-  "description": "为单人世界提供类 Git 的存档快照与回滚能力。",
+  "description": "为单人世界提供存档快照与回滚能力。",
   "authors": [
     "mingdai"
   ],
@@ -27,10 +27,10 @@
   ],
   "depends": {
     "fabricloader": ">=0.16.0",
-    "minecraft": "~1.21.8",
+    "minecraft": "${minecraft_range}",
     "java": ">=21",
     "fabric-api": "*",
-    "malilib": ">=0.25.7"
+    "malilib": ">=${malilib_min}"
   },
   "suggests": {
     "modmenu": "*"

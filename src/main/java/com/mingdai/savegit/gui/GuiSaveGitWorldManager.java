@@ -10,7 +10,6 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
-import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -95,12 +94,9 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
     }
 
     @Override
-    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == KeyCodes.KEY_ESCAPE) {
-            this.goBack();
-            return true;
-        }
-        return super.onKeyTyped(keyCode, scanCode, modifiers);
+    protected boolean onEscapePressed() {
+        this.goBack();
+        return true;
     }
 
     public static void open(MinecraftClient client, Path worldDir, String worldName) {
@@ -383,16 +379,13 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }
 
         @Override
-        public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-            if (keyCode == KeyCodes.KEY_ESCAPE) {
-                if (this.parent != null) {
-                    GuiBase.openGui(this.parent);
-                } else {
-                    this.close();
-                }
-                return true;
+        protected boolean onEscapePressed() {
+            if (this.parent != null) {
+                GuiBase.openGui(this.parent);
+            } else {
+                this.close();
             }
-            return super.onKeyTyped(keyCode, scanCode, modifiers);
+            return true;
         }
 
         private List<String> buildLines() {
@@ -490,16 +483,13 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }
 
         @Override
-        public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-            if (keyCode == KeyCodes.KEY_ESCAPE) {
-                if (this.parent != null) {
-                    GuiBase.openGui(this.parent);
-                } else {
-                    this.close();
-                }
-                return true;
+        protected boolean onEscapePressed() {
+            if (this.parent != null) {
+                GuiBase.openGui(this.parent);
+            } else {
+                this.close();
             }
-            return super.onKeyTyped(keyCode, scanCode, modifiers);
+            return true;
         }
 
         @Override

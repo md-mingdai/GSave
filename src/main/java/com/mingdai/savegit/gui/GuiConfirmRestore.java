@@ -5,7 +5,6 @@ import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.gui.DrawContext;
 
 import java.util.ArrayList;
@@ -54,13 +53,10 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
     }
 
     @Override
-    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+    public boolean onEscapePressed() {
         // 按 ESC 视为取消，返回快照列表
-        if (keyCode == KeyCodes.KEY_ESCAPE) {
-            this.cancel();
-            return true;
-        }
-        return super.onKeyTyped(keyCode, scanCode, modifiers);
+        this.cancel();
+        return true;
     }
 
     private void cancel() {

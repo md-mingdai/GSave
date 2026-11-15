@@ -1,6 +1,12 @@
 package com.mingdai.savegit.gui;
 
 import fi.dy.masa.malilib.gui.GuiBase;
+import fi.dy.masa.malilib.util.KeyCodes;
+
+//? if >=1.21.9 {
+import net.minecraft.client.input.KeyInput;
+//?}
+
 import net.minecraft.client.gui.DrawContext;
 
 /**
@@ -15,6 +21,29 @@ public abstract class GuiSaveGitScreen extends GuiBase {
     @Override
     public boolean shouldPause() {
         return true;
+    }
+
+    //? if >=1.21.9 {
+    @Override
+    public boolean onKeyTyped(KeyInput input) {
+        if (input.key() == KeyCodes.KEY_ESCAPE && this.onEscapePressed()) {
+            return true;
+        }
+        return super.onKeyTyped(input);
+    }
+    //?} else {
+    /*@Override
+    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == KeyCodes.KEY_ESCAPE && this.onEscapePressed()) {
+            return true;
+        }
+        return super.onKeyTyped(keyCode, scanCode, modifiers);
+    }
+    *///?}
+
+    /** 子界面按 ESC 时的行为,返回 true 表示已处理。 */
+    protected boolean onEscapePressed() {
+        return false;
     }
 
     @Override

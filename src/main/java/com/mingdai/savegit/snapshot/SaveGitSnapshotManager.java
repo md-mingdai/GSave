@@ -2,6 +2,7 @@ package com.mingdai.savegit.snapshot;
 
 import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.util.L10n;
+import com.mingdai.savegit.compat.ClientCompat;
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.GuiRestoreProgress;
 import com.mingdai.savegit.gui.GuiSaveGitMain;
@@ -13,7 +14,6 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.integrated.IntegratedServer;
 import net.minecraft.text.Text;
@@ -391,7 +391,7 @@ public final class SaveGitSnapshotManager {
             SaveGitMod.LOGGER.info("停止集成服务端以开始恢复快照");
             server.stop(false);
         }
-        client.disconnectWithSavingScreen();
+        ClientCompat.disconnectWithSaving(client);
     }
 
     private static void checkPendingRestore(MinecraftClient client) {
@@ -514,7 +514,7 @@ public final class SaveGitSnapshotManager {
 
     private static void takeScreenshotNow(MinecraftClient client, Path temp, Runnable afterCapture) {
         try {
-            ScreenshotRecorder.takeScreenshot(client.getFramebuffer(), 1, image -> {
+            ClientCompat.takeScreenshot(client.getFramebuffer(), image -> {
                 try {
                     Path parent = temp.getParent();
                     if (parent != null) {

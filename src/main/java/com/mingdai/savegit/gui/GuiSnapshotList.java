@@ -9,7 +9,6 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.render.RenderUtils;
 import fi.dy.masa.malilib.util.InfoUtils;
-import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.gui.DrawContext;
 
 import java.io.IOException;
@@ -75,13 +74,10 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     }
 
     @Override
-    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
+    protected boolean onEscapePressed() {
         // 按 ESC 返回 GSave 主界面
-        if (keyCode == KeyCodes.KEY_ESCAPE) {
-            GuiBase.openGui(new GuiSaveGitMain());
-            return true;
-        }
-        return super.onKeyTyped(keyCode, scanCode, modifiers);
+        GuiBase.openGui(new GuiSaveGitMain());
+        return true;
     }
 
     @Override

@@ -4,7 +4,6 @@ import com.mingdai.savegit.snapshot.RepositoryMaintenance;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import fi.dy.masa.malilib.util.KeyCodes;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 
@@ -46,12 +45,9 @@ public class GuiConfirmMaintenance extends GuiSaveGitScreen {
     }
 
     @Override
-    public boolean onKeyTyped(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == KeyCodes.KEY_ESCAPE) {
-            this.goBack();
-            return true;
-        }
-        return super.onKeyTyped(keyCode, scanCode, modifiers);
+    protected boolean onEscapePressed() {
+        this.goBack();
+        return true;
     }
 
     private void goBack() {

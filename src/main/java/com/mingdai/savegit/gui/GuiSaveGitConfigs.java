@@ -10,7 +10,6 @@ import com.mojang.blaze3d.platform.InputConstants;
 import fi.dy.masa.malilib.render.GuiContext;
 import com.mingdai.savegit.compat.ClientCompat;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiContext;
 import net.minecraft.client.input.KeyEvent;
 
 import java.util.ArrayList;

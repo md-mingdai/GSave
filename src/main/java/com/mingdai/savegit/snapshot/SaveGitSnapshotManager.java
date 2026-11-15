@@ -74,7 +74,7 @@ public final class SaveGitSnapshotManager {
             return null;
         }
         try {
-            return server.getSavePath(LevelResource.ROOT);
+            return server.getWorldPath(LevelResource.ROOT);
         } catch (Exception e) {
             return null;
         }
@@ -384,13 +384,11 @@ public final class SaveGitSnapshotManager {
         pendingTeardownServer = server;
         teardownTicks = 0;
 
-        // 原版 disconnectWithSavingScreen() 会一直等待 isStopping()。
+        // 原版 disconnectWithSavingScreen() 会等待服务端停止。
         // 某些情况下服务端收不到 singleplayer owner 的登出事件，
         // 会导致“保存世界中”永久卡住，所以这里主动停止集成服务端。
-        if (!server.isStopping()) {
-            SaveGitMod.LOGGER.info("停止集成服务端以开始恢复快照");
-            server.halt(false);
-        }
+        SaveGitMod.LOGGER.info("停止集成服务端以开始恢复快照");
+        server.halt(false);
         ClientCompat.disconnectWithSaving(client);
     }
 
@@ -408,7 +406,7 @@ public final class SaveGitSnapshotManager {
         // 看门狗：服务端若迟迟不停止，再次强制 halt，避免永久停在“保存世界中”
         teardownTicks++;
         IntegratedServer teardownServer = pendingTeardownServer;
-        if (teardownServer != null && !teardownServer.isStopping()) {
+        if (teardownServer != null) {
             if (teardownTicks == 200) {
                 SaveGitMod.LOGGER.warn("等待集成服务端停止超时，再次强制停止");
                 teardownServer.halt(false);
@@ -458,7 +456,7 @@ public final class SaveGitSnapshotManager {
 
         SnapshotStatus.begin(L10n.REASON_DISCONNECT);
         try {
-            Path worldDir = server.getSavePath(LevelResource.ROOT);
+            Path worldDir = server.getWorldPath(LevelResource.ROOT);
             server.saveEverything(true, true, true);
             // 退出快照不复用滚动截图：此时游戏已准备关闭，不提供截图
             new WorldSnapshotter(new SnapshotRepository(worldDir))

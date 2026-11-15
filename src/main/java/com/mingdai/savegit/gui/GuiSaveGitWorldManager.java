@@ -10,9 +10,10 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
+import com.mingdai.savegit.compat.ClientCompat;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -87,7 +88,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
 
     private void goBack() {
         if (this.returnScreen != null) {
-            this.mc.setScreen(this.returnScreen);
+            ClientCompat.setScreen(this.mc, this.returnScreen);
         } else {
             this.close();
         }
@@ -99,12 +100,12 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         return true;
     }
 
-    public static void open(MinecraftClient client, Path worldDir, String worldName) {
-        client.setScreen(new GuiSaveGitWorldManager(worldDir, worldName, client.currentScreen));
+    public static void open(Minecraft client, Path worldDir, String worldName) {
+        ClientCompat.setScreen(client, new GuiSaveGitWorldManager(worldDir, worldName, ClientCompat.currentScreen(client)));
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 
@@ -147,7 +148,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         int listLeft = LIST_SIDE_MARGIN;
@@ -353,7 +354,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
                             L10n.tr("gsave.button.confirm_restore")),
                     (button, mouseButton) -> {
-                        this.mc.setScreen(null);
+                        ClientCompat.setScreen(this.mc, null);
                         startExternalRestore(this.mc, this.worldDir, this.commit,
                                 this.safetyCheckBox.isChecked(),
                                 new com.mingdai.savegit.snapshot.WorldRestorer.RestoreFilter(
@@ -414,7 +415,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }
 
         @Override
-        protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+        protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
             List<String> lines = this.buildLines();
@@ -488,7 +489,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }
 
         @Override
-        protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+        protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
             super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
             List<String> lines = new ArrayList<>();
@@ -563,7 +564,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         thread.start();
     }
 
-    private static void startExternalRestore(MinecraftClient mc, Path worldDir, Commit commit,
+    private static void startExternalRestore(Minecraft mc, Path worldDir, Commit commit,
                                              boolean createSafetySnapshot,
                                              WorldRestorer.RestoreFilter filter) {
         if (!createSafetySnapshot) {
@@ -592,10 +593,10 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
         }, "GSave-SafetySnapshot").start();
     }
 
-    private static void beginExternalRestore(MinecraftClient mc, Path worldDir, Commit commit,
+    private static void beginExternalRestore(Minecraft mc, Path worldDir, Commit commit,
                                              WorldRestorer.RestoreFilter filter) {
         com.mingdai.savegit.snapshot.RestoreProgress.begin(0);
-        mc.setScreen(new GuiRestoreProgress());
+        ClientCompat.setScreen(mc, new GuiRestoreProgress());
 
         new Thread(() -> {
             try {

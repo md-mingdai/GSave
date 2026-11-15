@@ -4,15 +4,17 @@ import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.GuiSaveGitConfigs;
 import com.mingdai.savegit.hud.SnapshotHud;
 import fi.dy.masa.malilib.config.ConfigManager;
-import fi.dy.masa.malilib.event.RenderEventHandler;
 import fi.dy.masa.malilib.interfaces.IInitializationHandler;
 import fi.dy.masa.malilib.registry.Registry;
 import fi.dy.masa.malilib.util.data.ModInfo;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
-import net.minecraft.client.gui.screen.world.SelectWorldScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 public class SaveGitInitHandler implements IInitializationHandler {
     @Override
@@ -21,7 +23,9 @@ public class SaveGitInitHandler implements IInitializationHandler {
         Registry.CONFIG_SCREEN.registerConfigScreenFactory(
                 new ModInfo(SaveGitMod.MOD_ID, SaveGitMod.MOD_NAME, GuiSaveGitConfigs::new));
 
-        RenderEventHandler.getInstance().registerGameOverlayRenderer(new SnapshotHud());
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
+                Identifier.fromNamespaceAndPath(SaveGitMod.MOD_ID, "snapshot_hud"),
+                (graphics, deltaTracker) -> SnapshotHud.render(graphics));
         SaveGitConfigs.Generic.SCHEDULED_SNAPSHOT_ENABLED.setValueChangeCallback(
                 config -> GuiSaveGitConfigs.refreshIfOpen());
         SaveGitConfigs.Generic.UNLIMITED_SNAPSHOTS.setValueChangeCallback(
@@ -35,18 +39,18 @@ public class SaveGitInitHandler implements IInitializationHandler {
             var buttons = Screens.getButtons(screen);
             int x = scaledWidth / 2 + 158;
             int y = scaledHeight - 28;
-            var button = ButtonWidget.builder(
-                    Text.translatable("gsave.button.world_manager"),
+            var button = Button.builder(
+                    Component.translatable("gsave.button.world_manager"),
                     b -> {
                         var accessor = (com.mingdai.savegit.mixin.SelectWorldScreenAccessor) screen;
                         var levelList = accessor.savegit$getLevelList();
-                        levelList.getSelectedAsOptional().ifPresent(entry -> {
+                        levelList.getSelectedOpt().ifPresent(entry -> {
                             var worldEntry = (com.mingdai.savegit.mixin.WorldEntryAccessor)(Object) entry;
                             var summary = worldEntry.savegit$getLevelSummary();
                             if (summary != null && !summary.isLocked()) {
-                                var worldDir = client.runDirectory.toPath()
-                                        .resolve("saves").resolve(summary.getName());
-                                var worldName = summary.getDisplayName();
+                                var worldDir = client.gameDirectory.toPath()
+                                        .resolve("saves").resolve(summary.getLevelId());
+                                var worldName = summary.getLevelName();
                                 com.mingdai.savegit.gui.GuiSaveGitWorldManager.open(
                                         client, worldDir, worldName);
                             }
@@ -60,7 +64,7 @@ public class SaveGitInitHandler implements IInitializationHandler {
             ScreenEvents.beforeRender(screen).register((renderedScreen, drawContext, mouseX, mouseY, tickDelta) -> {
                 var accessor = (com.mingdai.savegit.mixin.SelectWorldScreenAccessor) renderedScreen;
                 var levelList = accessor.savegit$getLevelList();
-                button.active = levelList != null && levelList.getSelectedAsOptional().isPresent();
+                button.active = levelList != null && levelList.getSelectedOpt().isPresent();
             });
         });
     }

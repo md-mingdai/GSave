@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 /**
  * 提供 WorldEntry#level (LevelSummary) 的访问入口。
  */
-@Mixin(net.minecraft.client.gui.screen.world.WorldListWidget.WorldEntry.class)
+@Mixin(net.minecraft.client.gui.screens.worldselection.WorldSelectionList.WorldListEntry.class)
 public interface WorldEntryAccessor {
     @Accessor("level")
     LevelSummary savegit$getLevelSummary();

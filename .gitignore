@@ -2,6 +2,7 @@
 build/
 versions/
 .stonecutter/
+node_modules/
 out/
 run/
 .idea/

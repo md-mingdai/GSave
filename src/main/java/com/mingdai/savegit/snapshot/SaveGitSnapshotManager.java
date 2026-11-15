@@ -9,15 +9,15 @@ import com.mingdai.savegit.gui.GuiSaveGitMain;
 import com.mingdai.savegit.input.SaveGitKeyBindings;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.util.InfoUtils;
+import com.mojang.blaze3d.platform.NativeImage;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.integrated.IntegratedServer;
-import net.minecraft.text.Text;
-import net.minecraft.util.WorldSavePath;
+import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -60,7 +60,7 @@ public final class SaveGitSnapshotManager {
     }
 
     public static void manualSnapshot() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (!SaveGitConfigs.isEnabled()) {
             InfoUtils.sendVanillaMessage(L10n.text("gsave.message.disabled"));
             return;
@@ -68,29 +68,29 @@ public final class SaveGitSnapshotManager {
         takeSnapshotAsync(client, L10n.REASON_MANUAL);
     }
 
-    public static Path getWorldDirectory(MinecraftClient client) {
-        IntegratedServer server = client.getServer();
+    public static Path getWorldDirectory(Minecraft client) {
+        IntegratedServer server = client.getSingleplayerServer();
         if (server == null) {
             return null;
         }
         try {
-            return server.getSavePath(WorldSavePath.ROOT);
+            return server.getSavePath(LevelResource.ROOT);
         } catch (Exception e) {
             return null;
         }
     }
 
-    public static String getWorldName(MinecraftClient client) {
-        return worldName(client.getServer(), getWorldDirectory(client));
+    public static String getWorldName(Minecraft client) {
+        return worldName(client.getSingleplayerServer(), getWorldDirectory(client));
     }
 
-    private static void onClientTick(MinecraftClient client) {
+    private static void onClientTick(Minecraft client) {
         processPendingShots(client);
         handleMainMenuKey(client);
         checkPendingRestore(client);
 
-        IntegratedServer server = client.getServer();
-        boolean inSinglePlayer = server != null && client.world != null;
+        IntegratedServer server = client.getSingleplayerServer();
+        boolean inSinglePlayer = server != null && client.level != null;
 
         if (!inSinglePlayer) {
             inWorld = false;
@@ -147,7 +147,7 @@ public final class SaveGitSnapshotManager {
         }
     }
 
-    private static boolean shouldStopScheduledSnapshots(MinecraftClient client) {
+    private static boolean shouldStopScheduledSnapshots(Minecraft client) {
         int limit = SaveGitConfigs.scheduledSnapshotStopCount();
         if (limit <= 0) {
             return false;
@@ -159,17 +159,17 @@ public final class SaveGitSnapshotManager {
         return new SnapshotRepository(worldDir).listCommits().size() >= limit;
     }
 
-    private static void handleMainMenuKey(MinecraftClient client) {
-        while (SaveGitKeyBindings.OPEN_MAIN_MENU.wasPressed()) {
-            if (client.currentScreen == null) {
+    private static void handleMainMenuKey(Minecraft client) {
+        while (SaveGitKeyBindings.OPEN_MAIN_MENU.consumeClick()) {
+            if (ClientCompat.currentScreen(client) == null) {
                 GuiBase.openGui(new GuiSaveGitMain());
             }
         }
     }
 
-    private static void takeSnapshotAsync(MinecraftClient client, String message) {
-        IntegratedServer server = client.getServer();
-        if (server == null || client.world == null) {
+    private static void takeSnapshotAsync(Minecraft client, String message) {
+        IntegratedServer server = client.getSingleplayerServer();
+        if (server == null || client.level == null) {
             InfoUtils.sendVanillaMessage(L10n.text("gsave.message.no_world"));
             return;
         }
@@ -191,7 +191,7 @@ public final class SaveGitSnapshotManager {
                 () -> startWorldSnapshot(client, server, worldDir, message, settings, shotTemp));
     }
 
-    private static void startWorldSnapshot(MinecraftClient client, IntegratedServer server, Path worldDir,
+    private static void startWorldSnapshot(Minecraft client, IntegratedServer server, Path worldDir,
                                            String message, WorldSnapshotter.Settings settings, Path shotTemp) {
         SnapshotStatus.begin(message);
 
@@ -200,7 +200,7 @@ public final class SaveGitSnapshotManager {
             try {
                 server.execute(() -> {
                     try {
-                        server.save(true, true, true);
+                        server.saveEverything(true, true, true);
                     } catch (Throwable t) {
                         SnapshotStatus.end();
                         deleteQuietly(shotTemp);
@@ -218,7 +218,7 @@ public final class SaveGitSnapshotManager {
             try {
                 server.execute(() -> {
                     try {
-                        server.save(true, true, true);
+                        server.saveEverything(true, true, true);
                         runSnapshot(client, worldDir, message, settings, shotTemp);
                     } catch (Throwable t) {
                         SaveGitMod.LOGGER.error("创建快照失败", t);
@@ -236,7 +236,7 @@ public final class SaveGitSnapshotManager {
         }
     }
 
-    private static void startBackgroundSnapshot(MinecraftClient client, Path worldDir, String message,
+    private static void startBackgroundSnapshot(Minecraft client, Path worldDir, String message,
                                                 WorldSnapshotter.Settings settings, Path shotTemp) {
         Thread thread = new Thread(() -> {
             try {
@@ -253,7 +253,7 @@ public final class SaveGitSnapshotManager {
         thread.start();
     }
 
-    private static void runSnapshot(MinecraftClient client, Path worldDir, String message,
+    private static void runSnapshot(Minecraft client, Path worldDir, String message,
                                     WorldSnapshotter.Settings settings, Path shotTemp) throws IOException {
         SnapshotRepository repo = new SnapshotRepository(worldDir);
         Commit commit;
@@ -269,9 +269,9 @@ public final class SaveGitSnapshotManager {
                 commit.shortId(), L10n.commitMessage(message)));
     }
 
-    public static void requestRestore(MinecraftClient client, Commit commit, boolean createSafetySnapshot) {
-        IntegratedServer server = client.getServer();
-        if (server == null || client.world == null) {
+    public static void requestRestore(Minecraft client, Commit commit, boolean createSafetySnapshot) {
+        IntegratedServer server = client.getSingleplayerServer();
+        if (server == null || client.level == null) {
             InfoUtils.sendVanillaMessage(L10n.text("gsave.message.restore_no_world"));
             return;
         }
@@ -303,7 +303,7 @@ public final class SaveGitSnapshotManager {
                 startSafetySnapshotThenRestore(client, server, worldDir, commit, safetySettings, shotTemp));
     }
 
-    private static void startSafetySnapshotThenRestore(MinecraftClient client, IntegratedServer server, Path worldDir,
+    private static void startSafetySnapshotThenRestore(Minecraft client, IntegratedServer server, Path worldDir,
                                                        Commit commit, WorldSnapshotter.Settings safetySettings,
                                                        Path shotTemp) {
         if (SaveGitConfigs.isGameplayPriority()) {
@@ -317,7 +317,7 @@ public final class SaveGitSnapshotManager {
                         return;
                     }
                     try {
-                        server.save(true, true, true);
+                        server.saveEverything(true, true, true);
                     } catch (Throwable t) {
                         SnapshotStatus.end();
                         deleteQuietly(shotTemp);
@@ -355,7 +355,7 @@ public final class SaveGitSnapshotManager {
                             notifyAsync(client, L10n.tr("gsave.message.restore_failed_missing"));
                             return;
                         }
-                        server.save(true, true, true);
+                        server.saveEverything(true, true, true);
                         runSnapshot(client, worldDir, L10n.REASON_SAFETY, safetySettings, shotTemp);
                     } catch (Throwable t) {
                         SaveGitMod.LOGGER.error("恢复前准备失败", t);
@@ -375,7 +375,7 @@ public final class SaveGitSnapshotManager {
         }
     }
 
-    private static void beginRestoreTeardown(MinecraftClient client, IntegratedServer server,
+    private static void beginRestoreTeardown(Minecraft client, IntegratedServer server,
                                              String commitId, Path worldDir) {
         pendingRestore = true;
         restoreStarted = false;
@@ -389,18 +389,18 @@ public final class SaveGitSnapshotManager {
         // 会导致“保存世界中”永久卡住，所以这里主动停止集成服务端。
         if (!server.isStopping()) {
             SaveGitMod.LOGGER.info("停止集成服务端以开始恢复快照");
-            server.stop(false);
+            server.halt(false);
         }
         ClientCompat.disconnectWithSaving(client);
     }
 
-    private static void checkPendingRestore(MinecraftClient client) {
+    private static void checkPendingRestore(Minecraft client) {
         if (!pendingRestore) {
             // 确保自定义进度界面不会被原版随后设置的标题界面覆盖
             if (restoreStarted && RestoreProgress.isActive()
-                    && client.world == null && client.getServer() == null
-                    && !(client.currentScreen instanceof GuiRestoreProgress)) {
-                client.setScreen(new GuiRestoreProgress());
+                    && client.level == null && client.getSingleplayerServer() == null
+                    && !(ClientCompat.currentScreen(client) instanceof GuiRestoreProgress)) {
+                ClientCompat.setScreen(client,new GuiRestoreProgress());
             }
             return;
         }
@@ -411,13 +411,13 @@ public final class SaveGitSnapshotManager {
         if (teardownServer != null && !teardownServer.isStopping()) {
             if (teardownTicks == 200) {
                 SaveGitMod.LOGGER.warn("等待集成服务端停止超时，再次强制停止");
-                teardownServer.stop(false);
+                teardownServer.halt(false);
             } else if (teardownTicks == 600) {
                 SaveGitMod.LOGGER.error("集成服务端仍未停止，恢复流程可能卡住");
             }
         }
 
-        if (client.world != null || client.getServer() != null) {
+        if (client.level != null || client.getSingleplayerServer() != null) {
             return;
         }
 
@@ -431,7 +431,7 @@ public final class SaveGitSnapshotManager {
         restoreStarted = true;
 
         SaveGitMod.LOGGER.info("世界已卸载，开始恢复快照 {}", commitId);
-        client.setScreen(new GuiRestoreProgress());
+        ClientCompat.setScreen(client,new GuiRestoreProgress());
 
         new Thread(() -> {
             try {
@@ -458,8 +458,8 @@ public final class SaveGitSnapshotManager {
 
         SnapshotStatus.begin(L10n.REASON_DISCONNECT);
         try {
-            Path worldDir = server.getSavePath(WorldSavePath.ROOT);
-            server.save(true, true, true);
+            Path worldDir = server.getSavePath(LevelResource.ROOT);
+            server.saveEverything(true, true, true);
             // 退出快照不复用滚动截图：此时游戏已准备关闭，不提供截图
             new WorldSnapshotter(new SnapshotRepository(worldDir))
                     .takeSnapshot(L10n.REASON_DISCONNECT, snapshotSettings(
@@ -476,19 +476,19 @@ public final class SaveGitSnapshotManager {
     /**
      * 延迟两帧再截图，并临时隐藏当前界面，避免把 GUI 拍进快照截图里。
      */
-    private static void captureScreenshot(MinecraftClient client, Path temp, Runnable afterCapture) {
+    private static void captureScreenshot(Minecraft client, Path temp, Runnable afterCapture) {
         if (PENDING_SHOTS.isEmpty()) {
-            Screen current = client.currentScreen;
+            Screen current = ClientCompat.currentScreen(client);
             if (current != null) {
                 pendingShotRestoreScreen = current;
-                client.setScreen(null);
+                ClientCompat.setScreen(client,null);
             }
             pendingShotDelay = CLEAN_SHOT_DELAY_TICKS;
         }
         PENDING_SHOTS.addLast(new PendingShot(temp, afterCapture));
     }
 
-    private static void processPendingShots(MinecraftClient client) {
+    private static void processPendingShots(Minecraft client) {
         PendingShot pending = PENDING_SHOTS.peekFirst();
         if (pending == null) {
             return;
@@ -504,7 +504,7 @@ public final class SaveGitSnapshotManager {
             if (PENDING_SHOTS.isEmpty() && pendingShotRestoreScreen != null) {
                 Screen restore = pendingShotRestoreScreen;
                 pendingShotRestoreScreen = null;
-                client.execute(() -> client.setScreen(restore));
+                client.execute(() -> ClientCompat.setScreen(client,restore));
             }
         });
         if (!PENDING_SHOTS.isEmpty()) {
@@ -512,15 +512,15 @@ public final class SaveGitSnapshotManager {
         }
     }
 
-    private static void takeScreenshotNow(MinecraftClient client, Path temp, Runnable afterCapture) {
+    private static void takeScreenshotNow(Minecraft client, Path temp, Runnable afterCapture) {
         try {
-            ClientCompat.takeScreenshot(client.getFramebuffer(), image -> {
+            ClientCompat.takeScreenshot(ClientCompat.mainRenderTarget(client), image -> {
                 try {
                     Path parent = temp.getParent();
                     if (parent != null) {
                         Files.createDirectories(parent);
                     }
-                    image.writeTo(temp);
+                    image.writeToFile(temp);
                 } catch (Throwable t) {
                     SaveGitMod.LOGGER.warn("写入快照截图失败", t);
                     deleteQuietly(temp);
@@ -585,7 +585,7 @@ public final class SaveGitSnapshotManager {
     private static String worldName(MinecraftServer server, Path worldDir) {
         if (server != null) {
             try {
-                String name = server.getSaveProperties().getLevelName();
+                String name = server.getWorldData().getLevelName();
                 if (name != null && !name.isBlank()) {
                     return name;
                 }
@@ -596,7 +596,7 @@ public final class SaveGitSnapshotManager {
         return name == null ? L10n.tr("gsave.gui.value.unknown_world") : name.toString();
     }
 
-    private static void notifyAsync(MinecraftClient client, String message) {
-        client.execute(() -> InfoUtils.sendVanillaMessage(Text.literal(message)));
+    private static void notifyAsync(Minecraft client, String message) {
+        client.execute(() -> InfoUtils.sendVanillaMessage(Component.literal(message)));
     }
 }

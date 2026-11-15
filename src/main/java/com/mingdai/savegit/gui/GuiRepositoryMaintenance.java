@@ -9,8 +9,8 @@ import com.mingdai.savegit.util.L10n;
 import com.mingdai.savegit.util.SnapshotTime;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -69,7 +69,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
     private void exportSnapshots() {
         String world = this.worldDisplayName == null
                 ? "world" : this.worldDisplayName.replaceAll("[^a-zA-Z0-9._-]", "_");
-        Path target = this.mc.runDirectory.toPath().resolve("gsave-exports")
+        Path target = this.mc.gameDirectory.toPath().resolve("gsave-exports")
                 .resolve("gsave-" + world + "-" + System.currentTimeMillis() + ".zip");
         RepositoryMaintenance.startExport(this.worldDir, target);
     }
@@ -105,7 +105,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         boolean active = MaintenanceProgress.isActive();
@@ -145,7 +145,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
         this.drawProgress(drawContext, x, y, right - 10);
     }
 
-    private int drawStats(DrawContext drawContext, int x, int y) {
+    private int drawStats(GuiGraphicsExtractor drawContext, int x, int y) {
         RepositoryStats.Stats value = this.stats;
 
         String format = L10n.tr("gsave.maintenance.label.format",
@@ -206,7 +206,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
         return y + 12;
     }
 
-    private int drawResults(DrawContext drawContext, int x, int y, int maxX) {
+    private int drawResults(GuiGraphicsExtractor drawContext, int x, int y, int maxX) {
         RepositoryMaintenance.Action action = RepositoryMaintenance.getLastAction();
 
         if (action == RepositoryMaintenance.Action.CHECK) {
@@ -233,7 +233,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
                     case WARNING -> GuiTheme.WARNING;
                     case INFO -> GuiTheme.TEXT_DIM;
                 };
-                String line = this.textRenderer.trimToWidth(
+                String line = this.textRenderer.plainSubstrByWidth(
                         L10n.tr(issue.key(), issue.args()), maxX - x);
                 this.drawString(drawContext, line, x + 6, y, color);
                 y += 11;
@@ -273,7 +273,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
             String line = L10n.tr("gsave.maintenance.label.last_export",
                     String.valueOf(RepositoryMaintenance.getLastExportResult().commits()),
                     RepositoryMaintenance.getLastExportResult().file().toString());
-            line = this.textRenderer.trimToWidth(line, maxX - x);
+            line = this.textRenderer.plainSubstrByWidth(line, maxX - x);
             this.drawString(drawContext, line, x, y, GuiTheme.TEXT_MAIN);
             return y + 12;
         }
@@ -292,7 +292,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
         return y + 12;
     }
 
-    private void drawProgress(DrawContext drawContext, int x, int y, int maxX) {
+    private void drawProgress(GuiGraphicsExtractor drawContext, int x, int y, int maxX) {
         if (!MaintenanceProgress.isActive() && !MaintenanceProgress.isFinished()) {
             this.drawString(drawContext, L10n.tr("gsave.maintenance.label.idle"),
                     x, y, GuiTheme.TEXT_FAINT);
@@ -334,7 +334,7 @@ public class GuiRepositoryMaintenance extends GuiSaveGitScreen {
         List<String> logs = MaintenanceProgress.getLogs();
         int start = Math.max(0, logs.size() - 5);
         for (int i = start; i < logs.size(); i++) {
-            String line = this.textRenderer.trimToWidth(logs.get(i), barWidth);
+            String line = this.textRenderer.plainSubstrByWidth(logs.get(i), barWidth);
             this.drawString(drawContext, line, x, y, GuiTheme.TEXT_FAINT);
             y += 11;
         }

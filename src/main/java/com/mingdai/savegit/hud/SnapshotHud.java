@@ -2,32 +2,30 @@ package com.mingdai.savegit.hud;
 
 import com.mingdai.savegit.snapshot.SnapshotStatus;
 import com.mingdai.savegit.util.L10n;
-import fi.dy.masa.malilib.interfaces.IRenderer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * 屏幕右下角的快照进行中提示，直到所有快照任务结束。
  */
-public class SnapshotHud implements IRenderer {
-    @Override
-    public void onRenderGameOverlayPost(DrawContext drawContext) {
+public final class SnapshotHud {
+
+    public static void render(GuiGraphicsExtractor graphics) {
         if (!SnapshotStatus.isActive()) {
             return;
         }
 
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         String label = L10n.commitMessage(SnapshotStatus.getLabel());
         String text = label.isEmpty()
                 ? L10n.tr("gsave.hud.snapshot_active")
                 : L10n.tr("gsave.hud.snapshot_active_reason", label);
 
-        int width = mc.textRenderer.getWidth(text);
-        int x = drawContext.getScaledWindowWidth() - width - 10;
-        int y = drawContext.getScaledWindowHeight() - 18;
+        int width = mc.font.width(text);
+        int x = graphics.guiWidth() - width - 10;
+        int y = graphics.guiHeight() - 18;
 
-        drawContext.fill(x - 4, y - 4, x + width + 4, y + 10, 0xA0000000);
-        drawContext.drawTextWithShadow(mc.textRenderer, Text.literal(text), x, y, 0xFFFFDD55);
+        graphics.fill(x - 4, y - 4, x + width + 4, y + 10, 0xA0000000);
+        graphics.text(mc.font, text, x, y, 0xFFFFDD55, true);
     }
 }

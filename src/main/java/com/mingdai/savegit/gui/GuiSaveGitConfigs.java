@@ -7,13 +7,10 @@ import fi.dy.masa.malilib.config.IConfigBase;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
 import fi.dy.masa.malilib.util.KeyCodes;
-
-//? if >=1.21.9 {
-import net.minecraft.client.input.KeyInput;
-//?}
-
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
+import com.mingdai.savegit.compat.ClientCompat;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.KeyEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +25,7 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
      * 在世界中打开配置界面时暂停游戏。
      */
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return true;
     }
 
@@ -56,9 +53,9 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
     }
 
     @Override
-    protected void drawScreenBackground(DrawContext drawContext, int mouseX, int mouseY) {
+    protected void drawScreenBackground(GuiGraphicsExtractor drawContext, int mouseX, int mouseY) {
         // 未加载世界时(标题界面 / Mod Menu)使用原版滚动全景背景
-        if (this.mc.world == null) {
+        if (this.mc.level == null) {
             this.renderPanoramaBackground(drawContext, 0.0F);
             drawContext.fill(0, 0, this.width, this.height, 0x60000000);
         } else {
@@ -68,7 +65,7 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
 
     //? if >=1.21.9 {
     @Override
-    public boolean onKeyTyped(KeyInput input) {
+    public boolean onKeyTyped(KeyEvent input) {
         // 按 ESC 返回 GSave 主界面(正在编辑热键时保留 MaLiLib 的取消逻辑)
         if (input.key() == KeyCodes.KEY_ESCAPE && this.activeKeybindButton == null) {
             GuiBase.openGui(new GuiSaveGitMain());
@@ -90,10 +87,10 @@ public class GuiSaveGitConfigs extends GuiConfigsBase {
 
     /** 定时快照开关变化时,立即重建选项列表。 */
     public static void refreshIfOpen() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.currentScreen instanceof GuiSaveGitConfigs gui) {
+        Minecraft mc = Minecraft.getInstance();
+        if (ClientCompat.currentScreen(mc) instanceof GuiSaveGitConfigs gui) {
             mc.execute(() -> {
-                if (mc.currentScreen == gui) {
+                if (ClientCompat.currentScreen(mc) == gui) {
                     gui.rebuildOptions();
                 }
             });

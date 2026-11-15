@@ -11,8 +11,8 @@ import com.mingdai.savegit.snapshot.SnapshotStatus;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import java.nio.file.Path;
 
@@ -48,7 +48,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return true;
     }
 
@@ -117,7 +117,7 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         GuiTheme.drawHeader(drawContext, 0, 0, this.width, 32);
@@ -185,13 +185,13 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
             this.drawStringWithShadow(drawContext, this.statusMessage, x, y, 0xFFFFDD55);
         }
 
-        String keyName = SaveGitKeyBindings.OPEN_MAIN_MENU.getBoundKeyLocalizedText().getString();
+        String keyName = SaveGitKeyBindings.OPEN_MAIN_MENU.getTranslatedKeyMessage().getString();
         this.drawStringWithShadow(drawContext,
                 L10n.tr("gsave.gui.hint.keybind", keyName),
                 LEFT, panelTop - 12, 0xFF9A9A9A);
     }
 
-    private void drawLabelValue(DrawContext drawContext, int x, int y, String label, String value, int valueColor) {
+    private void drawLabelValue(GuiGraphicsExtractor drawContext, int x, int y, String label, String value, int valueColor) {
         this.drawStringWithShadow(drawContext, label, x, y, LABEL_COLOR);
         this.drawStringWithShadow(drawContext, value, x + this.getStringWidth(label), y, valueColor);
     }

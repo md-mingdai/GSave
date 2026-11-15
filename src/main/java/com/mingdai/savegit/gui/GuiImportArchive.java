@@ -6,8 +6,8 @@ import com.mingdai.savegit.util.L10n;
 import com.mingdai.savegit.util.SnapshotTime;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -47,8 +47,8 @@ public class GuiImportArchive extends GuiSaveGitScreen {
         this.worldDisplayName = worldDisplayName;
         this.parent = parent;
         this.afterImportReturn = afterImportReturn;
-        this.exportsDir = net.minecraft.client.MinecraftClient.getInstance()
-                .runDirectory.toPath().resolve("gsave-exports");
+        this.exportsDir = net.minecraft.client.Minecraft.getInstance()
+                .gameDirectory.toPath().resolve("gsave-exports");
         this.setTitle(L10n.tr("gsave.gui.title.import"));
     }
 
@@ -121,7 +121,7 @@ public class GuiImportArchive extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         if (this.importButton != null) {
@@ -135,7 +135,7 @@ public class GuiImportArchive extends GuiSaveGitScreen {
         GuiTheme.drawPanel(drawContext, left, top, right, bottom);
 
         String hint = L10n.tr("gsave.gui.message.import_hint", this.exportsDir.toString());
-        this.drawString(drawContext, this.textRenderer.trimToWidth(hint, right - left - 20),
+        this.drawString(drawContext, this.textRenderer.plainSubstrByWidth(hint, right - left - 20),
                 left + 10, top + 10, GuiTheme.TEXT_DIM);
 
         int listTop = Math.max(LIST_TOP, top + 28);
@@ -162,7 +162,7 @@ public class GuiImportArchive extends GuiSaveGitScreen {
             GuiTheme.drawCard(drawContext, left + 4, rowY, right - 4, rowY + ROW_HEIGHT - 2,
                     hovered, isSelected);
 
-            String name = this.textRenderer.trimToWidth(
+            String name = this.textRenderer.plainSubstrByWidth(
                     archive.getFileName().toString(), right - left - 180);
             this.drawString(drawContext, name, left + 12, rowY + 5, GuiTheme.TEXT_MAIN);
 

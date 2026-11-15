@@ -1,7 +1,7 @@
 package com.mingdai.savegit.gui.theme;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * GSave 界面统一视觉：深色半透明面板、卡片、胶囊按钮与滚动条。
@@ -49,7 +49,7 @@ public final class GuiTheme {
     private GuiTheme() {
     }
 
-    public static void drawPanel(DrawContext context, int x1, int y1, int x2, int y2) {
+    public static void drawPanel(GuiGraphicsExtractor context, int x1, int y1, int x2, int y2) {
         context.fill(x1, y1, x2, y2, PANEL_BG);
         context.fill(x1, y1, x2, y1 + 1, PANEL_BORDER);
         context.fill(x1, y2 - 1, x2, y2, PANEL_BORDER);
@@ -57,13 +57,13 @@ public final class GuiTheme {
         context.fill(x2 - 1, y1, x2, y2, PANEL_BORDER);
     }
 
-    public static void drawHeader(DrawContext context, int x1, int y1, int x2, int y2) {
+    public static void drawHeader(GuiGraphicsExtractor context, int x1, int y1, int x2, int y2) {
         context.fill(x1, y1, x2, y2, HEADER_BG);
         context.fill(x1, y2 - 1, x2, y2, ACCENT_DARK);
         context.fill(x1, y1, x2, y1 + 1, 0x40FFFFFF);
     }
 
-    public static void drawCard(DrawContext context, int x1, int y1, int x2, int y2,
+    public static void drawCard(GuiGraphicsExtractor context, int x1, int y1, int x2, int y2,
                                 boolean hovered, boolean selected) {
         int bg = selected ? CARD_BG_SELECTED : (hovered ? CARD_BG_HOVER : CARD_BG);
         int border = hovered || selected ? CARD_BORDER_HOVER : CARD_BORDER;
@@ -77,27 +77,27 @@ public final class GuiTheme {
         }
     }
 
-    public static void drawThumbnailFrame(DrawContext context, int x1, int y1, int x2, int y2,
+    public static void drawThumbnailFrame(GuiGraphicsExtractor context, int x1, int y1, int x2, int y2,
                                           boolean hovered) {
         context.fill(x1 - 1, y1 - 1, x2 + 1, y2 + 1, 0xFF0A0C0E);
         context.fill(x1 - 2, y1 - 2, x2 + 2, y2 + 2, hovered ? 0x60FFFFFF : 0x30FFFFFF);
         context.fill(x1 - 1, y1 - 1, x2 + 1, y2 + 1, 0xFF0A0C0E);
     }
 
-    public static void drawDivider(DrawContext context, int x1, int y, int x2, int color) {
+    public static void drawDivider(GuiGraphicsExtractor context, int x1, int y, int x2, int color) {
         context.fill(x1, y, x2, y + 1, color);
     }
 
     /** 绘制彩色小标签，返回占用宽度。 */
-    public static int drawChip(DrawContext context, TextRenderer font, int x, int y,
+    public static int drawChip(GuiGraphicsExtractor context, Font font, int x, int y,
                                String label, int textColor, int fillColor) {
-        int width = font.getWidth(label) + 8;
+        int width = font.width(label) + 8;
         context.fill(x, y, x + width, y + 11, fillColor);
-        context.drawTextWithShadow(font, label, x + 4, y + 2, textColor);
+        context.text(font, label, x + 4, y + 2, textColor, true);
         return width;
     }
 
-    public static void drawButton(DrawContext context, TextRenderer font,
+    public static void drawButton(GuiGraphicsExtractor context, Font font,
                                   int x, int y, int width, int height,
                                   String label, ButtonStyle style, boolean hovered) {
         boolean enabled = style != ButtonStyle.DISABLED;
@@ -108,11 +108,11 @@ public final class GuiTheme {
         context.fill(x, y, x + 1, y + height, style.border);
         context.fill(x + width - 1, y, x + width, y + height, style.border);
         int color = enabled ? TEXT_MAIN : 0xFF70767C;
-        int textX = x + (width - font.getWidth(label)) / 2;
-        context.drawTextWithShadow(font, label, textX, y + (height - 8) / 2, color);
+        int textX = x + (width - font.width(label)) / 2;
+        context.text(font, label, textX, y + (height - 8) / 2, color, true);
     }
 
-    public static void drawScrollbar(DrawContext context, int x, int top, int bottom,
+    public static void drawScrollbar(GuiGraphicsExtractor context, int x, int top, int bottom,
                                      int scrollOffset, int maxScroll) {
         context.fill(x, top, x + 4, bottom, 0x40000000);
         if (maxScroll <= 0) {
@@ -125,11 +125,11 @@ public final class GuiTheme {
         context.fill(x, barY, x + 4, barY + barHeight, 0xFFAAAAAA);
     }
 
-    public static void drawDialogPanel(DrawContext context, TextRenderer font,
+    public static void drawDialogPanel(GuiGraphicsExtractor context, Font font,
                                        int centerX, int startY, java.util.List<String> lines) {
         int textWidth = 0;
         for (String line : lines) {
-            textWidth = Math.max(textWidth, font.getWidth(line));
+            textWidth = Math.max(textWidth, font.width(line));
         }
         int x1 = centerX - textWidth / 2 - 18;
         int x2 = centerX + textWidth / 2 + 18;
@@ -138,15 +138,15 @@ public final class GuiTheme {
         drawPanel(context, x1, y1, x2, y2);
     }
 
-    public static void drawEmptyState(DrawContext context, TextRenderer font,
+    public static void drawEmptyState(GuiGraphicsExtractor context, Font font,
                                       int centerX, int centerY, String title, String subtitle) {
-        int width = Math.max(font.getWidth(title), font.getWidth(subtitle));
+        int width = Math.max(font.width(title), font.width(subtitle));
         int x = centerX - width / 2;
-        context.drawTextWithShadow(font, title, centerX - font.getWidth(title) / 2,
-                centerY - 10, TEXT_DIM);
+        context.text(font, title, centerX - font.width(title) / 2,
+                centerY - 10, TEXT_DIM, true);
         if (subtitle != null && !subtitle.isEmpty()) {
-            context.drawTextWithShadow(font, subtitle, centerX - font.getWidth(subtitle) / 2,
-                    centerY + 4, TEXT_FAINT);
+            context.text(font, subtitle, centerX - font.width(subtitle) / 2,
+                    centerY + 4, TEXT_FAINT, true);
         }
     }
 }

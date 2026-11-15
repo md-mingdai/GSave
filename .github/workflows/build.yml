@@ -15,27 +15,43 @@ jobs:
       fail-fast: false
       matrix:
         mc:
-          - '1.21'
-          - '1.21.3'
-          - '1.21.4'
-          - '1.21.5'
-          - '1.21.8'
-          - '1.21.10'
-          - '1.21.11'
+          - '26.1.2'
+          - '26.2'
+          - '26.3'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 21
+      - name: Set up Java 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.8.2'
+
+      - name: Dump MaLiLib API (diagnostic)
+        continue-on-error: true
+        run: |
+          gradle :${{ matrix.mc }}:compileJava --no-daemon || true
+          JAR=$(find ~/.gradle/caches/modules-2/files-2.1/fi.dy.masa.malilib -name '*.jar' ! -name '*-sources.jar' 2>/dev/null | head -1)
+          echo "MALILIB JAR: $JAR"
+          if [ -n "$JAR" ]; then
+            javap -classpath "$JAR" \
+              fi.dy.masa.malilib.gui.GuiBase \
+              fi.dy.masa.malilib.gui.GuiConfigsBase \
+              fi.dy.masa.malilib.gui.widgets.WidgetBase \
+              fi.dy.masa.malilib.gui.button.ButtonGeneric \
+              fi.dy.masa.malilib.gui.GuiTextFieldGeneric \
+              fi.dy.masa.malilib.util.InfoUtils \
+              fi.dy.masa.malilib.render.RenderUtils \
+              fi.dy.masa.malilib.interfaces.IRenderer 2>&1 | head -600
+          fi
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3G
 
       - name: Build for Minecraft ${{ matrix.mc }}
         run: gradle :${{ matrix.mc }}:build --stacktrace --no-daemon

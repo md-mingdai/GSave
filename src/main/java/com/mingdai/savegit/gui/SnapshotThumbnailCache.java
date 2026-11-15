@@ -2,9 +2,9 @@ package com.mingdai.savegit.gui;
 
 import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.compat.ClientCompat;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.util.Identifier;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -66,9 +66,9 @@ public final class SnapshotThumbnailCache implements AutoCloseable {
 
             String path = (thumbnail ? "shots/thumb/" : "shots/full/")
                     + key + "_" + this.texturePrefix;
-            Identifier id = Identifier.of(SaveGitMod.MOD_ID, path.toLowerCase(Locale.ROOT));
+            Identifier id = Identifier.fromNamespaceAndPath(SaveGitMod.MOD_ID, path.toLowerCase(Locale.ROOT));
             var texture = ClientCompat.createTexture(image);
-            MinecraftClient.getInstance().getTextureManager().registerTexture(id, texture);
+            Minecraft.getInstance().getTextureManager().register(id, texture);
             Entry entry = new Entry(id, image.getWidth(), image.getHeight());
             this.entries.put(cacheKey, entry);
             return entry;
@@ -107,9 +107,9 @@ public final class SnapshotThumbnailCache implements AutoCloseable {
 
     @Override
     public void close() {
-        var textureManager = MinecraftClient.getInstance().getTextureManager();
+        var textureManager = Minecraft.getInstance().getTextureManager();
         for (Entry entry : this.entries.values()) {
-            textureManager.destroyTexture(entry.id());
+            textureManager.release(entry.id());
         }
         this.entries.clear();
         this.missing.clear();

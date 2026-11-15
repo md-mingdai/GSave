@@ -1,5 +1,6 @@
 package com.mingdai.savegit.command;
 
+import com.mingdai.savegit.compat.ClientCompat;
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.GuiSnapshotList;
 import com.mingdai.savegit.snapshot.Commit;
@@ -14,9 +15,9 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -71,7 +72,7 @@ public final class SaveGitCommands {
                                                 "id", StringArgumentType.word())
                                         .suggests((context, builder) -> {
                                             Path worldDir = SaveGitSnapshotManager.getWorldDirectory(
-                                                    MinecraftClient.getInstance());
+                                                    Minecraft.getInstance());
                                             if (worldDir == null) {
                                                 return builder.buildFuture();
                                             }
@@ -80,12 +81,12 @@ public final class SaveGitCommands {
                                                     .listCommits()) {
                                                 if (commit.shortId().startsWith(remaining)) {
                                                     builder.suggest(commit.shortId(),
-                                                            Text.literal(GuiSnapshotList.formatTime(
+                                                            Component.literal(GuiSnapshotList.formatTime(
                                                                             commit.timestamp))
-                                                                    .append(Text.literal("  "
+                                                                    .append(Component.literal("  "
                                                                             + (commit.message == null
                                                                             ? "" : commit.message)))
-                                                                    .formatted(Formatting.GRAY));
+                                                                    .withStyle(ChatFormatting.GRAY));
                                                 }
                                             }
                                             return builder.buildFuture();
@@ -103,7 +104,7 @@ public final class SaveGitCommands {
 
     private static int help(CommandContext<FabricClientCommandSource> context) {
         context.getSource().sendFeedback(
-                L10n.text("gsave.command.help.header").formatted(Formatting.GOLD));
+                L10n.text("gsave.command.help.header").withStyle(ChatFormatting.GOLD));
         context.getSource().sendFeedback(commandLine(
                 "/snapshot create", L10n.tr("gsave.command.help.create")));
         context.getSource().sendFeedback(commandLine(
@@ -126,14 +127,14 @@ public final class SaveGitCommands {
         return 1;
     }
 
-    private static Text error(String message) {
-        return Text.literal(message).formatted(Formatting.RED);
+    private static Component error(String message) {
+        return Component.literal(message).withStyle(ChatFormatting.RED);
     }
 
-    private static Text commandLine(String command, String description) {
-        return Text.literal(command).formatted(Formatting.AQUA)
-                .append(Text.literal(" — ").formatted(Formatting.DARK_GRAY))
-                .append(Text.literal(description).formatted(Formatting.GRAY));
+    private static Component commandLine(String command, String description) {
+        return Component.literal(command).withStyle(ChatFormatting.AQUA)
+                .append(Component.literal(" — ").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal(description).withStyle(ChatFormatting.GRAY));
     }
 
     private static int create(CommandContext<FabricClientCommandSource> context) {
@@ -141,25 +142,25 @@ public final class SaveGitCommands {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.disabled")));
             return 0;
         }
-        if (SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance()) == null) {
+        if (SaveGitSnapshotManager.getWorldDirectory(Minecraft.getInstance()) == null) {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
             return 0;
         }
         SaveGitSnapshotManager.manualSnapshot();
         context.getSource().sendFeedback(
-                L10n.text("gsave.command.snapshot_requested").formatted(Formatting.GREEN));
+                L10n.text("gsave.command.snapshot_requested").withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
     private static int view(CommandContext<FabricClientCommandSource> context) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         // 命令执行时聊天栏随后会 setScreen(null)，延后一帧再打开界面
         client.execute(() -> GuiBase.openGui(new GuiSnapshotList()));
         return 1;
     }
 
     private static int list(CommandContext<FabricClientCommandSource> context) {
-        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(Minecraft.getInstance());
         if (worldDir == null) {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
             return 0;
@@ -171,19 +172,19 @@ public final class SaveGitCommands {
         }
 
         context.getSource().sendFeedback(L10n.text("gsave.command.list.header",
-                String.valueOf(commits.size())).formatted(Formatting.GOLD));
+                String.valueOf(commits.size())).withStyle(ChatFormatting.GOLD));
         int shown = 0;
         for (Commit commit : commits) {
             if (shown >= 15) {
                 context.getSource().sendFeedback(L10n.text("gsave.command.list.more",
-                        String.valueOf(commits.size() - shown)).formatted(Formatting.DARK_GRAY));
+                        String.valueOf(commits.size() - shown)).withStyle(ChatFormatting.DARK_GRAY));
                 break;
             }
             String message = commit.note != null && !commit.note.isEmpty()
                     ? commit.note : L10n.commitMessage(commit.message);
             context.getSource().sendFeedback(L10n.text("gsave.command.list.line",
                             commit.shortId(), SnapshotTime.full(commit.timestamp), message)
-                    .formatted(Formatting.GRAY));
+                    .withStyle(ChatFormatting.GRAY));
             shown++;
         }
         return 1;
@@ -191,7 +192,7 @@ public final class SaveGitCommands {
 
     private static int note(CommandContext<FabricClientCommandSource> context,
                             String input, String text) {
-        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(Minecraft.getInstance());
         if (worldDir == null) {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
             return 0;
@@ -210,12 +211,12 @@ public final class SaveGitCommands {
             return 0;
         }
         context.getSource().sendFeedback(L10n.text("gsave.command.note_saved", commit.shortId())
-                .formatted(Formatting.GREEN));
+                .withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
     private static int togglePin(CommandContext<FabricClientCommandSource> context, String input) {
-        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(Minecraft.getInstance());
         if (worldDir == null) {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
             return 0;
@@ -237,12 +238,12 @@ public final class SaveGitCommands {
         context.getSource().sendFeedback(L10n.text(
                         pinned ? "gsave.command.pin_on" : "gsave.command.pin_off",
                         commit.shortId())
-                .formatted(Formatting.GREEN));
+                .withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
     private static int prune(CommandContext<FabricClientCommandSource> context) {
-        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(Minecraft.getInstance());
         if (worldDir == null) {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
             return 0;
@@ -250,15 +251,15 @@ public final class SaveGitCommands {
         int removed = new SnapshotRepository(worldDir).cleanupOldSnapshots(
                 SaveGitConfigs.maxSnapshots(), SaveGitConfigs.protectManualSnapshots());
         context.getSource().sendFeedback(L10n.text("gsave.command.prune_done",
-                String.valueOf(removed)).formatted(Formatting.GREEN));
+                String.valueOf(removed)).withStyle(ChatFormatting.GREEN));
         context.getSource().sendFeedback(
-                L10n.text("gsave.message.gc_started").formatted(Formatting.GRAY));
+                L10n.text("gsave.message.gc_started").withStyle(ChatFormatting.GRAY));
         com.mingdai.savegit.snapshot.RepositoryGc.collectQuietAsync(worldDir);
         return 1;
     }
 
     private static int export(CommandContext<FabricClientCommandSource> context, String path) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         Path worldDir = SaveGitSnapshotManager.getWorldDirectory(client);
         if (worldDir == null) {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
@@ -269,7 +270,7 @@ public final class SaveGitCommands {
         if (path == null || path.isBlank()) {
             String world = worldDir.getFileName() == null
                     ? "world" : worldDir.getFileName().toString();
-            target = client.runDirectory.toPath().resolve("gsave-exports")
+            target = client.gameDirectory.toPath().resolve("gsave-exports")
                     .resolve("gsave-" + sanitize(world) + "-"
                             + System.currentTimeMillis() + ".zip");
         } else {
@@ -281,7 +282,7 @@ public final class SaveGitCommands {
                     com.mingdai.savegit.snapshot.RepositoryArchive.exportAll(worldDir, target);
             context.getSource().sendFeedback(L10n.text("gsave.command.export_done",
                             String.valueOf(result.commits()), target.toString())
-                    .formatted(Formatting.GREEN));
+                    .withStyle(ChatFormatting.GREEN));
             return 1;
         } catch (IOException e) {
             context.getSource().sendError(error(
@@ -291,7 +292,7 @@ public final class SaveGitCommands {
     }
 
     private static int importArchive(CommandContext<FabricClientCommandSource> context, String path) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         Path worldDir = SaveGitSnapshotManager.getWorldDirectory(client);
         if (worldDir == null) {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
@@ -303,7 +304,7 @@ public final class SaveGitCommands {
                     com.mingdai.savegit.snapshot.RepositoryArchive.importArchive(worldDir, source);
             context.getSource().sendFeedback(L10n.text("gsave.command.import_done",
                             String.valueOf(result.commits()), String.valueOf(result.blobs()))
-                    .formatted(Formatting.GREEN));
+                    .withStyle(ChatFormatting.GREEN));
             return 1;
         } catch (IOException e) {
             context.getSource().sendError(error(
@@ -312,9 +313,9 @@ public final class SaveGitCommands {
         }
     }
 
-    private static Path resolvePath(MinecraftClient client, String path) {
+    private static Path resolvePath(Minecraft client, String path) {
         Path resolved = Path.of(path);
-        return resolved.isAbsolute() ? resolved : client.runDirectory.toPath().resolve(resolved);
+        return resolved.isAbsolute() ? resolved : client.gameDirectory.toPath().resolve(resolved);
     }
 
     private static String sanitize(String name) {
@@ -327,7 +328,7 @@ public final class SaveGitCommands {
     }
 
     private static int restore(CommandContext<FabricClientCommandSource> context, boolean safety) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         Path worldDir = SaveGitSnapshotManager.getWorldDirectory(client);
         if (worldDir == null) {
             context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
@@ -348,14 +349,14 @@ public final class SaveGitCommands {
             return 0;
         }
 
-        client.setScreen(null);
+        ClientCompat.setScreen(client, null);
         SaveGitSnapshotManager.requestRestore(client, commit, safety);
         context.getSource().sendFeedback(L10n.text("gsave.command.restoring", commit.shortId())
-                .formatted(Formatting.GREEN)
+                .withStyle(ChatFormatting.GREEN)
                 .append(L10n.text(safety
                                 ? "gsave.command.restoring.safety"
                                 : "gsave.command.restoring.no_safety")
-                        .formatted(safety ? Formatting.GRAY : Formatting.YELLOW)));
+                        .withStyle(safety ? ChatFormatting.GRAY : ChatFormatting.YELLOW)));
         return 1;
     }
 }

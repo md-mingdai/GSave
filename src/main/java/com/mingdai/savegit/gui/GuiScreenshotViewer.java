@@ -1,8 +1,8 @@
 package com.mingdai.savegit.gui;
 
 import com.mingdai.savegit.util.L10n;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import com.mingdai.savegit.compat.ClientCompat;
@@ -35,14 +35,14 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
         int y = this.height - 40;
         this.addButton(new ButtonGeneric(this.width / 2 - 105, y, 100, 20,
                         L10n.tr("gsave.button.open_file")),
-                (button, mouseButton) -> Util.getOperatingSystem().open(this.file));
+                (button, mouseButton) -> Util.getPlatform().openFile(this.file.toFile()));
         this.addButton(new ButtonGeneric(this.width / 2 + 5, y, 100, 20,
                         L10n.tr("gsave.button.back")),
                 (button, mouseButton) -> GuiBase.openGui(this.parent));
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         if (this.image == null) {

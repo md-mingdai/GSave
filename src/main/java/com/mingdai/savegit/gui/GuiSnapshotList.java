@@ -9,7 +9,7 @@ import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.util.InfoUtils;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -115,7 +115,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         int listLeft = LIST_LEFT;
@@ -178,7 +178,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         this.drawDeleteTooltip(drawContext, mouseX, mouseY, listLeft, listWidth, listBottom);
     }
 
-    private void drawDeleteTooltip(DrawContext drawContext, int mouseX, int mouseY,
+    private void drawDeleteTooltip(GuiGraphicsExtractor drawContext, int mouseX, int mouseY,
                                    int listLeft, int listWidth, int listBottom) {
         if (mouseY < LIST_TOP || mouseY >= listBottom) {
             return;
@@ -265,7 +265,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         if (world.isEmpty()) {
             world = "world";
         }
-        Path target = this.mc.runDirectory.toPath().resolve("gsave-exports")
+        Path target = this.mc.gameDirectory.toPath().resolve("gsave-exports")
                 .resolve("gsave-" + world + "-" + System.currentTimeMillis() + ".zip");
         Thread thread = new Thread(() -> {
             try {

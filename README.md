@@ -1,9 +1,9 @@
 # GSave
 
-为 Minecraft **1.21 – 1.21.11** 单人世界提供存档快照与回滚的 Fabric 客户端模组。
+为 Minecraft **26.1 – 26.3** 单人世界提供存档快照与回滚的 Fabric 客户端模组。
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21--1.21.11-green)
-![Loader](https://img.shields.io/badge/Fabric%20Loader-%E2%89%A50.16.0-blue)
+![Minecraft](https://img.shields.io/badge/Minecraft-26.1--26.3-green)
+![Loader](https://img.shields.io/badge/Fabric%20Loader-%E2%89%A50.19.0-blue)
 ![License](https://img.shields.io/badge/License-GPL--3.0-orange)
 
 ## 功能
@@ -27,29 +27,27 @@
 
 | 依赖 | 版本 |
 | --- | --- |
-| Minecraft | 1.21 – 1.21.11（选择对应版本的 jar，见下表） |
-| Fabric Loader | ≥ 0.16.0 |
+| Minecraft | 26.1 – 26.3（选择对应版本的 jar，见下表） |
+| Fabric Loader | ≥ 0.19.0 |
 | Fabric API | 对应 Minecraft 版本 |
 | [MaLiLib](https://masa.dy.fi/maven/sakura-ryoko/) | 对应 Minecraft 版本（见下表） |
-| Java | 21 |
+| Java | 25 |
 | [Mod Menu](https://modrinth.com/mod/modmenu) | 可选，用于在模组列表中打开主界面 |
 
 ### 版本对照
 
-| jar（文件名包含） | 适用 Minecraft | MaLiLib |
-| --- | --- | --- |
-| `+1.21` | 1.21 / 1.21.1 | 0.21.10 |
-| `+1.21.3` | 1.21.2 / 1.21.3 | 0.22.8 |
-| `+1.21.4` | 1.21.4 | 0.23.5 |
-| `+1.21.5` | 1.21.5 | 0.24.3 |
-| `+1.21.8` | 1.21.6 / 1.21.7 / 1.21.8 | 0.25.7 |
-| `+1.21.10` | 1.21.9 / 1.21.10 | 0.26.8 |
-| `+1.21.11` | 1.21.11 | 0.27.20 |
+| jar（文件名包含） | 适用 Minecraft | MaLiLib | Mod Menu |
+| --- | --- | --- | --- |
+| `+26.1.2` | 26.1 / 26.1.1 / 26.1.2 | 0.28.12 | 18.x |
+| `+26.2` | 26.2 | 0.29.6 | 20.x |
+| `+26.3` | 26.3 | 0.30.2 | 21.x |
+
+> 仍停留在 1.21.x 的用户请使用仓库的 `1.21` 分支构建的 jar（覆盖 1.21 – 1.21.11）。
 
 ## 安装
 
 1. 安装 Fabric Loader 与 Fabric API；
-2. 选择文件名中 `+` 后面与你的 Minecraft 版本匹配的 jar（例如 1.21.8 用 `gsave-1.2.0+1.21.8.jar`），与对应版本的 MaLiLib 一起放入 `.minecraft/mods`；
+2. 选择文件名中 `+` 后面与你的 Minecraft 版本匹配的 jar（例如 26.3 用 `gsave-1.2.0+26.3.jar`），与对应版本的 MaLiLib 一起放入 `.minecraft/mods`；
 3. 启动游戏，进入任意单人世界后按 **H** 打开主界面（热键可在 选项 → 控制 → 按键绑定 中修改）。
 
 ## 使用
@@ -118,11 +116,11 @@
 
 ## 构建
 
-本项目使用 Stonecutter 维护单一源码树，并通过云端 CI 矩阵为每个 Minecraft 版本分别构建，需要 JDK 21 与 Gradle 9.x：
+本项目使用 Stonecutter 维护单一源码树，并通过云端 CI 矩阵为每个 Minecraft 版本分别构建，需要 JDK 25 与 Gradle 9.x：
 
 ```bash
 ./gradlew build
-./gradlew :1.21.8:build
+./gradlew :26.3:build
 ```
 
 产物位于 `versions/<mc>/build/libs/gsave-<mod版本>+<mc>.jar`（`-sources.jar` 为源码包）。`gradle build` 会同时运行 `src/test` 下的 JUnit 测试。

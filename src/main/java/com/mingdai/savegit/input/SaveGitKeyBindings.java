@@ -1,24 +1,23 @@
 package com.mingdai.savegit.input;
 
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
 
 /**
  * 注册到原版“选项 → 控制 → 按键绑定”的热键。
  */
 public final class SaveGitKeyBindings {
-    public static final KeyBinding OPEN_MAIN_MENU =
-            KeyBindingHelper.registerKeyBinding(createKeyBinding());
+    public static final KeyMapping OPEN_MAIN_MENU =
+            KeyMappingHelper.registerKeyMapping(createKeyBinding());
 
-    private static KeyBinding createKeyBinding() {
-        //? if >=1.21.9 {
-        return new KeyBinding("key.gsave.open_main_menu", InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_H, KeyBinding.Category.MISC);
+    private static KeyMapping createKeyBinding() {
+        //? if >=26.3 {
+        return new KeyMapping("key.gsave.open_main_menu", InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_H, KeyMapping.Category.MISC);
         //?} else {
-        /*return new KeyBinding("key.gsave.open_main_menu", InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_H, "key.categories.gsave");
+        /*return new KeyMapping("key.gsave.open_main_menu", InputConstants.Type.KEYSYM,
+                InputConstants.KEY_H, KeyMapping.Category.MISC);
         *///?}
     }
 

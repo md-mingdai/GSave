@@ -1,8 +1,7 @@
 package com.mingdai.savegit.util;
 
-import net.minecraft.client.resource.language.I18n;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 /**
  * 统一的多语言入口：所有玩家可见文案都从这里取翻译。
@@ -18,11 +17,11 @@ public final class L10n {
     }
 
     public static String tr(String key, Object... args) {
-        return I18n.translate(key, args);
+        return Component.translatable(key, args).getString();
     }
 
-    public static MutableText text(String key, Object... args) {
-        return Text.translatable(key, args);
+    public static MutableComponent text(String key, Object... args) {
+        return Component.translatable(key, args);
     }
 
     /**

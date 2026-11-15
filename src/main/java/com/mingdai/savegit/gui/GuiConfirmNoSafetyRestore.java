@@ -5,7 +5,8 @@ import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import net.minecraft.client.gui.DrawContext;
+import com.mingdai.savegit.compat.ClientCompat;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.List;
 
@@ -31,7 +32,7 @@ public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
         this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
                         L10n.tr("gsave.button.i_know_what_im_doing")),
                 (button, mouseButton) -> {
-                    this.mc.setScreen(null);
+                    ClientCompat.setScreen(this.mc, null);
                     SaveGitSnapshotManager.requestRestore(this.mc, this.commit, false);
                 });
         this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20,
@@ -47,7 +48,7 @@ public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
     }
 
     @Override
-    protected void drawContents(DrawContext drawContext, int mouseX, int mouseY, float partialTicks) {
+    protected void drawContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
         List<String> lines = List.of(

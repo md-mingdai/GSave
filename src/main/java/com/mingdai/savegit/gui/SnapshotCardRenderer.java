@@ -5,8 +5,8 @@ import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.util.L10n;
 import com.mingdai.savegit.util.SnapshotTime;
 import com.mingdai.savegit.compat.ClientCompat;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * 快照卡片行：缩略图 + ID/消息 + 绝对/相对时间 + 右侧动作按钮。
@@ -87,7 +87,7 @@ public final class SnapshotCardRenderer {
                 && mouseY >= layout.y1() && mouseY < layout.y2();
     }
 
-    public static void draw(DrawContext context, TextRenderer font, Layout layout, Commit commit,
+    public static void draw(GuiGraphicsExtractor context, Font font, Layout layout, Commit commit,
                             SnapshotThumbnailCache.Entry thumbnail, boolean hasShot,
                             boolean pinned, boolean deleteEnabled,
                             boolean hovered, boolean selected, int mouseX, int mouseY) {
@@ -100,13 +100,13 @@ public final class SnapshotCardRenderer {
         int textWidth = Math.max(40, layout.pinX() - BUTTON_GAP - textX);
 
         String id = "#" + commit.shortId();
-        context.drawTextWithShadow(font, id, textX, layout.y1() + 7, GuiTheme.ACCENT);
-        int idWidth = font.getWidth(id);
+        context.text(font, id, textX, layout.y1() + 7, GuiTheme.ACCENT, true);
+        int idWidth = font.width(id);
 
         int messageX = textX + idWidth + 8;
         if (pinned) {
-            context.drawTextWithShadow(font, "★", messageX, layout.y1() + 7, GuiTheme.WARNING);
-            messageX += font.getWidth("★") + 6;
+            context.text(font, "★", messageX, layout.y1() + 7, GuiTheme.WARNING, true);
+            messageX += font.width("★") + 6;
         }
 
         String message = commit.note != null && !commit.note.isEmpty()
@@ -115,19 +115,19 @@ public final class SnapshotCardRenderer {
         if (message.isEmpty()) {
             message = L10n.tr("gsave.gui.value.no_message");
         }
-        message = font.trimToWidth(message, Math.max(20, textX + textWidth - messageX));
-        context.drawTextWithShadow(font, message, messageX, layout.y1() + 7, GuiTheme.TEXT_MAIN);
+        message = font.plainSubstrByWidth(message, Math.max(20, textX + textWidth - messageX));
+        context.text(font, message, messageX, layout.y1() + 7, GuiTheme.TEXT_MAIN, true);
 
         String time = SnapshotTime.full(commit.timestamp);
-        time = font.trimToWidth(time, textWidth);
-        context.drawTextWithShadow(font, time, textX, layout.y1() + 23, GuiTheme.TEXT_DIM);
+        time = font.plainSubstrByWidth(time, textWidth);
+        context.text(font, time, textX, layout.y1() + 23, GuiTheme.TEXT_DIM, true);
 
         boolean pinHovered = isOver(layout.pinX(), layout.buttonY(), PIN_WIDTH, mouseX, mouseY);
         String pinLabel = pinned ? "★" : "☆";
         int pinColor = pinned ? GuiTheme.WARNING : (pinHovered ? GuiTheme.TEXT_MAIN : GuiTheme.TEXT_FAINT);
-        context.drawTextWithShadow(font, pinLabel,
-                layout.pinX() + (PIN_WIDTH - font.getWidth(pinLabel)) / 2,
-                layout.buttonY() + 4, pinColor);
+        context.text(font, pinLabel,
+                layout.pinX() + (PIN_WIDTH - font.width(pinLabel)) / 2,
+                layout.buttonY() + 4, pinColor, true);
 
         GuiTheme.drawButton(context, font, layout.restoreX(), layout.buttonY(),
                 RESTORE_WIDTH, BUTTON_HEIGHT, L10n.tr("gsave.button.restore"),
@@ -141,7 +141,7 @@ public final class SnapshotCardRenderer {
                         && isOver(layout.deleteX(), layout.buttonY(), DELETE_WIDTH, mouseX, mouseY));
     }
 
-    private static void drawThumbnail(DrawContext context, TextRenderer font, Layout layout,
+    private static void drawThumbnail(GuiGraphicsExtractor context, Font font, Layout layout,
                                       SnapshotThumbnailCache.Entry thumbnail, boolean hasShot,
                                       int mouseX, int mouseY) {
         int x = layout.thumbX();
@@ -157,9 +157,9 @@ public final class SnapshotCardRenderer {
         } else {
             context.fill(x, y, x + THUMB_WIDTH, y + THUMB_HEIGHT, 0xFF15181C);
             String none = L10n.tr("gsave.gui.value.none");
-            context.drawTextWithShadow(font, none,
-                    x + (THUMB_WIDTH - font.getWidth(none)) / 2,
-                    y + (THUMB_HEIGHT - 8) / 2, GuiTheme.TEXT_FAINT);
+            context.text(font, none,
+                    x + (THUMB_WIDTH - font.width(none)) / 2,
+                    y + (THUMB_HEIGHT - 8) / 2, GuiTheme.TEXT_FAINT, true);
         }
     }
 

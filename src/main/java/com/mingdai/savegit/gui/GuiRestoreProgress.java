@@ -26,7 +26,7 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
         this.doneButton = new ButtonGeneric(this.width / 2 - 60, this.height - 40, 120, 20,
                 L10n.tr("gsave.progress.button.restoring"));
         this.doneButton.setEnabled(false);
-        this.addButton(this.doneButton, (button, mouseButton) -> this.mc.setScreen(new TitleScreen()));
+        this.addButton(this.doneButton, (button, mouseButton) -> this.leaveProgress());
 
         this.worldListButton = new ButtonGeneric(this.width / 2 - 60, this.height - 66, 120, 20,
                 L10n.tr("gsave.button.back_to_world_list"));
@@ -113,10 +113,21 @@ public class GuiRestoreProgress extends GuiSaveGitScreen {
         }
     }
 
+    /**
+     * 恢复完成/关闭后回到单人世界列表；失败时仍回到标题界面，方便查看日志。
+     */
+    private void leaveProgress() {
+        if (RestoreProgress.isFailed()) {
+            this.mc.setScreen(new TitleScreen());
+        } else {
+            this.mc.setScreen(new SelectWorldScreen(new TitleScreen()));
+        }
+    }
+
     @Override
     public void close() {
         if (RestoreProgress.isFinished()) {
-            this.mc.setScreen(new TitleScreen());
+            this.leaveProgress();
         }
     }
 

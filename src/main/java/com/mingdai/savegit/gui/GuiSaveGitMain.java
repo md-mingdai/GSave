@@ -97,8 +97,8 @@ public class GuiSaveGitMain extends GuiSaveGitScreen {
             this.statusMessage = L10n.tr("gsave.gui.message.disabled");
             return;
         }
-        SaveGitSnapshotManager.manualSnapshot();
-        this.statusMessage = L10n.tr("gsave.gui.message.snapshot_requested");
+        // 关闭当前界面、截图，并在快照保存完成后自动重新打开主界面
+        SaveGitSnapshotManager.manualSnapshotFromGui();
     }
 
     private void reload() {

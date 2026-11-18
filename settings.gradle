@@ -1,5 +1,10 @@
 pluginManagement {
     repositories {
+        // Maven Central 会对共享 CI IP 返回 429，优先使用 Google 的官方镜像
+        maven {
+            name = 'MavenCentralMirror'
+            url = 'https://maven-central.storage-download.googleapis.com/maven2/'
+        }
         maven {
             name = 'Fabric'
             url = 'https://maven.fabricmc.net/'

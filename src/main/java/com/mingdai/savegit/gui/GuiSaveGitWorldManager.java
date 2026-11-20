@@ -182,7 +182,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             Commit commit = this.commits.get(i);
             int rowY = LIST_TOP + i * ROW_STRIDE - this.scrollOffset;
             SnapshotCardRenderer.Layout layout =
-                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY, false);
+                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY);
             boolean hovered = SnapshotCardRenderer.isInsideCard(layout, mouseX, mouseY);
             boolean hasShot = this.screenshotIds.contains(commit.id);
 
@@ -190,11 +190,12 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             if (hasShot) {
                 Path shotFile = SnapshotRepository.dataDir(worldDir).resolve(SnapshotRepository.DIR_SCREENSHOTS)
                         .resolve(commit.id + ".png");
-                thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
+                thumbnail = this.thumbnails.getScaled(shotFile, commit.id,
+                        SnapshotCardRenderer.THUMB_WIDTH, SnapshotCardRenderer.THUMB_HEIGHT);
             }
 
             SnapshotCardRenderer.draw(drawContext, this.font, layout, commit,
-                    thumbnail, hasShot, commit.pinned, true, false, hovered, false, mouseX, mouseY);
+                    thumbnail, hasShot, commit.pinned, true, hovered, false, mouseX, mouseY);
         }
 
         drawContext.disableScissor();
@@ -224,10 +225,10 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             }
             Commit rowCommit = this.commits.get(i);
             SnapshotCardRenderer.Layout layout =
-                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY, false);
+                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY);
             boolean hasShot = this.screenshotIds.contains(rowCommit.id);
             SnapshotCardRenderer.Action action =
-                    SnapshotCardRenderer.hitTest(layout, mouseX, mouseY, hasShot, true, false);
+                    SnapshotCardRenderer.hitTest(layout, mouseX, mouseY, hasShot, true);
 
             switch (action) {
                 case THUMBNAIL -> {

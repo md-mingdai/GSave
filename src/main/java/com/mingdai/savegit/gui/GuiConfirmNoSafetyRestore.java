@@ -1,25 +1,27 @@
 package com.mingdai.savegit.gui;
 
+import com.mingdai.savegit.gui.theme.GuiTheme;
 import com.mingdai.savegit.snapshot.Commit;
-import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.util.L10n;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
-import com.mingdai.savegit.compat.ClientCompat;
 import fi.dy.masa.malilib.render.GuiContext;
 
 import java.util.List;
 
 /**
  * 取消“恢复前安全快照”后的二级确认。
+ * 确认后执行调用方传入的恢复动作，取消则回到上一级（保留其选项状态）。
  */
 public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
     private final Commit commit;
-    private final GuiSnapshotList parent;
+    private final GuiSaveGitScreen parent;
+    private final Runnable onConfirm;
 
-    public GuiConfirmNoSafetyRestore(Commit commit, GuiSnapshotList parent) {
+    public GuiConfirmNoSafetyRestore(Commit commit, GuiSaveGitScreen parent, Runnable onConfirm) {
         this.commit = commit;
         this.parent = parent;
+        this.onConfirm = onConfirm;
         this.setTitle(L10n.tr("gsave.gui.title.no_safety_restore"));
     }
 
@@ -31,19 +33,23 @@ public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
         int y = this.height / 2 + 40;
         this.addButton(new ButtonGeneric(this.width / 2 - buttonWidth - 4, y, buttonWidth, 20,
                         L10n.tr("gsave.button.i_know_what_im_doing")),
-                (button, mouseButton) -> {
-                    ClientCompat.setScreen(this.mc, null);
-                    SaveGitSnapshotManager.requestRestore(this.mc, this.commit, false);
-                });
+                (button, mouseButton) -> this.onConfirm.run());
         this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20,
                         L10n.tr("gsave.button.cancel")),
-                (button, mouseButton) -> GuiBase.openGui(new GuiConfirmRestore(this.commit, this.parent)));
+                (button, mouseButton) -> this.goBack());
+    }
+
+    private void goBack() {
+        if (this.parent != null) {
+            GuiBase.openGui(this.parent);
+        } else {
+            this.onClose();
+        }
     }
 
     @Override
     protected boolean onEscapePressed() {
-        // 按 ESC 返回上一级确认界面
-        GuiBase.openGui(new GuiConfirmRestore(this.commit, this.parent));
+        this.goBack();
         return true;
     }
 
@@ -59,8 +65,7 @@ public class GuiConfirmNoSafetyRestore extends GuiSaveGitScreen {
         );
 
         int startY = this.height / 2 - lines.size() * 6 - 30;
-        com.mingdai.savegit.gui.theme.GuiTheme.drawDialogPanel(drawContext,
-                this.font, this.width / 2, startY, lines);
+        GuiTheme.drawDialogPanel(drawContext, this.font, this.width / 2, startY, lines);
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             int color = i == 0 ? 0xFFFF6060 : 0xFFFFDD55;

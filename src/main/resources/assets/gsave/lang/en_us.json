@@ -327,14 +327,14 @@
   "gsave.command.help.restorechunk": "restore only chunks around the player; radius is in 16-block units (1 = the player's chunk, default 1)",
   "gsave.command.restorechunk.no_player": "Join a world and load the player first",
   "gsave.command.restorechunk.restoring": "Restoring chunks around #%s: %s chunk(s) (radius %s x 16 blocks)",
-  "gsave.button.nearby": "Nearby",
-  "gsave.gui.title.chunk_restore": "Restore Nearby Chunks",
+  "gsave.gui.label.restore_content": "Restore content",
+  "gsave.gui.checkbox.chunk_only": "Only restore chunks near the player",
   "gsave.gui.label.chunk_radius": "Radius",
-  "gsave.gui.message.chunk_restore_target": "Target snapshot #%s",
   "gsave.gui.message.chunk_player": "Player chunk: %s, %s (%s)",
   "gsave.gui.message.chunk_restore_hint": "Radius is in 16-block units (1-%s): 1 = the player's chunk, each +1 adds a ring",
   "gsave.gui.message.chunk_restore_preview": "Will restore %s×%s chunks (%s total)",
-  "gsave.gui.message.chunk_restore_scope": "Only selected chunks present in the snapshot are overwritten; all other chunks keep their current state.",
   "gsave.gui.message.chunk_radius_invalid": "Radius must be an integer from 1 to %s",
-  "gsave.gui.message.no_player": "Join a world and load the player first"
+  "gsave.gui.message.no_player": "Join a world and load the player first",
+  "gsave.gui.message.content_empty": "Select at least one kind of content to restore",
+  "gsave.gui.message.chunk_need_type": "Chunk restore requires region, entities or POI to be selected"
 }

@@ -51,6 +51,7 @@ public final class SaveGitSnapshotManager {
     private static volatile String pendingRestoreCommitId;
     private static volatile Path pendingRestoreWorldDir;
     private static volatile ChunkSelection pendingRestoreSelection;
+    private static volatile WorldRestorer.RestoreFilter pendingRestoreFilter;
     private static volatile boolean restoreStarted;
     private static volatile IntegratedServer pendingTeardownServer;
     private static int teardownTicks;
@@ -328,7 +329,7 @@ public final class SaveGitSnapshotManager {
     }
 
     public static void requestRestore(Minecraft client, Commit commit, boolean createSafetySnapshot) {
-        requestRestore(client, commit, createSafetySnapshot, null);
+        requestRestore(client, commit, createSafetySnapshot, null, WorldRestorer.RestoreFilter.ALL);
     }
 
     /**
@@ -336,6 +337,14 @@ public final class SaveGitSnapshotManager {
      */
     public static void requestRestore(Minecraft client, Commit commit, boolean createSafetySnapshot,
                                       ChunkSelection selection) {
+        WorldRestorer.RestoreFilter filter = selection != null
+                ? new WorldRestorer.RestoreFilter(true, true, true, false)
+                : WorldRestorer.RestoreFilter.ALL;
+        requestRestore(client, commit, createSafetySnapshot, selection, filter);
+    }
+
+    public static void requestRestore(Minecraft client, Commit commit, boolean createSafetySnapshot,
+                                      ChunkSelection selection, WorldRestorer.RestoreFilter filter) {
         IntegratedServer server = client.getSingleplayerServer();
         if (server == null || client.level == null) {
             InfoUtils.sendVanillaMessage(L10n.text("gsave.message.restore_no_world"));
@@ -354,7 +363,8 @@ public final class SaveGitSnapshotManager {
                     notifyAsync(client, L10n.tr("gsave.message.restore_failed_missing"));
                     return;
                 }
-                client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir, selection));
+                client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir,
+                        selection, filter));
             });
             return;
         }
@@ -367,13 +377,14 @@ public final class SaveGitSnapshotManager {
 
         captureScreenshot(client, shotTemp, () ->
                 startSafetySnapshotThenRestore(client, server, worldDir, commit, safetySettings, shotTemp,
-                        selection),
+                        selection, filter),
                 false);
     }
 
     private static void startSafetySnapshotThenRestore(Minecraft client, IntegratedServer server, Path worldDir,
                                                        Commit commit, WorldSnapshotter.Settings safetySettings,
-                                                       Path shotTemp, ChunkSelection selection) {
+                                                       Path shotTemp, ChunkSelection selection,
+                                                       WorldRestorer.RestoreFilter filter) {
         if (SaveGitConfigs.isGameplayPriority()) {
             SnapshotStatus.begin(L10n.REASON_SAFETY);
             try {
@@ -405,7 +416,7 @@ public final class SaveGitSnapshotManager {
                         }
                         SnapshotStatus.end();
                         client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir,
-                                selection));
+                                selection, filter));
                     }, "GSave-SafetySnapshot");
                     thread.setDaemon(true);
                     thread.start();
@@ -435,7 +446,7 @@ public final class SaveGitSnapshotManager {
                         SnapshotStatus.end();
                     }
                     client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir,
-                            selection));
+                            selection, filter));
                 });
             } catch (Throwable t) {
                 SnapshotStatus.end();
@@ -446,12 +457,14 @@ public final class SaveGitSnapshotManager {
     }
 
     private static void beginRestoreTeardown(Minecraft client, IntegratedServer server,
-                                             String commitId, Path worldDir, ChunkSelection selection) {
+                                             String commitId, Path worldDir, ChunkSelection selection,
+                                             WorldRestorer.RestoreFilter filter) {
         pendingRestore = true;
         restoreStarted = false;
         pendingRestoreCommitId = commitId;
         pendingRestoreWorldDir = worldDir;
         pendingRestoreSelection = selection;
+        pendingRestoreFilter = filter;
         pendingTeardownServer = server;
         teardownTicks = 0;
 
@@ -496,9 +509,16 @@ public final class SaveGitSnapshotManager {
         String commitId = pendingRestoreCommitId;
         Path worldDir = pendingRestoreWorldDir;
         ChunkSelection selection = pendingRestoreSelection;
+        WorldRestorer.RestoreFilter filter = pendingRestoreFilter;
         pendingRestoreCommitId = null;
         pendingRestoreWorldDir = null;
         pendingRestoreSelection = null;
+        pendingRestoreFilter = null;
+        if (filter == null) {
+            filter = selection != null
+                    ? new WorldRestorer.RestoreFilter(true, true, true, false)
+                    : WorldRestorer.RestoreFilter.ALL;
+        }
         restoreStarted = true;
 
         SaveGitMod.LOGGER.info("世界已卸载，开始恢复快照 {}", commitId);
@@ -511,9 +531,6 @@ public final class SaveGitSnapshotManager {
                 if (commit == null) {
                     throw new IOException(L10n.tr("gsave.message.commit_missing", commitId));
                 }
-                WorldRestorer.RestoreFilter filter = selection != null
-                        ? new WorldRestorer.RestoreFilter(true, true, true, false)
-                        : WorldRestorer.RestoreFilter.ALL;
                 new WorldRestorer(repo, worldDir).restore(commit, filter, selection);
             } catch (Throwable t) {
                 SaveGitMod.LOGGER.error("恢复快照失败", t);

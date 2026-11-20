@@ -30,7 +30,7 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
     @Override
     public void initGui() {
         super.initGui();
-        this.image = this.cache.getFull(this.file, this.commitId);
+        this.image = this.loadForSize();
 
         int y = this.height - 40;
         this.addButton(new ButtonGeneric(this.width / 2 - 105, y, 100, 20,
@@ -46,10 +46,32 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
                 (button, mouseButton) -> GuiBase.openGui(this.parent));
     }
 
+    private int maxImageWidth() {
+        return Math.max(1, this.width - 80);
+    }
+
+    private int maxImageHeight() {
+        return Math.max(1, this.height - 110);
+    }
+
+    private SnapshotThumbnailCache.Entry loadForSize() {
+        return this.cache.getScaled(this.file, this.commitId,
+                this.maxImageWidth(), this.maxImageHeight());
+    }
+
     @Override
     protected void drawContents(GuiContext drawContext, int mouseX, int mouseY, float partialTicks) {
         super.drawContents(drawContext, mouseX, mouseY, partialTicks);
 
+        // 窗口尺寸变化后按新边界重新等比缩放，保证完整显示
+        if (this.image != null
+                && (this.image.width() > this.maxImageWidth()
+                || this.image.height() > this.maxImageHeight())) {
+            this.image = this.loadForSize();
+        }
+        if (this.image == null) {
+            this.image = this.loadForSize();
+        }
         if (this.image == null) {
             String message = L10n.tr("gsave.gui.message.screenshot_missing");
             this.drawString(drawContext, message,
@@ -58,20 +80,15 @@ public class GuiScreenshotViewer extends GuiSaveGitScreen {
             return;
         }
 
-        int maxWidth = this.width - 80;
-        int maxHeight = this.height - 110;
-        float scale = Math.min(maxWidth / (float) this.image.width(),
-                maxHeight / (float) this.image.height());
-        scale = Math.min(scale, 4.0F);
-        int drawWidth = Math.max(1, (int) (this.image.width() * scale));
-        int drawHeight = Math.max(1, (int) (this.image.height() * scale));
+        int drawWidth = this.image.width();
+        int drawHeight = this.image.height();
         int x = (this.width - drawWidth) / 2;
         int y = Math.max(36, (this.height - drawHeight) / 2);
 
         drawContext.fill(x - 2, y - 2, x + drawWidth + 2, y + drawHeight + 2, 0xFF000000);
         ClientCompat.drawTexture(drawContext, this.image.id(),
                 x, y, 0.0F, 0.0F, drawWidth, drawHeight,
-                this.image.width(), this.image.height());
+                drawWidth, drawHeight);
     }
 
     @Override

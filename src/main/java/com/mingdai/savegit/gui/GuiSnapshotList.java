@@ -153,7 +153,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             Commit commit = this.commits.get(i);
             int rowY = LIST_TOP + i * ROW_STRIDE - this.scrollOffset;
             SnapshotCardRenderer.Layout layout =
-                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY, true);
+                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY);
             boolean hovered = SnapshotCardRenderer.isInsideCard(layout, mouseX, mouseY);
             boolean hasShot = this.screenshotIds.contains(commit.id) && this.worldDir != null;
 
@@ -161,11 +161,12 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             if (hasShot) {
                 Path shotFile = SnapshotRepository.dataDir(this.worldDir).resolve(SnapshotRepository.DIR_SCREENSHOTS)
                         .resolve(commit.id + ".png");
-                thumbnail = this.thumbnails.getThumbnail(shotFile, commit.id);
+                thumbnail = this.thumbnails.getScaled(shotFile, commit.id,
+                        SnapshotCardRenderer.THUMB_WIDTH, SnapshotCardRenderer.THUMB_HEIGHT);
             }
 
             SnapshotCardRenderer.draw(drawContext, this.font, layout, commit,
-                    thumbnail, hasShot, commit.pinned, false, true,
+                    thumbnail, hasShot, commit.pinned, false,
                     hovered, this.compareMode && commit.id.equals(this.compareBaseId),
                     mouseX, mouseY);
         }
@@ -186,7 +187,7 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
         for (int i = 0; i < this.commits.size(); i++) {
             int rowY = LIST_TOP + i * ROW_STRIDE - this.scrollOffset;
             SnapshotCardRenderer.Layout layout =
-                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY, true);
+                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY);
             if (mouseX >= layout.deleteX()
                     && mouseX < layout.deleteX() + SnapshotCardRenderer.DELETE_WIDTH
                     && mouseY >= layout.buttonY()
@@ -220,14 +221,14 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
             }
             Commit commit = this.commits.get(i);
             SnapshotCardRenderer.Layout layout =
-                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY, true);
+                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY);
             if (this.compareMode && SnapshotCardRenderer.isInsideCard(layout, mouseX, mouseY)) {
                 this.handleCompareClick(commit);
                 return true;
             }
             boolean hasShot = this.screenshotIds.contains(commit.id);
             SnapshotCardRenderer.Action action =
-                    SnapshotCardRenderer.hitTest(layout, mouseX, mouseY, hasShot, false, true);
+                    SnapshotCardRenderer.hitTest(layout, mouseX, mouseY, hasShot, false);
 
             switch (action) {
                 case THUMBNAIL -> {
@@ -238,10 +239,6 @@ public class GuiSnapshotList extends GuiSaveGitScreen {
                 }
                 case RESTORE -> {
                     GuiBase.openGui(new GuiConfirmRestore(commit, this));
-                    return true;
-                }
-                case CHUNK_RESTORE -> {
-                    GuiBase.openGui(new GuiConfirmChunkRestore(commit, this));
                     return true;
                 }
                 case PIN -> {

@@ -20,9 +20,6 @@ import java.util.Set;
  * 缩略图在加载时用最近邻方式缩小，避免为每张截图占用整张 1080p 的显存。
  */
 public final class SnapshotThumbnailCache implements AutoCloseable {
-    private static final int THUMB_MAX_WIDTH = 96;
-    private static final int THUMB_MAX_HEIGHT = 54;
-
     private final Map<String, Entry> entries = new HashMap<>();
     private final Set<String> missing = new HashSet<>();
     private final String texturePrefix = Integer.toHexString(System.identityHashCode(this));
@@ -30,18 +27,16 @@ public final class SnapshotThumbnailCache implements AutoCloseable {
     public record Entry(Identifier id, int width, int height) {
     }
 
-    /** 完整分辨率，用于大图查看。 */
-    public Entry getFull(Path file, String key) {
-        return this.load(file, key, false);
+    /**
+     * 加载截图并等比缩放到不超过 maxWidth×maxHeight 的尺寸，保持宽高比。
+     * 调用方按返回的 width/height 原尺寸绘制即可，完整显示且不会被裁剪。
+     */
+    public Entry getScaled(Path file, String key, int maxWidth, int maxHeight) {
+        return this.load(file, key, Math.max(1, maxWidth), Math.max(1, maxHeight));
     }
 
-    /** 缩小后的缩略图，用于列表。 */
-    public Entry getThumbnail(Path file, String key) {
-        return this.load(file, key, true);
-    }
-
-    private Entry load(Path file, String key, boolean thumbnail) {
-        String cacheKey = thumbnail ? key + ":thumb" : key;
+    private Entry load(Path file, String key, int maxWidth, int maxHeight) {
+        String cacheKey = key + ":" + maxWidth + "x" + maxHeight;
         if (this.missing.contains(cacheKey)) {
             return null;
         }
@@ -57,15 +52,14 @@ public final class SnapshotThumbnailCache implements AutoCloseable {
         NativeImage image = null;
         try (InputStream in = Files.newInputStream(file)) {
             NativeImage source = NativeImage.read(in);
-            if (thumbnail) {
-                image = downscale(source);
+            if (source.getWidth() > maxWidth || source.getHeight() > maxHeight) {
+                image = scaleToFit(source, maxWidth, maxHeight);
                 source.close();
             } else {
                 image = source;
             }
 
-            String path = (thumbnail ? "shots/thumb/" : "shots/full/")
-                    + key + "_" + this.texturePrefix;
+            String path = "shots/" + key + "_" + maxWidth + "x" + maxHeight + "_" + this.texturePrefix;
             Identifier id = Identifier.fromNamespaceAndPath(SaveGitMod.MOD_ID, path.toLowerCase(Locale.ROOT));
             var texture = ClientCompat.createTexture(image);
             Minecraft.getInstance().getTextureManager().register(id, texture);
@@ -81,16 +75,15 @@ public final class SnapshotThumbnailCache implements AutoCloseable {
         }
     }
 
-    private static NativeImage downscale(NativeImage source) {
+    private static NativeImage scaleToFit(NativeImage source, int maxWidth, int maxHeight) {
         int sourceWidth = source.getWidth();
         int sourceHeight = source.getHeight();
         if (sourceWidth <= 0 || sourceHeight <= 0) {
             return new NativeImage(1, 1, false);
         }
 
-        float scale = Math.min(THUMB_MAX_WIDTH / (float) sourceWidth,
-                THUMB_MAX_HEIGHT / (float) sourceHeight);
-        scale = Math.min(scale, 1.0F);
+        float scale = Math.min(maxWidth / (float) sourceWidth,
+                maxHeight / (float) sourceHeight);
         int width = Math.max(1, (int) (sourceWidth * scale));
         int height = Math.max(1, (int) (sourceHeight * scale));
 

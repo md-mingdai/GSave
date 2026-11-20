@@ -509,16 +509,16 @@ public final class SaveGitSnapshotManager {
         String commitId = pendingRestoreCommitId;
         Path worldDir = pendingRestoreWorldDir;
         ChunkSelection selection = pendingRestoreSelection;
-        WorldRestorer.RestoreFilter filter = pendingRestoreFilter;
+        WorldRestorer.RestoreFilter storedFilter = pendingRestoreFilter;
         pendingRestoreCommitId = null;
         pendingRestoreWorldDir = null;
         pendingRestoreSelection = null;
         pendingRestoreFilter = null;
-        if (filter == null) {
-            filter = selection != null
-                    ? new WorldRestorer.RestoreFilter(true, true, true, false)
-                    : WorldRestorer.RestoreFilter.ALL;
-        }
+        WorldRestorer.RestoreFilter filter = storedFilter != null
+                ? storedFilter
+                : (selection != null
+                        ? new WorldRestorer.RestoreFilter(true, true, true, false)
+                        : WorldRestorer.RestoreFilter.ALL);
         restoreStarted = true;
 
         SaveGitMod.LOGGER.info("世界已卸载，开始恢复快照 {}", commitId);

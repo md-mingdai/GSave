@@ -320,5 +320,11 @@
   "gsave.config.generic.comment.skipUnchangedAutomatic": "自動快照發現世界與上次完全一致時不建立新快照，手動快照不受影響。",
   "gsave.config.generic.name.protectManualSnapshots": "手動快照不計入上限",
   "gsave.config.generic.prettyName.protectManualSnapshots": "保護手動快照",
-  "gsave.config.generic.comment.protectManualSnapshots": "開啟後手動快照不會被「最大快照數」自動清理；收藏的快照始終保留。"
+  "gsave.config.generic.comment.protectManualSnapshots": "開啟後手動快照不會被「最大快照數」自動清理；收藏的快照始終保留。",
+  "gsave.progress.log.chunks": "按區塊恢復：已選擇 %s 個區塊（維度 %s）",
+  "gsave.progress.log.skip_whole": "跳過整檔案儲存的區域檔案（無法按區塊恢復）：%s",
+  "gsave.progress.log.skip_external": "跳過含外部區塊的區域檔案（無法安全合併）：%s",
+  "gsave.command.help.restorechunk": "只恢復玩家附近指定半徑的區塊；半徑以 16 方塊為單位，1 表示僅玩家所在區塊（預設 1）",
+  "gsave.command.restorechunk.no_player": "需要先進入世界並載入玩家位置",
+  "gsave.command.restorechunk.restoring": "正在恢復 #%s 附近的 %s 個區塊（半徑 %s×16 方塊）"
 }

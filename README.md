@@ -70,6 +70,7 @@
 | `/snapshot view` | 打开快照列表 |
 | `/snapshot restore` | 打开快照列表，在界面中选择要恢复的快照 |
 | `/snapshot restore <快照ID> [true/false]` | 直接恢复指定快照；`true`（默认）表示恢复前创建安全快照，`false` 表示不创建 |
+| `/snapshot restorechunk <快照ID> [半径] [true/false]` | 只恢复玩家附近指定半径的区块；半径以 16 方块为单位，1（默认）表示仅玩家所在区块，2 表示 3×3 区块，最大 32 |
 | `/snapshot list` | 在聊天栏列出最近的快照 |
 | `/snapshot note <快照ID> <文本>` | 设置快照备注 |
 | `/snapshot pin <快照ID>` | 收藏 / 取消收藏（收藏的快照不会被自动清理） |
@@ -78,6 +79,8 @@
 | `/snapshot import <路径>` | 从 zip 归档导入快照 |
 
 快照 ID 支持前缀缩写，输入时按 TAB 可补全（悬浮提示会显示快照时间与消息）。
+
+> `/snapshot restorechunk` 会以执行命令时玩家所在区块为中心，只覆盖快照里存在的选中区块，其余区块保留世界当前状态。含外部 `.mcc` 大区块或按整文件保存的区域文件无法按区块恢复，会在恢复日志中跳过。
 
 ### 离线恢复与删除
 

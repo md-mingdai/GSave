@@ -326,5 +326,15 @@
   "gsave.progress.log.skip_external": "跳过含外部区块的区域文件（无法安全合并）：%s",
   "gsave.command.help.restorechunk": "只恢复玩家附近指定半径的区块；半径以 16 方块为单位，1 表示仅玩家所在区块（默认 1）",
   "gsave.command.restorechunk.no_player": "需要先进入世界并加载玩家位置",
-  "gsave.command.restorechunk.restoring": "正在恢复 #%s 附近的 %s 个区块（半径 %s×16 方块）"
+  "gsave.command.restorechunk.restoring": "正在恢复 #%s 附近的 %s 个区块（半径 %s×16 方块）",
+  "gsave.button.nearby": "附近",
+  "gsave.gui.title.chunk_restore": "恢复附近区块",
+  "gsave.gui.label.chunk_radius": "半径",
+  "gsave.gui.message.chunk_restore_target": "目标快照 #%s",
+  "gsave.gui.message.chunk_player": "玩家所在区块：%s, %s（%s）",
+  "gsave.gui.message.chunk_restore_hint": "半径以 16 方块为单位（1–%s）：1 表示仅玩家所在区块，每 +1 向外扩一圈",
+  "gsave.gui.message.chunk_restore_preview": "将恢复 %s×%s 个区块（共 %s 个）",
+  "gsave.gui.message.chunk_restore_scope": "只覆盖快照中存在的选中区块，其余区块保留世界当前状态。",
+  "gsave.gui.message.chunk_radius_invalid": "半径必须是 1–%s 的整数",
+  "gsave.gui.message.no_player": "需要先进入世界并加载玩家位置"
 }

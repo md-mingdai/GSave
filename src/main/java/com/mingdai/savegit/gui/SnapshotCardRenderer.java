@@ -18,6 +18,7 @@ public final class SnapshotCardRenderer {
     public static final int THUMB_HEIGHT = 36;
     public static final int BUTTON_HEIGHT = 16;
     public static final int RESTORE_WIDTH = 46;
+    public static final int CHUNK_WIDTH = 46;
     public static final int DELETE_WIDTH = 46;
     public static final int PIN_WIDTH = 16;
     public static final int BUTTON_GAP = 4;
@@ -28,19 +29,20 @@ public final class SnapshotCardRenderer {
         THUMBNAIL,
         PIN,
         RESTORE,
+        CHUNK_RESTORE,
         DELETE,
         EDIT_NOTE
     }
 
     public record Layout(int x1, int y1, int x2, int y2,
                          int thumbX, int thumbY,
-                         int buttonY, int pinX, int restoreX, int deleteX) {
+                         int buttonY, int pinX, int chunkX, int restoreX, int deleteX) {
     }
 
     private SnapshotCardRenderer() {
     }
 
-    public static Layout layout(int listLeft, int listWidth, int rowY) {
+    public static Layout layout(int listLeft, int listWidth, int rowY, boolean chunkRestoreEnabled) {
         int x1 = listLeft;
         int x2 = listLeft + listWidth;
         int y1 = rowY;
@@ -50,12 +52,14 @@ public final class SnapshotCardRenderer {
         int buttonY = y1 + (CARD_HEIGHT - BUTTON_HEIGHT) / 2;
         int deleteX = x2 - SIDE_PADDING - DELETE_WIDTH;
         int restoreX = deleteX - BUTTON_GAP - RESTORE_WIDTH;
-        int pinX = restoreX - BUTTON_GAP - PIN_WIDTH;
-        return new Layout(x1, y1, x2, y2, thumbX, thumbY, buttonY, pinX, restoreX, deleteX);
+        int chunkX = restoreX - BUTTON_GAP - CHUNK_WIDTH;
+        int pinX = (chunkRestoreEnabled ? chunkX : restoreX) - BUTTON_GAP - PIN_WIDTH;
+        return new Layout(x1, y1, x2, y2, thumbX, thumbY, buttonY, pinX, chunkX, restoreX, deleteX);
     }
 
     public static Action hitTest(Layout layout, int mouseX, int mouseY,
-                                 boolean hasThumbnail, boolean deleteEnabled) {
+                                 boolean hasThumbnail, boolean deleteEnabled,
+                                 boolean chunkRestoreEnabled) {
         if (mouseY < layout.y1() || mouseY >= layout.y2()) {
             return Action.NONE;
         }
@@ -71,6 +75,11 @@ public final class SnapshotCardRenderer {
         if (mouseX >= layout.restoreX() && mouseX < layout.restoreX() + RESTORE_WIDTH
                 && mouseY >= layout.buttonY() && mouseY < layout.buttonY() + BUTTON_HEIGHT) {
             return Action.RESTORE;
+        }
+        if (chunkRestoreEnabled
+                && mouseX >= layout.chunkX() && mouseX < layout.chunkX() + CHUNK_WIDTH
+                && mouseY >= layout.buttonY() && mouseY < layout.buttonY() + BUTTON_HEIGHT) {
+            return Action.CHUNK_RESTORE;
         }
         if (mouseX >= layout.deleteX() && mouseX < layout.deleteX() + DELETE_WIDTH
                 && mouseY >= layout.buttonY() && mouseY < layout.buttonY() + BUTTON_HEIGHT) {
@@ -89,7 +98,7 @@ public final class SnapshotCardRenderer {
 
     public static void draw(GuiContext context, Font font, Layout layout, Commit commit,
                             SnapshotThumbnailCache.Entry thumbnail, boolean hasShot,
-                            boolean pinned, boolean deleteEnabled,
+                            boolean pinned, boolean deleteEnabled, boolean chunkRestoreEnabled,
                             boolean hovered, boolean selected, int mouseX, int mouseY) {
         GuiTheme.drawCard(context, layout.x1(), layout.y1(), layout.x2(), layout.y2(),
                 hovered, selected);
@@ -133,6 +142,13 @@ public final class SnapshotCardRenderer {
                 RESTORE_WIDTH, BUTTON_HEIGHT, L10n.tr("gsave.button.restore"),
                 GuiTheme.ButtonStyle.PRIMARY,
                 isOver(layout.restoreX(), layout.buttonY(), RESTORE_WIDTH, mouseX, mouseY));
+
+        if (chunkRestoreEnabled) {
+            GuiTheme.drawButton(context, font, layout.chunkX(), layout.buttonY(),
+                    CHUNK_WIDTH, BUTTON_HEIGHT, L10n.tr("gsave.button.nearby"),
+                    GuiTheme.ButtonStyle.SECONDARY,
+                    isOver(layout.chunkX(), layout.buttonY(), CHUNK_WIDTH, mouseX, mouseY));
+        }
 
         GuiTheme.drawButton(context, font, layout.deleteX(), layout.buttonY(),
                 DELETE_WIDTH, BUTTON_HEIGHT, L10n.tr("gsave.button.delete"),

@@ -29,6 +29,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * 客户端侧快照调度：热键、定时、进世界基线、退出快照与恢复流程。
  */
 public final class SaveGitSnapshotManager {
+    /** 区块恢复半径上限（以 16 方块为单位，32 即 63×63 个区块）。 */
+    public static final int MAX_CHUNK_RADIUS = 32;
+
     private static final int BASELINE_DELAY_TICKS = 100;
     private static final int CLEAN_SHOT_DELAY_TICKS = 2;
     private static final AtomicLong SHOT_COUNTER = new AtomicLong();
@@ -98,6 +101,18 @@ public final class SaveGitSnapshotManager {
         int chunkZ = client.player.getBlockZ() >> 4;
         String dimension = client.world.getRegistryKey().getValue().toString();
         return ChunkSelection.around(dimension, chunkX, chunkZ, radiusChunks);
+    }
+
+    /** 玩家所在区块与维度的本地化描述；不在世界内时返回 null。 */
+    public static String describePlayerChunk(MinecraftClient client) {
+        if (client.player == null || client.world == null) {
+            return null;
+        }
+        int chunkX = client.player.getBlockX() >> 4;
+        int chunkZ = client.player.getBlockZ() >> 4;
+        String dimension = client.world.getRegistryKey().getValue().toString();
+        return L10n.tr("gsave.gui.message.chunk_player",
+                String.valueOf(chunkX), String.valueOf(chunkZ), dimension);
     }
 
     public static Path getWorldDirectory(MinecraftClient client) {

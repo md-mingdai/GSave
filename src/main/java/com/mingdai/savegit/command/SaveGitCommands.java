@@ -31,9 +31,6 @@ import java.util.concurrent.CompletableFuture;
  * 注册 /snapshot 客户端命令，包含 create、restore、view 三个子命令。
  */
 public final class SaveGitCommands {
-    /** 区块恢复半径上限（以 16 方块为单位，32 即 63×63 个区块）。 */
-    private static final int MAX_CHUNK_RADIUS = 32;
-
     private SaveGitCommands() {
     }
 
@@ -85,7 +82,8 @@ public final class SaveGitCommands {
                                     .suggests(SaveGitCommands::suggestCommitIds)
                                     .executes(context -> restoreChunk(context, 1, true))
                                     .then(ClientCommandManager.argument("radius",
-                                                    IntegerArgumentType.integer(1, MAX_CHUNK_RADIUS))
+                                                    IntegerArgumentType.integer(1,
+                                                            SaveGitSnapshotManager.MAX_CHUNK_RADIUS))
                                             .executes(context -> restoreChunk(context,
                                                     IntegerArgumentType.getInteger(context, "radius"), true))
                                             .then(ClientCommandManager.argument("safety", BoolArgumentType.bool())

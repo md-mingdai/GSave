@@ -181,7 +181,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             Commit commit = this.commits.get(i);
             int rowY = LIST_TOP + i * ROW_STRIDE - this.scrollOffset;
             SnapshotCardRenderer.Layout layout =
-                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY);
+                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY, false);
             boolean hovered = SnapshotCardRenderer.isInsideCard(layout, mouseX, mouseY);
             boolean hasShot = this.screenshotIds.contains(commit.id);
 
@@ -193,7 +193,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             }
 
             SnapshotCardRenderer.draw(drawContext, this.textRenderer, layout, commit,
-                    thumbnail, hasShot, commit.pinned, true, hovered, false, mouseX, mouseY);
+                    thumbnail, hasShot, commit.pinned, true, false, hovered, false, mouseX, mouseY);
         }
 
         drawContext.disableScissor();
@@ -223,10 +223,10 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
             }
             Commit rowCommit = this.commits.get(i);
             SnapshotCardRenderer.Layout layout =
-                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY);
+                    SnapshotCardRenderer.layout(listLeft, listWidth, rowY, false);
             boolean hasShot = this.screenshotIds.contains(rowCommit.id);
             SnapshotCardRenderer.Action action =
-                    SnapshotCardRenderer.hitTest(layout, mouseX, mouseY, hasShot, true);
+                    SnapshotCardRenderer.hitTest(layout, mouseX, mouseY, hasShot, true, false);
 
             switch (action) {
                 case THUMBNAIL -> {

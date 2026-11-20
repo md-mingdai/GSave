@@ -96,7 +96,7 @@ public final class SaveGitSnapshotManager {
         }
         int chunkX = client.player.getBlockX() >> 4;
         int chunkZ = client.player.getBlockZ() >> 4;
-        String dimension = client.level.dimension().location().toString();
+        String dimension = client.level.dimension().identifier().toString();
         return ChunkSelection.around(dimension, chunkX, chunkZ, radiusChunks);
     }
 

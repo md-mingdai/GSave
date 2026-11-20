@@ -320,5 +320,11 @@
   "gsave.config.generic.comment.skipUnchangedAutomatic": "Automatic snapshots are skipped when the world is identical to the previous snapshot. Manual snapshots are unaffected.",
   "gsave.config.generic.name.protectManualSnapshots": "Manual snapshots exempt from limit",
   "gsave.config.generic.prettyName.protectManualSnapshots": "Protect manual snapshots",
-  "gsave.config.generic.comment.protectManualSnapshots": "When enabled, manual snapshots are never removed by the max snapshot count. Pinned snapshots are always kept."
+  "gsave.config.generic.comment.protectManualSnapshots": "When enabled, manual snapshots are never removed by the max snapshot count. Pinned snapshots are always kept.",
+  "gsave.progress.log.chunks": "Chunk restore: %s chunk(s) selected in %s",
+  "gsave.progress.log.skip_whole": "Skipping region file stored as a whole file (cannot restore per chunk): %s",
+  "gsave.progress.log.skip_external": "Skipping region file with external chunks (cannot merge safely): %s",
+  "gsave.command.help.restorechunk": "restore only chunks around the player; radius is in 16-block units (1 = the player's chunk, default 1)",
+  "gsave.command.restorechunk.no_player": "Join a world and load the player first",
+  "gsave.command.restorechunk.restoring": "Restoring chunks around #%s: %s chunk(s) (radius %s x 16 blocks)"
 }

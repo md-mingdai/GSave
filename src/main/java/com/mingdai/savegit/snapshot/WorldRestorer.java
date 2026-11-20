@@ -4,6 +4,7 @@ import com.mingdai.savegit.mca.RawMca;
 import com.mingdai.savegit.util.L10n;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
@@ -39,10 +40,17 @@ public final class WorldRestorer {
     }
 
     public void restore(Commit commit) throws IOException {
-        restore(commit, RestoreFilter.ALL);
+        restore(commit, RestoreFilter.ALL, null);
     }
 
     public void restore(Commit commit, RestoreFilter filter) throws IOException {
+        restore(commit, filter, null);
+    }
+
+    /**
+     * @param selection 非空时只恢复选中区块；其余区块保留世界当前状态。
+     */
+    public void restore(Commit commit, RestoreFilter filter, ChunkSelection selection) throws IOException {
         if (this.repo.isReadOnly()) {
             throw new IOException(L10n.tr("gsave.error.repo_too_new",
                     String.valueOf(this.repo.getFormatVersion())));
@@ -54,13 +62,35 @@ public final class WorldRestorer {
             }
 
             java.util.List<Manifest.FileEntry> targets = new java.util.ArrayList<>();
+            java.util.List<String> pendingLogs = new java.util.ArrayList<>();
             for (Manifest.FileEntry entry : manifest.getAllEntries()) {
-                if (filter == null || filter.accepts(entry)) {
-                    targets.add(entry);
+                if (filter != null && !filter.accepts(entry)) {
+                    continue;
                 }
+                if (selection != null) {
+                    if (entry.isMca()) {
+                        if (!selection.intersects(entry)) {
+                            continue;
+                        }
+                    } else {
+                        // 整文件存储的区域文件（含外部 .mcc 或空占位）无法按区块恢复
+                        if (entry.path != null && entry.path.endsWith(".mca")) {
+                            pendingLogs.add(L10n.tr("gsave.progress.log.skip_whole", entry.path));
+                        }
+                        continue;
+                    }
+                }
+                targets.add(entry);
             }
 
             RestoreProgress.begin(targets.size());
+            for (String line : pendingLogs) {
+                RestoreProgress.addLog(line);
+            }
+            if (selection != null) {
+                RestoreProgress.addLog(L10n.tr("gsave.progress.log.chunks",
+                        String.valueOf(selection.size()), selection.dimension()));
+            }
             int index = 0;
 
             for (Manifest.FileEntry entry : targets) {
@@ -75,7 +105,7 @@ public final class WorldRestorer {
                 }
 
                 if (entry.isMca()) {
-                    restoreMcaFile(entry, target);
+                    restoreMcaFile(entry, target, selection);
                 } else if (entry.isWhole()) {
                     restoreWholeFile(entry, target);
                 }
@@ -88,16 +118,42 @@ public final class WorldRestorer {
         }
     }
 
-    private void restoreMcaFile(Manifest.FileEntry entry, Path target) throws IOException {
-        Map<Integer, byte[]> records = new TreeMap<>();
+    private void restoreMcaFile(Manifest.FileEntry entry, Path target, ChunkSelection selection)
+            throws IOException {
+        if (selection == null) {
+            Map<Integer, byte[]> records = new TreeMap<>();
+            for (Map.Entry<Integer, String> chunk : entry.chunks.entrySet()) {
+                if (chunk.getValue() == null) {
+                    continue;
+                }
+                records.put(chunk.getKey(), repo.getBlobStore().load(chunk.getValue()));
+            }
+            // location 表由 RawMca.write 按区块记录重建
+            RawMca.write(target, records);
+            return;
+        }
+
+        // 只覆盖选中区块，其余区块保留世界当前内容
+        Map<Integer, byte[]> merged = new TreeMap<>();
+        if (Files.isRegularFile(target)) {
+            if (RawMca.hasExternalChunks(target)) {
+                RestoreProgress.addLog(L10n.tr("gsave.progress.log.skip_external", entry.path));
+                return;
+            }
+            merged.putAll(RawMca.readChunks(target));
+        }
+
+        boolean changed = false;
         for (Map.Entry<Integer, String> chunk : entry.chunks.entrySet()) {
-            if (chunk.getValue() == null) {
+            if (chunk.getValue() == null || !selection.matches(entry, chunk.getKey())) {
                 continue;
             }
-            records.put(chunk.getKey(), repo.getBlobStore().load(chunk.getValue()));
+            merged.put(chunk.getKey(), repo.getBlobStore().load(chunk.getValue()));
+            changed = true;
         }
-        // location 表由 RawMca.write 按区块记录重建
-        RawMca.write(target, records);
+        if (changed) {
+            RawMca.write(target, merged);
+        }
     }
 
     private void restoreWholeFile(Manifest.FileEntry entry, Path target) throws IOException {

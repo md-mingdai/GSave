@@ -2,14 +2,18 @@ package com.mingdai.savegit.command;
 
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.GuiSnapshotList;
+import com.mingdai.savegit.snapshot.ChunkSelection;
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
 import com.mingdai.savegit.snapshot.SnapshotRepository;
 import com.mingdai.savegit.util.L10n;
 import com.mingdai.savegit.util.SnapshotTime;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import fi.dy.masa.malilib.gui.GuiBase;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -21,84 +25,98 @@ import net.minecraft.util.Formatting;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 注册 /snapshot 客户端命令，包含 create、restore、view 三个子命令。
  */
 public final class SaveGitCommands {
+    /** 区块恢复半径上限（以 16 方块为单位，32 即 63×63 个区块）。 */
+    private static final int MAX_CHUNK_RADIUS = 32;
+
     private SaveGitCommands() {
     }
 
     public static void register() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-                dispatcher.register(ClientCommandManager.literal("snapshot")
-                        .executes(SaveGitCommands::help)
-                        .then(ClientCommandManager.literal("create")
-                                .executes(SaveGitCommands::create))
-                        .then(ClientCommandManager.literal("view")
-                                .executes(SaveGitCommands::view))
-                        .then(ClientCommandManager.literal("list")
-                                .executes(SaveGitCommands::list))
-                        .then(ClientCommandManager.literal("note")
-                                .then(ClientCommandManager.argument(
-                                                "id", StringArgumentType.word())
-                                        .then(ClientCommandManager.argument(
-                                                        "text", StringArgumentType.greedyString())
-                                                .executes(context -> note(context,
-                                                        StringArgumentType.getString(context, "id"),
-                                                        StringArgumentType.getString(context, "text"))))))
-                        .then(ClientCommandManager.literal("pin")
-                                .then(ClientCommandManager.argument(
-                                                "id", StringArgumentType.word())
-                                        .executes(context -> togglePin(context,
-                                                StringArgumentType.getString(context, "id")))))
-                        .then(ClientCommandManager.literal("prune")
-                                .executes(SaveGitCommands::prune))
-                        .then(ClientCommandManager.literal("export")
-                                .executes(context -> export(context, null))
-                                .then(ClientCommandManager.argument(
-                                                "path", StringArgumentType.greedyString())
-                                        .executes(context -> export(context,
-                                                StringArgumentType.getString(context, "path")))))
-                        .then(ClientCommandManager.literal("import")
-                                .then(ClientCommandManager.argument(
-                                                "path", StringArgumentType.greedyString())
-                                        .executes(context -> importArchive(context,
-                                                StringArgumentType.getString(context, "path")))))
-                        .then(ClientCommandManager.literal("restore")
-                                .executes(SaveGitCommands::view)
-                                .then(ClientCommandManager.argument(
-                                                "id", StringArgumentType.word())
-                                        .suggests((context, builder) -> {
-                                            Path worldDir = SaveGitSnapshotManager.getWorldDirectory(
-                                                    MinecraftClient.getInstance());
-                                            if (worldDir == null) {
-                                                return builder.buildFuture();
-                                            }
-                                            String remaining = builder.getRemainingLowerCase();
-                                            for (Commit commit : new SnapshotRepository(worldDir)
-                                                    .listCommits()) {
-                                                if (commit.shortId().startsWith(remaining)) {
-                                                    builder.suggest(commit.shortId(),
-                                                            Text.literal(GuiSnapshotList.formatTime(
-                                                                            commit.timestamp))
-                                                                    .append(Text.literal("  "
-                                                                            + (commit.message == null
-                                                                            ? "" : commit.message)))
-                                                                    .formatted(Formatting.GRAY));
-                                                }
-                                            }
-                                            return builder.buildFuture();
-                                        })
-                                        .executes(context -> restore(context, true))
-                                        .then(ClientCommandManager.argument(
-                                                        "safety", BoolArgumentType.bool())
-                                                .suggests((context, builder) ->
-                                                        builder.suggest("true")
-                                                                .suggest("false")
-                                                                .buildFuture())
-                                                .executes(context -> restore(context,
-                                                        BoolArgumentType.getBool(context, "safety"))))))));
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            var root = ClientCommandManager.literal("snapshot")
+                    .executes(SaveGitCommands::help)
+                    .then(ClientCommandManager.literal("create")
+                            .executes(SaveGitCommands::create))
+                    .then(ClientCommandManager.literal("view")
+                            .executes(SaveGitCommands::view))
+                    .then(ClientCommandManager.literal("list")
+                            .executes(SaveGitCommands::list))
+                    .then(ClientCommandManager.literal("note")
+                            .then(ClientCommandManager.argument("id", StringArgumentType.word())
+                                    .then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
+                                            .executes(context -> note(context,
+                                                    StringArgumentType.getString(context, "id"),
+                                                    StringArgumentType.getString(context, "text"))))))
+                    .then(ClientCommandManager.literal("pin")
+                            .then(ClientCommandManager.argument("id", StringArgumentType.word())
+                                    .executes(context -> togglePin(context,
+                                            StringArgumentType.getString(context, "id")))))
+                    .then(ClientCommandManager.literal("prune")
+                            .executes(SaveGitCommands::prune))
+                    .then(ClientCommandManager.literal("export")
+                            .executes(context -> export(context, null))
+                            .then(ClientCommandManager.argument("path", StringArgumentType.greedyString())
+                                    .executes(context -> export(context,
+                                            StringArgumentType.getString(context, "path")))))
+                    .then(ClientCommandManager.literal("import")
+                            .then(ClientCommandManager.argument("path", StringArgumentType.greedyString())
+                                    .executes(context -> importArchive(context,
+                                            StringArgumentType.getString(context, "path")))))
+                    .then(ClientCommandManager.literal("restore")
+                            .executes(SaveGitCommands::view)
+                            .then(ClientCommandManager.argument("id", StringArgumentType.word())
+                                    .suggests(SaveGitCommands::suggestCommitIds)
+                                    .executes(context -> restore(context, true))
+                                    .then(ClientCommandManager.argument("safety", BoolArgumentType.bool())
+                                            .suggests((context, builder) ->
+                                                    builder.suggest("true")
+                                                            .suggest("false")
+                                                            .buildFuture())
+                                            .executes(context -> restore(context,
+                                                    BoolArgumentType.getBool(context, "safety"))))))
+                    .then(ClientCommandManager.literal("restorechunk")
+                            .then(ClientCommandManager.argument("id", StringArgumentType.word())
+                                    .suggests(SaveGitCommands::suggestCommitIds)
+                                    .executes(context -> restoreChunk(context, 1, true))
+                                    .then(ClientCommandManager.argument("radius",
+                                                    IntegerArgumentType.integer(1, MAX_CHUNK_RADIUS))
+                                            .executes(context -> restoreChunk(context,
+                                                    IntegerArgumentType.getInteger(context, "radius"), true))
+                                            .then(ClientCommandManager.argument("safety", BoolArgumentType.bool())
+                                                    .suggests((context, builder) ->
+                                                            builder.suggest("true")
+                                                                    .suggest("false")
+                                                                    .buildFuture())
+                                                    .executes(context -> restoreChunk(context,
+                                                            IntegerArgumentType.getInteger(context, "radius"),
+                                                            BoolArgumentType.getBool(context, "safety")))))));
+            dispatcher.register(root);
+        });
+    }
+
+    private static CompletableFuture<Suggestions> suggestCommitIds(
+            CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) {
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(MinecraftClient.getInstance());
+        if (worldDir == null) {
+            return builder.buildFuture();
+        }
+        String remaining = builder.getRemainingLowerCase();
+        for (Commit commit : new SnapshotRepository(worldDir).listCommits()) {
+            if (commit.shortId().startsWith(remaining)) {
+                builder.suggest(commit.shortId(),
+                        Text.literal(GuiSnapshotList.formatTime(commit.timestamp))
+                                .append(Text.literal("  "
+                                        + (commit.message == null ? "" : commit.message)))
+                                .formatted(Formatting.GRAY));
+            }
+        }
+        return builder.buildFuture();
     }
 
     private static int help(CommandContext<FabricClientCommandSource> context) {
@@ -123,6 +141,9 @@ public final class SaveGitCommands {
         context.getSource().sendFeedback(commandLine(
                 "/snapshot restore [id] [true/false]",
                 L10n.tr("gsave.command.help.restore")));
+        context.getSource().sendFeedback(commandLine(
+                "/snapshot restorechunk <id> [radius] [true/false]",
+                L10n.tr("gsave.command.help.restorechunk")));
         return 1;
     }
 
@@ -351,6 +372,46 @@ public final class SaveGitCommands {
         client.setScreen(null);
         SaveGitSnapshotManager.requestRestore(client, commit, safety);
         context.getSource().sendFeedback(L10n.text("gsave.command.restoring", commit.shortId())
+                .formatted(Formatting.GREEN)
+                .append(L10n.text(safety
+                                ? "gsave.command.restoring.safety"
+                                : "gsave.command.restoring.no_safety")
+                        .formatted(safety ? Formatting.GRAY : Formatting.YELLOW)));
+        return 1;
+    }
+
+    private static int restoreChunk(CommandContext<FabricClientCommandSource> context, int radius,
+                                    boolean safety) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(client);
+        if (worldDir == null) {
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.no_world")));
+            return 0;
+        }
+        if (!SaveGitConfigs.isEnabled()) {
+            context.getSource().sendError(error(L10n.tr("gsave.command.error.disabled")));
+            return 0;
+        }
+
+        String input = StringArgumentType.getString(context, "id");
+        Commit commit = findCommit(worldDir, input);
+        if (commit == null) {
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.command.error.snapshot_not_found", input)));
+            return 0;
+        }
+
+        ChunkSelection selection = SaveGitSnapshotManager.selectionAroundPlayer(client, radius);
+        if (selection == null) {
+            context.getSource().sendError(error(
+                    L10n.tr("gsave.command.restorechunk.no_player")));
+            return 0;
+        }
+
+        client.setScreen(null);
+        SaveGitSnapshotManager.requestRestore(client, commit, safety, selection);
+        context.getSource().sendFeedback(L10n.text("gsave.command.restorechunk.restoring",
+                        commit.shortId(), String.valueOf(selection.size()), String.valueOf(radius))
                 .formatted(Formatting.GREEN)
                 .append(L10n.text(safety
                                 ? "gsave.command.restoring.safety"

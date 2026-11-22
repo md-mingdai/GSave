@@ -22,6 +22,9 @@ public final class Manifest {
             .create();
 
     public final Map<String, FileEntry> files = new TreeMap<>();
+    /** Beta：快照时的模组环境（id + 版本）与指纹；旧快照为空。 */
+    public String modEnvironment;
+    public String modFingerprint;
 
     public Collection<FileEntry> getAllEntries() {
         return files.values();
@@ -59,6 +62,8 @@ public final class Manifest {
 
     public String toJson() {
         JsonObject root = new JsonObject();
+        addIfNotNull(root, "modEnvironment", this.modEnvironment);
+        addIfNotNull(root, "modFingerprint", this.modFingerprint);
         JsonObject filesJson = new JsonObject();
         for (Map.Entry<String, FileEntry> mapEntry : files.entrySet()) {
             FileEntry entry = mapEntry.getValue();
@@ -86,7 +91,12 @@ public final class Manifest {
     public static Manifest fromJson(String jsonText) {
         Manifest manifest = new Manifest();
         JsonObject root = GSON.fromJson(jsonText, JsonObject.class);
-        if (root == null || !root.has("files") || !root.get("files").isJsonObject()) {
+        if (root == null) {
+            return manifest;
+        }
+        manifest.modEnvironment = getString(root, "modEnvironment");
+        manifest.modFingerprint = getString(root, "modFingerprint");
+        if (!root.has("files") || !root.get("files").isJsonObject()) {
             return manifest;
         }
         JsonObject filesJson = root.getAsJsonObject("files");

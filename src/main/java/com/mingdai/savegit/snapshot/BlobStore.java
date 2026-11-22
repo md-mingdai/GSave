@@ -85,8 +85,12 @@ public final class BlobStore implements AutoCloseable {
     }
 
     public synchronized String store(Path file) throws IOException {
+        return this.storeWithHash(file, RawMca.hashFile(file));
+    }
+
+    /** 已知文件哈希时的写入入口（配合哈希缓存使用）；已存在则直接返回。 */
+    public synchronized String storeWithHash(Path file, String hash) throws IOException {
         ensureMigrated();
-        String hash = RawMca.hashFile(file);
         if (hasBlob(hash)) {
             return hash;
         }

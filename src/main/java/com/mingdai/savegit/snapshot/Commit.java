@@ -27,6 +27,8 @@ public final class Commit {
     public String note = "";
     public boolean pinned;
     public long durationMs = -1L;
+    /** Beta：快照时的模组环境指纹，用于恢复前比对。 */
+    public String environmentFingerprint = "";
 
     public Commit() {
     }
@@ -55,6 +57,9 @@ public final class Commit {
         }
         if (durationMs >= 0) {
             json.addProperty("durationMs", durationMs);
+        }
+        if (environmentFingerprint != null && !environmentFingerprint.isEmpty()) {
+            json.addProperty("environmentFingerprint", environmentFingerprint);
         }
         return GSON.toJson(json);
     }
@@ -89,6 +94,8 @@ public final class Commit {
         commit.note = note == null ? "" : note;
         commit.pinned = json.has("pinned") && json.get("pinned").getAsBoolean();
         commit.durationMs = json.has("durationMs") ? json.get("durationMs").getAsLong() : -1L;
+        String fingerprint = getString(json, "environmentFingerprint");
+        commit.environmentFingerprint = fingerprint == null ? "" : fingerprint;
         if (commit.id == null || commit.manifestId == null) {
             return null;
         }

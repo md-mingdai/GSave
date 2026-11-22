@@ -361,6 +361,7 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                                         this.regionBox.isChecked(),
                                         this.entitiesBox.isChecked(),
                                         this.poiBox.isChecked(),
+                                        this.otherBox.isChecked(),
                                         this.otherBox.isChecked()));
                     });
             this.addButton(new ButtonGeneric(this.width / 2 + 4, y, buttonWidth, 20,
@@ -577,7 +578,12 @@ public class GuiSaveGitWorldManager extends GuiSaveGitScreen {
                 worldDir.getFileName() == null
                         ? L10n.tr("gsave.gui.value.unknown_world")
                         : worldDir.getFileName().toString(),
-                "1.21.8"
+                com.mingdai.savegit.SaveGitMod.MC_VERSION,
+                com.mingdai.savegit.config.SaveGitConfigs.isBetaDatapacksEnabled(),
+                com.mingdai.savegit.config.SaveGitConfigs.isBetaOtherFilesEnabled(),
+                com.mingdai.savegit.config.SaveGitConfigs.isBetaModEnvironmentEnabled(),
+                com.mingdai.savegit.config.SaveGitConfigs.betaMaxFileBytes(),
+                com.mingdai.savegit.config.SaveGitConfigs.betaMaxOtherBytes()
         );
 
         new Thread(() -> {

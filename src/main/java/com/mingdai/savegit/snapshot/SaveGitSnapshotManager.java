@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -52,6 +53,7 @@ public final class SaveGitSnapshotManager {
     private static volatile Path pendingRestoreWorldDir;
     private static volatile ChunkSelection pendingRestoreSelection;
     private static volatile WorldRestorer.RestoreFilter pendingRestoreFilter;
+    private static volatile boolean pendingRestoreDeleteNewFiles;
     private static volatile boolean restoreStarted;
     private static volatile IntegratedServer pendingTeardownServer;
     private static int teardownTicks;
@@ -114,6 +116,19 @@ public final class SaveGitSnapshotManager {
         String dimension = client.world.getRegistryKey().getValue().toString();
         return L10n.tr("gsave.gui.message.chunk_player",
                 String.valueOf(chunkX), String.valueOf(chunkZ), dimension);
+    }
+
+    /** Beta：返回快照环境里存在、当前缺失的模组；未启用或无环境数据时为空列表。 */
+    public static List<String> missingMods(Path worldDir, Commit commit) {
+        if (!SaveGitConfigs.isBetaModEnvironmentEnabled() || worldDir == null || commit == null) {
+            return java.util.Collections.emptyList();
+        }
+        Manifest manifest = new SnapshotRepository(worldDir).getManifest(commit.manifestId);
+        if (manifest == null || manifest.modEnvironment == null) {
+            return java.util.Collections.emptyList();
+        }
+        WorldModEnvironment snapshotEnv = WorldModEnvironment.fromJson(manifest.modEnvironment);
+        return snapshotEnv.missingFrom(WorldModEnvironment.capture());
     }
 
     public static Path getWorldDirectory(MinecraftClient client) {
@@ -338,13 +353,20 @@ public final class SaveGitSnapshotManager {
     public static void requestRestore(MinecraftClient client, Commit commit, boolean createSafetySnapshot,
                                       ChunkSelection selection) {
         WorldRestorer.RestoreFilter filter = selection != null
-                ? new WorldRestorer.RestoreFilter(true, true, true, false)
+                ? new WorldRestorer.RestoreFilter(true, true, true, false, false)
                 : WorldRestorer.RestoreFilter.ALL;
         requestRestore(client, commit, createSafetySnapshot, selection, filter);
     }
 
     public static void requestRestore(MinecraftClient client, Commit commit, boolean createSafetySnapshot,
                                       ChunkSelection selection, WorldRestorer.RestoreFilter filter) {
+        requestRestore(client, commit, createSafetySnapshot, selection, filter,
+                SaveGitConfigs.isBetaDeleteNewFilesEnabled());
+    }
+
+    public static void requestRestore(MinecraftClient client, Commit commit, boolean createSafetySnapshot,
+                                      ChunkSelection selection, WorldRestorer.RestoreFilter filter,
+                                      boolean deleteNewFiles) {
         IntegratedServer server = client.getServer();
         if (server == null || client.world == null) {
             InfoUtils.sendVanillaMessage(L10n.text("gsave.message.restore_no_world"));
@@ -364,7 +386,7 @@ public final class SaveGitSnapshotManager {
                     return;
                 }
                 client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir,
-                        selection, filter));
+                        selection, filter, deleteNewFiles));
             });
             return;
         }
@@ -377,14 +399,15 @@ public final class SaveGitSnapshotManager {
 
         captureScreenshot(client, shotTemp, () ->
                 startSafetySnapshotThenRestore(client, server, worldDir, commit, safetySettings, shotTemp,
-                        selection, filter),
+                        selection, filter, deleteNewFiles),
                 false);
     }
 
     private static void startSafetySnapshotThenRestore(MinecraftClient client, IntegratedServer server, Path worldDir,
                                                        Commit commit, WorldSnapshotter.Settings safetySettings,
                                                        Path shotTemp, ChunkSelection selection,
-                                                       WorldRestorer.RestoreFilter filter) {
+                                                       WorldRestorer.RestoreFilter filter,
+                                                       boolean deleteNewFiles) {
         if (SaveGitConfigs.isGameplayPriority()) {
             SnapshotStatus.begin(L10n.REASON_SAFETY);
             try {
@@ -416,7 +439,7 @@ public final class SaveGitSnapshotManager {
                         }
                         SnapshotStatus.end();
                         client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir,
-                                selection, filter));
+                                selection, filter, deleteNewFiles));
                     }, "GSave-SafetySnapshot");
                     thread.setDaemon(true);
                     thread.start();
@@ -446,7 +469,7 @@ public final class SaveGitSnapshotManager {
                         SnapshotStatus.end();
                     }
                     client.execute(() -> beginRestoreTeardown(client, server, commit.id, worldDir,
-                            selection, filter));
+                            selection, filter, deleteNewFiles));
                 });
             } catch (Throwable t) {
                 SnapshotStatus.end();
@@ -458,13 +481,14 @@ public final class SaveGitSnapshotManager {
 
     private static void beginRestoreTeardown(MinecraftClient client, IntegratedServer server,
                                              String commitId, Path worldDir, ChunkSelection selection,
-                                             WorldRestorer.RestoreFilter filter) {
+                                             WorldRestorer.RestoreFilter filter, boolean deleteNewFiles) {
         pendingRestore = true;
         restoreStarted = false;
         pendingRestoreCommitId = commitId;
         pendingRestoreWorldDir = worldDir;
         pendingRestoreSelection = selection;
         pendingRestoreFilter = filter;
+        pendingRestoreDeleteNewFiles = deleteNewFiles;
         pendingTeardownServer = server;
         teardownTicks = 0;
 
@@ -512,14 +536,16 @@ public final class SaveGitSnapshotManager {
         Path worldDir = pendingRestoreWorldDir;
         ChunkSelection selection = pendingRestoreSelection;
         WorldRestorer.RestoreFilter storedFilter = pendingRestoreFilter;
+        boolean deleteNewFiles = pendingRestoreDeleteNewFiles;
         pendingRestoreCommitId = null;
         pendingRestoreWorldDir = null;
         pendingRestoreSelection = null;
         pendingRestoreFilter = null;
+        pendingRestoreDeleteNewFiles = false;
         WorldRestorer.RestoreFilter filter = storedFilter != null
                 ? storedFilter
                 : (selection != null
-                        ? new WorldRestorer.RestoreFilter(true, true, true, false)
+                        ? new WorldRestorer.RestoreFilter(true, true, true, false, false)
                         : WorldRestorer.RestoreFilter.ALL);
         restoreStarted = true;
 
@@ -533,7 +559,7 @@ public final class SaveGitSnapshotManager {
                 if (commit == null) {
                     throw new IOException(L10n.tr("gsave.message.commit_missing", commitId));
                 }
-                new WorldRestorer(repo, worldDir).restore(commit, filter, selection);
+                new WorldRestorer(repo, worldDir).restore(commit, filter, selection, deleteNewFiles);
             } catch (Throwable t) {
                 SaveGitMod.LOGGER.error("恢复快照失败", t);
                 RestoreProgress.fail(t.getMessage());
@@ -674,7 +700,12 @@ public final class SaveGitSnapshotManager {
                 skipUnchanged,
                 SaveGitConfigs.protectManualSnapshots(),
                 worldName,
-                SaveGitMod.MC_VERSION
+                SaveGitMod.MC_VERSION,
+                SaveGitConfigs.isBetaDatapacksEnabled(),
+                SaveGitConfigs.isBetaOtherFilesEnabled(),
+                SaveGitConfigs.isBetaModEnvironmentEnabled(),
+                SaveGitConfigs.betaMaxFileBytes(),
+                SaveGitConfigs.betaMaxOtherBytes()
         );
     }
 

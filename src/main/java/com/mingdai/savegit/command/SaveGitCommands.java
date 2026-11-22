@@ -369,6 +369,7 @@ public final class SaveGitCommands {
 
         client.setScreen(null);
         SaveGitSnapshotManager.requestRestore(client, commit, safety);
+        warnMissingMods(context, worldDir, commit);
         context.getSource().sendFeedback(L10n.text("gsave.command.restoring", commit.shortId())
                 .formatted(Formatting.GREEN)
                 .append(L10n.text(safety
@@ -376,6 +377,22 @@ public final class SaveGitCommands {
                                 : "gsave.command.restoring.no_safety")
                         .formatted(safety ? Formatting.GRAY : Formatting.YELLOW)));
         return 1;
+    }
+
+    /** Beta：提示快照环境里存在、当前缺失的模组，但不阻止恢复。 */
+    private static void warnMissingMods(CommandContext<FabricClientCommandSource> context,
+                                        Path worldDir, Commit commit) {
+        List<String> missing = SaveGitSnapshotManager.missingMods(worldDir, commit);
+        if (!missing.isEmpty()) {
+            int limit = Math.min(5, missing.size());
+            String joined = String.join(", ", missing.subList(0, limit));
+            if (missing.size() > limit) {
+                joined = joined + " …";
+            }
+            context.getSource().sendFeedback(
+                    L10n.text("gsave.command.restore.missing_mods", joined)
+                            .formatted(Formatting.YELLOW));
+        }
     }
 
     private static int restoreChunk(CommandContext<FabricClientCommandSource> context, int radius,
@@ -408,6 +425,7 @@ public final class SaveGitCommands {
 
         client.setScreen(null);
         SaveGitSnapshotManager.requestRestore(client, commit, safety, selection);
+        warnMissingMods(context, worldDir, commit);
         context.getSource().sendFeedback(L10n.text("gsave.command.restorechunk.restoring",
                         commit.shortId(), String.valueOf(selection.size()), String.valueOf(radius))
                 .formatted(Formatting.GREEN)

@@ -15,6 +15,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.WorldChunk;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -167,13 +168,12 @@ public final class PreviewRenderer implements IRenderer {
         }
 
         int surface = Integer.MIN_VALUE;
-        if (mc.world.getChunkManager().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) != null) {
-            int baseX = chunkX << 4;
-            int baseZ = chunkZ << 4;
+        WorldChunk chunk = mc.world.getChunkManager().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
+        if (chunk != null) {
+            Heightmap heightmap = chunk.getHeightmap(Heightmap.Type.MOTION_BLOCKING);
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
-                    int top = mc.world.getTopY(Heightmap.Type.MOTION_BLOCKING, baseX + x, baseZ + z);
-                    surface = Math.max(surface, top - 1);
+                    surface = Math.max(surface, heightmap.get(x, z) - 1);
                 }
             }
         }

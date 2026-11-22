@@ -5,6 +5,11 @@
     "minVersion": "0.8",
     "mixins": [],
     "client": [
+        "ClientPlayerEntityPreviewMixin",
+        "EntityPreviewMixin",
+        "GameRendererPreviewMixin",
+        "InGameHudPreviewMixin",
+        "MinecraftClientPreviewMixin",
         "SelectWorldScreenAccessor",
         "WorldEntryAccessor"
     ],

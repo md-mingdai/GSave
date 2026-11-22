@@ -52,6 +52,10 @@ public final class PreviewManager {
         return this.session == null ? null : this.session.selection();
     }
 
+    public boolean isPreviewCamera(Object entity) {
+        return this.camera != null && this.camera == entity;
+    }
+
     public int originalEntityId() {
         return this.originalEntityId;
     }

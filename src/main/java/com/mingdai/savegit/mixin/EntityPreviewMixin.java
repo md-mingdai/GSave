@@ -16,8 +16,9 @@ public abstract class EntityPreviewMixin {
     @Inject(method = "changeLookDirection", at = @At("HEAD"), cancellable = true)
     private void gsave$redirectPreviewLook(double yawChange, double pitchChange, CallbackInfo ci) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        if ((Object) this == mc.player
-                && PreviewManager.getInstance().redirectLook(yawChange, pitchChange)) {
+        PreviewManager manager = PreviewManager.getInstance();
+        if (((Object) this == mc.player || manager.isPreviewCamera(this))
+                && manager.redirectLook(yawChange, pitchChange)) {
             ci.cancel();
         }
     }

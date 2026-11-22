@@ -370,7 +370,7 @@
   "gsave.preview.hud.range_chunks": "Range: radius %s (%s×%s = %s chunks)",
   "gsave.preview.hud.range_all": "Range: all chunks (only chunks near the camera are drawn)",
   "gsave.preview.hud.legend": "Orange = will change · Red = will be deleted · Green = unchanged",
-  "gsave.preview.hud.instructions": "WASD move · Space up · Shift down · Sprint faster · Mouse look · ESC exit preview",
+  "gsave.preview.hud.instructions": "Move: %s/%s/%s/%s · %s up · %s down · %s sprint · Mouse look · ESC exit preview",
   "gsave.preview.hud.computing": "Calculating chunks to restore...",
   "gsave.preview.hud.failed": "Preview calculation failed: %s"
 }

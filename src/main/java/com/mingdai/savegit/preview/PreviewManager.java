@@ -158,8 +158,8 @@ public final class PreviewManager {
 
         double speed = mc.options.sprintKey.isPressed() ? WALK_SPEED * SPRINT_MULTIPLIER : WALK_SPEED;
         double yaw = Math.toRadians(cam.getYaw());
-        double dx = strafe * Math.cos(yaw) - forward * Math.sin(yaw);
-        double dz = forward * Math.cos(yaw) + strafe * Math.sin(yaw);
+        double dx = -strafe * Math.cos(yaw) - forward * Math.sin(yaw);
+        double dz = forward * Math.cos(yaw) - strafe * Math.sin(yaw);
         double length = Math.sqrt(dx * dx + dz * dz + up * up);
         if (length > 1.0) {
             dx /= length;

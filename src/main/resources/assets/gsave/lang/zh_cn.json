@@ -370,7 +370,7 @@
   "gsave.preview.hud.range_chunks": "范围:半径 %s(共 %s×%s = %s 个区块)",
   "gsave.preview.hud.range_all": "范围:全部区块(仅绘制相机附近的区块)",
   "gsave.preview.hud.legend": "橙黄 = 将被修改 大红 = 将被删除 草绿 = 不变",
-  "gsave.preview.hud.instructions": "WASD 移动 · 空格上升 · Shift 下降 · 冲刺加速 · 鼠标转向 · ESC 退出预览",
+  "gsave.preview.hud.instructions": "移动:%s/%s/%s/%s · %s 上升 · %s 下降 · %s 加速 · 鼠标转向 · ESC 退出预览",
   "gsave.preview.hud.computing": "正在计算将要恢复的区块...",
   "gsave.preview.hud.failed": "预览计算失败:%s"
 }

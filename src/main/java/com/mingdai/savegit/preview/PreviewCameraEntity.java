@@ -55,7 +55,7 @@ public class PreviewCameraEntity extends ClientPlayerEntity {
         this.lastRenderY = this.getY();
         this.lastRenderZ = this.getZ();
 
-        //? if >=1.21.6 {
+        //? if >=1.21.5 {
         this.lastX = this.getX();
         this.lastY = this.getY();
         this.lastZ = this.getZ();
@@ -84,7 +84,7 @@ public class PreviewCameraEntity extends ClientPlayerEntity {
         this.setPitch(pitch);
         this.setHeadYaw(yaw);
 
-        //? if >=1.21.6 {
+        //? if >=1.21.5 {
         this.lastYaw = yaw;
         this.lastPitch = pitch;
         this.lastHeadYaw = yaw;

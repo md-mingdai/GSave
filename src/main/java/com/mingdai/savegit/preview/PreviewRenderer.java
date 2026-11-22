@@ -13,7 +13,6 @@ import fi.dy.masa.malilib.util.data.Color4f;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -64,9 +63,12 @@ public final class PreviewRenderer implements IRenderer {
             return;
         }
 
-        Vec3d cameraPos = mc.gameRenderer.getCamera().getPos();
-        int cameraChunkX = MathHelper.floor(cameraPos.x) >> 4;
-        int cameraChunkZ = MathHelper.floor(cameraPos.z) >> 4;
+        net.minecraft.entity.Entity cameraEntity = mc.getCameraEntity();
+        double cameraX = cameraEntity != null ? cameraEntity.getX() : mc.player.getX();
+        double cameraY = cameraEntity != null ? cameraEntity.getY() : mc.player.getY();
+        double cameraZ = cameraEntity != null ? cameraEntity.getZ() : mc.player.getZ();
+        int cameraChunkX = MathHelper.floor(cameraX) >> 4;
+        int cameraChunkZ = MathHelper.floor(cameraZ) >> 4;
 
         Map<ChunkPreviewMap.ChunkPos, ChunkPreviewMap.State> visible = new HashMap<>();
         ChunkSelection selection = manager.selection();
@@ -105,7 +107,7 @@ public final class PreviewRenderer implements IRenderer {
             rects = new ArrayList<>(rects.subList(0, MAX_RECTS));
         }
 
-        int bandY = MathHelper.floor(cameraPos.y);
+        int bandY = MathHelper.floor(cameraY);
         int minY = bandY - (int) BAND_HALF_HEIGHT;
         int maxY = bandY + (int) BAND_HALF_HEIGHT;
 

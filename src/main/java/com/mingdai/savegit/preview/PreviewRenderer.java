@@ -14,6 +14,9 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.levelgen.Heightmap;
 import org.joml.Vector4f;
 
 //? if >=26.3 {
@@ -31,12 +34,11 @@ import java.util.Map;
 
 /**
  * 在世界中绘制区块状态:橙黄 = 将被修改,大红 = 将被删除,草绿 = 保持不变。
- * 使用相机附近的一层半透明色带 + 边框,方便在自由视角下辨认。
+ * 只在区块表层绘制一层一像素高的色带与边框,贴合地形表面而不是漂浮在空中。
  */
 public final class PreviewRenderer implements IRenderer {
     private static final int RENDER_RADIUS_CHUNKS = 12;
     private static final int MAX_RECTS = 768;
-    private static final float BAND_HALF_HEIGHT = 2.0F;
 
     private static final Color4f MODIFIED_FILL = new Color4f(1.0F, 0.70F, 0.05F, 0.22F);
     private static final Color4f MODIFIED_LINE = new Color4f(1.0F, 0.72F, 0.10F, 0.90F);
@@ -44,6 +46,10 @@ public final class PreviewRenderer implements IRenderer {
     private static final Color4f DELETED_LINE = new Color4f(1.0F, 0.20F, 0.20F, 0.92F);
     private static final Color4f UNCHANGED_FILL = new Color4f(0.40F, 0.80F, 0.25F, 0.14F);
     private static final Color4f UNCHANGED_LINE = new Color4f(0.45F, 0.85F, 0.28F, 0.65F);
+
+    private final Map<Long, Integer> surfaceCache = new HashMap<>();
+    private PreviewSession cachedSession;
+    private String cachedDimension;
 
     public static void register() {
         RenderEventHandler.getInstance().registerWorldLastRenderer(new PreviewRenderer());
@@ -86,10 +92,15 @@ public final class PreviewRenderer implements IRenderer {
         if (cells.isEmpty()) {
             return;
         }
+        PreviewSession session = manager.session();
+        if (session != this.cachedSession || !dimension.equals(this.cachedDimension)) {
+            this.surfaceCache.clear();
+            this.cachedSession = session;
+            this.cachedDimension = dimension;
+        }
 
         net.minecraft.world.entity.Entity cameraEntity = mc.getCameraEntity();
         double cameraX = cameraEntity != null ? cameraEntity.getX() : mc.player.getX();
-        double cameraY = cameraEntity != null ? cameraEntity.getY() : mc.player.getY();
         double cameraZ = cameraEntity != null ? cameraEntity.getZ() : mc.player.getZ();
         int cameraChunkX = Mth.floor(cameraX) >> 4;
         int cameraChunkZ = Mth.floor(cameraZ) >> 4;
@@ -119,33 +130,71 @@ public final class PreviewRenderer implements IRenderer {
             return;
         }
 
-        List<PreviewRectangles.Rect> rects = PreviewRectangles.merge(visible);
+        Map<Integer, Map<ChunkPreviewMap.ChunkPos, ChunkPreviewMap.State>> bySurface = new HashMap<>();
+        for (Map.Entry<ChunkPreviewMap.ChunkPos, ChunkPreviewMap.State> entry : visible.entrySet()) {
+            int surface = this.surfaceY(mc, entry.getKey().x(), entry.getKey().z());
+            if (surface == Integer.MIN_VALUE) {
+                continue;
+            }
+            bySurface.computeIfAbsent(surface, key -> new HashMap<>()).put(entry.getKey(), entry.getValue());
+        }
+
+        List<SurfaceRect> rects = new ArrayList<>();
+        for (Map.Entry<Integer, Map<ChunkPreviewMap.ChunkPos, ChunkPreviewMap.State>> layer
+                : bySurface.entrySet()) {
+            for (PreviewRectangles.Rect rect : PreviewRectangles.merge(layer.getValue())) {
+                rects.add(new SurfaceRect(rect, layer.getKey()));
+            }
+        }
+        if (rects.isEmpty()) {
+            return;
+        }
         if (rects.size() > MAX_RECTS) {
             int center2X = cameraChunkX * 2;
             int center2Z = cameraChunkZ * 2;
-            rects.sort(Comparator.comparingLong(rect -> {
-                long dx = rect.centerX() - center2X;
-                long dz = rect.centerZ() - center2Z;
+            rects.sort(Comparator.comparingLong(entry -> {
+                long dx = entry.rect().centerX() - center2X;
+                long dz = entry.rect().centerZ() - center2Z;
                 return dx * dx + dz * dz;
             }));
             rects = new ArrayList<>(rects.subList(0, MAX_RECTS));
         }
 
-        int bandY = Mth.floor(cameraY);
-        int minY = bandY - (int) BAND_HALF_HEIGHT;
-        int maxY = bandY + (int) BAND_HALF_HEIGHT;
-
-        for (PreviewRectangles.Rect rect : rects) {
-            BlockPos pos1 = new BlockPos(rect.minX() * 16, minY, rect.minZ() * 16);
-            BlockPos pos2 = new BlockPos(rect.maxX() * 16 + 15, maxY, rect.maxZ() * 16 + 15);
+        for (SurfaceRect entry : rects) {
+            PreviewRectangles.Rect rect = entry.rect();
+            BlockPos pos1 = new BlockPos(rect.minX() * 16, entry.y(), rect.minZ() * 16);
+            BlockPos pos2 = new BlockPos(rect.maxX() * 16 + 15, entry.y() + 1, rect.maxZ() * 16 + 15);
             RenderUtils.renderAreaSides(pos1, pos2, fillColor(rect.state()));
         }
-        for (PreviewRectangles.Rect rect : rects) {
-            BlockPos pos1 = new BlockPos(rect.minX() * 16, minY, rect.minZ() * 16);
-            BlockPos pos2 = new BlockPos(rect.maxX() * 16 + 15, maxY, rect.maxZ() * 16 + 15);
+        for (SurfaceRect entry : rects) {
+            PreviewRectangles.Rect rect = entry.rect();
+            BlockPos pos1 = new BlockPos(rect.minX() * 16, entry.y(), rect.minZ() * 16);
+            BlockPos pos2 = new BlockPos(rect.maxX() * 16 + 15, entry.y() + 1, rect.maxZ() * 16 + 15);
             Color4f line = lineColor(rect.state());
             RenderUtils.renderAreaOutline(pos1, pos2, 1.5F, line, line, line);
         }
+    }
+
+    /** 区块表层方块的高度:取区块内 16×16 列高度图的最大值;未加载返回 MIN_VALUE。 */
+    private int surfaceY(Minecraft mc, int chunkX, int chunkZ) {
+        long key = ((long) chunkX << 32) ^ (chunkZ & 0xFFFFFFFFL);
+        Integer cached = this.surfaceCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        int surface = Integer.MIN_VALUE;
+        LevelChunk chunk = mc.level.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
+        if (chunk != null) {
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    int top = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+                    surface = Math.max(surface, top - 1);
+                }
+            }
+        }
+        this.surfaceCache.put(key, surface);
+        return surface;
     }
 
     private static Color4f fillColor(ChunkPreviewMap.State state) {
@@ -162,5 +211,8 @@ public final class PreviewRenderer implements IRenderer {
             case DELETED -> DELETED_LINE;
             case UNCHANGED -> UNCHANGED_LINE;
         };
+    }
+
+    private record SurfaceRect(PreviewRectangles.Rect rect, int y) {
     }
 }

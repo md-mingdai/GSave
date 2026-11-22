@@ -109,7 +109,14 @@ public final class PreviewHudRenderer {
         }
 
         lines.add(new Line(L10n.tr("gsave.preview.hud.legend"), COLOR_DIM, 0));
-        lines.add(new Line(L10n.tr("gsave.preview.hud.instructions"), COLOR_TEXT, 0));
+        lines.add(new Line(L10n.tr("gsave.preview.hud.instructions",
+                mc.options.keyUp.getTranslatedKeyMessage().getString(),
+                mc.options.keyLeft.getTranslatedKeyMessage().getString(),
+                mc.options.keyDown.getTranslatedKeyMessage().getString(),
+                mc.options.keyRight.getTranslatedKeyMessage().getString(),
+                mc.options.keyJump.getTranslatedKeyMessage().getString(),
+                mc.options.keyShift.getTranslatedKeyMessage().getString(),
+                mc.options.keySprint.getTranslatedKeyMessage().getString()), COLOR_TEXT, 0));
         return lines;
     }
 

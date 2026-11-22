@@ -370,7 +370,7 @@
   "gsave.preview.hud.range_chunks": "範圍:半徑 %s(共 %s×%s = %s 個區塊)",
   "gsave.preview.hud.range_all": "範圍:全部區塊(僅繪製相機附近的區塊)",
   "gsave.preview.hud.legend": "橙黃 = 將被修改 大紅 = 將被刪除 草綠 = 不變",
-  "gsave.preview.hud.instructions": "WASD 移動 · 空格上升 · Shift 下降 · 衝刺加速 · 滑鼠轉向 · ESC 退出預覽",
+  "gsave.preview.hud.instructions": "移動:%s/%s/%s/%s · %s 上升 · %s 下降 · %s 加速 · 滑鼠轉向 · ESC 退出預覽",
   "gsave.preview.hud.computing": "正在計算將要恢復的區塊...",
   "gsave.preview.hud.failed": "預覽計算失敗:%s"
 }

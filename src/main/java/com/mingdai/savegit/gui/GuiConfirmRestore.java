@@ -4,6 +4,8 @@ import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.compat.ClientCompat;
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.theme.GuiTheme;
+import com.mingdai.savegit.preview.PreviewManager;
+import com.mingdai.savegit.preview.PreviewSession;
 import com.mingdai.savegit.snapshot.ChunkSelection;
 import com.mingdai.savegit.snapshot.Commit;
 import com.mingdai.savegit.snapshot.SaveGitSnapshotManager;
@@ -120,63 +122,59 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
             this.addWidget(this.deleteNewBox);
         }
 
-        int buttonWidth = 100;
+        boolean previewable = this.canPreview();
+        int buttonWidth = previewable ? 96 : 100;
+        int gap = 6;
+        int count = previewable ? 3 : 2;
+        int totalWidth = buttonWidth * count + gap * (count - 1);
+        int buttonX = centerX - totalWidth / 2;
         int y = this.buttonY();
-        this.addButton(new ButtonGeneric(centerX - buttonWidth - 4, y, buttonWidth, 20,
+
+        if (previewable) {
+            this.addButton(new ButtonGeneric(buttonX, y, buttonWidth, 20,
+                            L10n.tr("gsave.button.preview")),
+                    (button, mouseButton) -> this.preview());
+            buttonX += buttonWidth + gap;
+        }
+        this.addButton(new ButtonGeneric(buttonX, y, buttonWidth, 20,
                         L10n.tr("gsave.button.confirm_restore")),
                 (button, mouseButton) -> this.confirm());
-        this.addButton(new ButtonGeneric(centerX + 4, y, buttonWidth, 20,
+        buttonX += buttonWidth + gap;
+        this.addButton(new ButtonGeneric(buttonX, y, buttonWidth, 20,
                         L10n.tr("gsave.button.cancel")),
                 (button, mouseButton) -> this.cancel());
     }
 
-    private void confirm() {
-        this.status = "";
-        this.radiusText = this.radiusField.getTextWrapper().trim();
+    private boolean canPreview() {
+        return this.mc != null && this.mc.player != null && this.mc.level != null
+                && SaveGitSnapshotManager.getWorldDirectory(this.mc) != null;
+    }
 
-        if (!this.restoreRegion && !this.restoreEntities && !this.restorePoi
-                && !this.restoreWhole && !this.restoreDatapacks) {
-            this.status = L10n.tr("gsave.gui.message.content_empty");
+    private void preview() {
+        RestoreRequest request = this.buildRequest(true);
+        if (request == null) {
             return;
         }
-
-        ChunkSelection selection = null;
-        if (this.chunkOnly) {
-            if (!this.restoreRegion && !this.restoreEntities && !this.restorePoi) {
-                this.status = L10n.tr("gsave.gui.message.chunk_need_type");
-                return;
-            }
-            Integer radius = this.parseRadius();
-            if (radius == null) {
-                this.status = L10n.tr("gsave.gui.message.chunk_radius_invalid",
-                        String.valueOf(SaveGitSnapshotManager.MAX_CHUNK_RADIUS));
-                return;
-            }
-            selection = SaveGitSnapshotManager.selectionAroundPlayer(this.mc, radius);
-            if (selection == null) {
-                this.status = L10n.tr("gsave.gui.message.no_player");
-                return;
-            }
+        Path worldDir = SaveGitSnapshotManager.getWorldDirectory(this.mc);
+        if (worldDir == null) {
+            this.status = L10n.tr("gsave.gui.message.preview_no_world");
+            return;
         }
-
-        // Beta：恢复前提示快照里存在、当前缺失的模组；首次点击只警告，再次点击继续
-        if (!this.warnedMissingMods && SaveGitConfigs.isBetaModEnvironmentEnabled()) {
-            Path worldDir = SaveGitSnapshotManager.getWorldDirectory(this.mc);
-            List<String> missing = SaveGitSnapshotManager.missingMods(worldDir, this.commit);
-            if (!missing.isEmpty()) {
-                this.warnedMissingMods = true;
-                this.status = L10n.tr("gsave.gui.message.missing_mods", joinMissing(missing));
-                return;
-            }
+        PreviewSession session = new PreviewSession(this.commit, worldDir,
+                request.filter(), request.selection(), request.deleteNew());
+        if (!PreviewManager.getInstance().start(this.mc, session, this)) {
+            this.status = L10n.tr("gsave.gui.message.preview_no_world");
         }
+    }
 
-        boolean chunkMode = this.chunkOnly;
-        WorldRestorer.RestoreFilter filter = new WorldRestorer.RestoreFilter(
-                this.restoreRegion, this.restoreEntities, this.restorePoi,
-                chunkMode ? false : this.restoreWhole,
-                chunkMode ? false : this.restoreDatapacks);
-        boolean deleteNew = this.deleteNewFiles && this.showDeleteNewFiles() && !chunkMode;
-        ChunkSelection chunkSelection = selection;
+    private void confirm() {
+        RestoreRequest request = this.buildRequest(false);
+        if (request == null) {
+            return;
+        }
+        ChunkSelection chunkSelection = request.selection();
+        WorldRestorer.RestoreFilter filter = request.filter();
+        boolean deleteNew = request.deleteNew();
         Runnable start = () -> {
             ClientCompat.setScreen(this.mc, null);
             SaveGitSnapshotManager.requestRestore(this.mc, this.commit,
@@ -188,6 +186,60 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         } else {
             GuiBase.openGui(new GuiConfirmNoSafetyRestore(this.commit, this, start));
         }
+    }
+
+    private RestoreRequest buildRequest(boolean forPreview) {
+        this.status = "";
+        this.radiusText = this.radiusField.getTextWrapper().trim();
+
+        if (!this.restoreRegion && !this.restoreEntities && !this.restorePoi
+                && !this.restoreWhole && !this.restoreDatapacks) {
+            this.status = L10n.tr("gsave.gui.message.content_empty");
+            return null;
+        }
+
+        ChunkSelection selection = null;
+        if (this.chunkOnly) {
+            if (!this.restoreRegion && !this.restoreEntities && !this.restorePoi) {
+                this.status = L10n.tr("gsave.gui.message.chunk_need_type");
+                return null;
+            }
+            Integer radius = this.parseRadius();
+            if (radius == null) {
+                this.status = L10n.tr("gsave.gui.message.chunk_radius_invalid",
+                        String.valueOf(SaveGitSnapshotManager.MAX_CHUNK_RADIUS));
+                return null;
+            }
+            selection = SaveGitSnapshotManager.selectionAroundPlayer(this.mc, radius);
+            if (selection == null) {
+                this.status = L10n.tr("gsave.gui.message.no_player");
+                return null;
+            }
+        }
+
+        // Beta:恢复前提示快照里存在、当前缺失的模组;首次点击只警告,再次点击继续
+        if (!forPreview && !this.warnedMissingMods && SaveGitConfigs.isBetaModEnvironmentEnabled()) {
+            Path worldDir = SaveGitSnapshotManager.getWorldDirectory(this.mc);
+            List<String> missing = SaveGitSnapshotManager.missingMods(worldDir, this.commit);
+            if (!missing.isEmpty()) {
+                this.warnedMissingMods = true;
+                this.status = L10n.tr("gsave.gui.message.missing_mods", joinMissing(missing));
+                return null;
+            }
+        }
+
+        boolean chunkMode = this.chunkOnly;
+        WorldRestorer.RestoreFilter filter = new WorldRestorer.RestoreFilter(
+                this.restoreRegion, this.restoreEntities, this.restorePoi,
+                chunkMode ? false : this.restoreWhole,
+                chunkMode ? false : this.restoreDatapacks);
+        boolean deleteNew = this.deleteNewFiles && this.showDeleteNewFiles() && !chunkMode;
+        return new RestoreRequest(selection, filter, deleteNew);
+    }
+
+    private record RestoreRequest(ChunkSelection selection,
+                                  WorldRestorer.RestoreFilter filter,
+                                  boolean deleteNew) {
     }
 
     private static String joinMissing(List<String> missing) {

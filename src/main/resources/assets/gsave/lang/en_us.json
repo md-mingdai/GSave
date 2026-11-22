@@ -359,5 +359,18 @@
   "gsave.config.generic.comment.betaMaxFileMb": "Beta: maximum size (MiB) for a single other world file to be included in a snapshot; larger files are skipped.",
   "gsave.config.generic.name.betaMaxOtherMb": "Beta: max extra files (MiB)",
   "gsave.config.generic.prettyName.betaMaxOtherMb": "Beta: max extra files",
-  "gsave.config.generic.comment.betaMaxOtherMb": "Beta: total size limit (MiB) for other world files and datapacks per snapshot; remaining files are skipped once exceeded."
+  "gsave.config.generic.comment.betaMaxOtherMb": "Beta: total size limit (MiB) for other world files and datapacks per snapshot; remaining files are skipped once exceeded.",
+  "gsave.button.preview": "Preview",
+  "gsave.gui.message.preview_no_world": "Preview requires a singleplayer world",
+  "gsave.preview.hud.title": "Restore preview · %s",
+  "gsave.preview.hud.dimension": "Dimension: %s",
+  "gsave.preview.hud.modified": "Will be modified: %s",
+  "gsave.preview.hud.deleted": "Will be deleted: %s",
+  "gsave.preview.hud.unchanged": "Unchanged: %s",
+  "gsave.preview.hud.range_chunks": "Range: radius %s (%s×%s = %s chunks)",
+  "gsave.preview.hud.range_all": "Range: all chunks (only chunks near the camera are drawn)",
+  "gsave.preview.hud.legend": "Orange = will change · Red = will be deleted · Green = unchanged",
+  "gsave.preview.hud.instructions": "WASD move · Space up · Shift down · Sprint faster · Mouse look · ESC exit preview",
+  "gsave.preview.hud.computing": "Calculating chunks to restore...",
+  "gsave.preview.hud.failed": "Preview calculation failed: %s"
 }

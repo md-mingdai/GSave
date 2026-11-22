@@ -3,10 +3,14 @@ package com.mingdai.savegit;
 import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.GuiSaveGitConfigs;
 import com.mingdai.savegit.hud.SnapshotHud;
+import com.mingdai.savegit.preview.PreviewManager;
+import com.mingdai.savegit.preview.PreviewHudRenderer;
+import com.mingdai.savegit.preview.PreviewRenderer;
 import fi.dy.masa.malilib.config.ConfigManager;
 import fi.dy.masa.malilib.interfaces.IInitializationHandler;
 import fi.dy.masa.malilib.registry.Registry;
 import fi.dy.masa.malilib.util.data.ModInfo;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -26,6 +30,11 @@ public class SaveGitInitHandler implements IInitializationHandler {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath(SaveGitMod.MOD_ID, "snapshot_hud"),
                 (graphics, deltaTracker) -> SnapshotHud.render(graphics));
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
+                Identifier.fromNamespaceAndPath(SaveGitMod.MOD_ID, "preview_hud"),
+                (graphics, deltaTracker) -> PreviewHudRenderer.render(graphics));
+        PreviewRenderer.register();
+        ClientTickEvents.END_CLIENT_TICK.register(PreviewManager.getInstance()::tick);
         SaveGitConfigs.Generic.SCHEDULED_SNAPSHOT_ENABLED.setValueChangeCallback(
                 config -> GuiSaveGitConfigs.refreshIfOpen());
         SaveGitConfigs.Generic.UNLIMITED_SNAPSHOTS.setValueChangeCallback(

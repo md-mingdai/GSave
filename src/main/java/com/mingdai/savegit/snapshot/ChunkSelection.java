@@ -44,6 +44,12 @@ public final class ChunkSelection {
         return this.chunks.size();
     }
 
+    /** 生成时的半径(以 16 方块为单位);用于预览提示。 */
+    public int radiusChunks() {
+        int side = (int) Math.round(Math.sqrt(this.chunks.size()));
+        return Math.max(1, (side + 1) / 2);
+    }
+
     /** 判断 manifest 中某个文件条目的区块 index 是否属于本次选择。 */
     public boolean matches(Manifest.FileEntry entry, int index) {
         if (entry == null || entry.dimension == null || !entry.dimension.equals(this.dimension)) {

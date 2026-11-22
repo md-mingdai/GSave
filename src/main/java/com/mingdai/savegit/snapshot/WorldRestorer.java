@@ -6,8 +6,11 @@ import com.mingdai.savegit.util.L10n;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -17,8 +20,9 @@ public final class WorldRestorer {
     private final SnapshotRepository repo;
     private final Path worldRoot;
 
-    public record RestoreFilter(boolean region, boolean entities, boolean poi, boolean whole) {
-        public static final RestoreFilter ALL = new RestoreFilter(true, true, true, true);
+    public record RestoreFilter(boolean region, boolean entities, boolean poi, boolean whole,
+                                boolean datapacks) {
+        public static final RestoreFilter ALL = new RestoreFilter(true, true, true, true, true);
 
         public boolean accepts(Manifest.FileEntry entry) {
             if (entry.isMca()) {
@@ -30,7 +34,8 @@ public final class WorldRestorer {
                     default -> this.whole;
                 };
             }
-            return this.whole;
+            boolean datapack = entry.path != null && entry.path.startsWith(WorldFileGroups.DATAPACKS_PREFIX);
+            return datapack ? this.datapacks : this.whole;
         }
     }
 
@@ -40,17 +45,23 @@ public final class WorldRestorer {
     }
 
     public void restore(Commit commit) throws IOException {
-        restore(commit, RestoreFilter.ALL, null);
+        restore(commit, RestoreFilter.ALL, null, false);
     }
 
     public void restore(Commit commit, RestoreFilter filter) throws IOException {
-        restore(commit, filter, null);
+        restore(commit, filter, null, false);
+    }
+
+    public void restore(Commit commit, RestoreFilter filter, ChunkSelection selection) throws IOException {
+        restore(commit, filter, selection, false);
     }
 
     /**
-     * @param selection 非空时只恢复选中区块；其余区块保留世界当前状态。
+     * @param selection      非空时只恢复选中区块；其余区块保留世界当前状态。
+     * @param deleteNewFiles Beta：删除快照中不存在、且属于所选分组的其他世界文件（不含区块与 gsave 数据）。
      */
-    public void restore(Commit commit, RestoreFilter filter, ChunkSelection selection) throws IOException {
+    public void restore(Commit commit, RestoreFilter filter, ChunkSelection selection,
+                        boolean deleteNewFiles) throws IOException {
         if (this.repo.isReadOnly()) {
             throw new IOException(L10n.tr("gsave.error.repo_too_new",
                     String.valueOf(this.repo.getFormatVersion())));
@@ -112,10 +123,56 @@ public final class WorldRestorer {
                 RestoreProgress.completeFile();
                 index++;
             }
+            if (deleteNewFiles && selection == null) {
+                deleteExtraFiles(manifest, filter);
+            }
             RestoreProgress.finish();
         } finally {
             repo.getBlobStore().close();
         }
+    }
+
+    /**
+     * Beta：删除快照中不存在的其他世界文件。只处理所选分组中的普通文件，
+     * 永不删除区块文件与 gsave 数据；删除会写入恢复日志。
+     */
+    private void deleteExtraFiles(Manifest manifest, RestoreFilter filter) throws IOException {
+        Set<String> known = manifest.files.keySet();
+        List<Path> toDelete = new ArrayList<>();
+        try (java.util.stream.Stream<Path> stream = Files.walk(this.worldRoot)) {
+            stream.filter(Files::isRegularFile)
+                    .filter(path -> !Files.isSymbolicLink(path))
+                    .forEach(path -> {
+                        String relative = relativePath(path);
+                        String lower = relative.toLowerCase(java.util.Locale.ROOT);
+                        if (lower.endsWith(".mca") || lower.endsWith(".mcc")) {
+                            return;
+                        }
+                        if (WorldFileGroups.isExcluded(relative) || known.contains(relative)) {
+                            return;
+                        }
+                        boolean datapack = WorldFileGroups.isDatapack(relative);
+                        if (datapack && !filter.datapacks()) {
+                            return;
+                        }
+                        if (!datapack && !filter.whole()) {
+                            return;
+                        }
+                        toDelete.add(path);
+                    });
+        }
+
+        for (Path path : toDelete) {
+            String relative = relativePath(path);
+            if (Files.deleteIfExists(path)) {
+                RestoreProgress.addLog(L10n.tr("gsave.progress.log.deleted_new", relative));
+            }
+        }
+    }
+
+    private String relativePath(Path path) {
+        return this.worldRoot.relativize(path.toAbsolutePath().normalize())
+                .toString().replace('\\', '/');
     }
 
     private void restoreMcaFile(Manifest.FileEntry entry, Path target, ChunkSelection selection)

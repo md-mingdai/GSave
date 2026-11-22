@@ -2,6 +2,7 @@ package com.mingdai.savegit.gui;
 
 import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.compat.ClientCompat;
+import com.mingdai.savegit.config.SaveGitConfigs;
 import com.mingdai.savegit.gui.theme.GuiTheme;
 import com.mingdai.savegit.snapshot.ChunkSelection;
 import com.mingdai.savegit.snapshot.Commit;
@@ -14,15 +15,16 @@ import fi.dy.masa.malilib.gui.GuiTextFieldGeneric;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.render.GuiContext;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 恢复确认界面：选择恢复内容（地形/实体/兴趣点/其他文件），
- * 可选择只恢复玩家附近指定半径的区块，并决定是否先创建安全快照。
+ * 恢复确认界面：选择恢复内容（地形/实体/兴趣点/数据包/其他文件），
+ * 可选择只恢复玩家附近指定半径的区块、是否删除快照中不存在的新增文件，
+ * 以及是否先创建安全快照。
  */
 public class GuiConfirmRestore extends GuiSaveGitScreen {
-    private static final int COLUMN_GAP = 24;
     private static final int ROW_GAP = 14;
     private static final int RADIUS_FIELD_WIDTH = 48;
 
@@ -34,7 +36,10 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
     private boolean restoreEntities = true;
     private boolean restorePoi = true;
     private boolean restoreWhole = true;
+    private boolean restoreDatapacks = true;
     private boolean chunkOnly;
+    private boolean deleteNewFiles = SaveGitConfigs.isBetaDeleteNewFilesEnabled();
+    private boolean warnedMissingMods;
     private String radiusText = "1";
     private String status = "";
 
@@ -42,14 +47,20 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
     private WidgetCheckBoxSimple entitiesBox;
     private WidgetCheckBoxSimple poiBox;
     private WidgetCheckBoxSimple otherBox;
+    private WidgetCheckBoxSimple datapacksBox;
     private WidgetCheckBoxSimple chunkBox;
     private WidgetCheckBoxSimple safetyCheckBox;
+    private WidgetCheckBoxSimple deleteNewBox;
     private GuiTextFieldGeneric radiusField;
 
     public GuiConfirmRestore(Commit commit, GuiSnapshotList parent) {
         this.commit = commit;
         this.parent = parent;
         this.setTitle(L10n.tr("gsave.gui.title.confirm_restore"));
+    }
+
+    private boolean showDeleteNewFiles() {
+        return SaveGitConfigs.hasBetaFileGroups();
     }
 
     @Override
@@ -71,10 +82,15 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         this.otherBox = new WidgetCheckBoxSimple(right, this.row2Y(),
                 L10n.tr("gsave.gui.checkbox.scope_other"), this.restoreWhole);
         this.otherBox.setChangeListener(() -> this.restoreWhole = this.otherBox.isChecked());
+        this.datapacksBox = new WidgetCheckBoxSimple(left, this.row3Y(),
+                L10n.tr("gsave.gui.checkbox.scope_datapacks"), this.restoreDatapacks);
+        this.datapacksBox.setChangeListener(
+                () -> this.restoreDatapacks = this.datapacksBox.isChecked());
         this.addWidget(this.regionBox);
         this.addWidget(this.poiBox);
         this.addWidget(this.entitiesBox);
         this.addWidget(this.otherBox);
+        this.addWidget(this.datapacksBox);
 
         this.chunkBox = new WidgetCheckBoxSimple(left, this.chunkY(),
                 L10n.tr("gsave.gui.checkbox.chunk_only"), this.chunkOnly);
@@ -95,6 +111,15 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
                 () -> this.createSafetySnapshot = this.safetyCheckBox.isChecked());
         this.addWidget(this.safetyCheckBox);
 
+        if (this.showDeleteNewFiles()) {
+            this.deleteNewBox = new WidgetCheckBoxSimple(0, 0,
+                    L10n.tr("gsave.gui.checkbox.delete_new_files"), this.deleteNewFiles);
+            this.deleteNewBox.setPosition(centerX - this.deleteNewBox.getWidth() / 2, this.deleteY());
+            this.deleteNewBox.setChangeListener(
+                    () -> this.deleteNewFiles = this.deleteNewBox.isChecked());
+            this.addWidget(this.deleteNewBox);
+        }
+
         int buttonWidth = 100;
         int y = this.buttonY();
         this.addButton(new ButtonGeneric(centerX - buttonWidth - 4, y, buttonWidth, 20,
@@ -109,7 +134,8 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         this.status = "";
         this.radiusText = this.radiusField.getTextWrapper().trim();
 
-        if (!this.restoreRegion && !this.restoreEntities && !this.restorePoi && !this.restoreWhole) {
+        if (!this.restoreRegion && !this.restoreEntities && !this.restorePoi
+                && !this.restoreWhole && !this.restoreDatapacks) {
             this.status = L10n.tr("gsave.gui.message.content_empty");
             return;
         }
@@ -133,14 +159,28 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
             }
         }
 
+        // Beta：恢复前提示快照里存在、当前缺失的模组；首次点击只警告，再次点击继续
+        if (!this.warnedMissingMods && SaveGitConfigs.isBetaModEnvironmentEnabled()) {
+            Path worldDir = SaveGitSnapshotManager.getWorldDirectory(this.mc);
+            List<String> missing = SaveGitSnapshotManager.missingMods(worldDir, this.commit);
+            if (!missing.isEmpty()) {
+                this.warnedMissingMods = true;
+                this.status = L10n.tr("gsave.gui.message.missing_mods", joinMissing(missing));
+                return;
+            }
+        }
+
+        boolean chunkMode = this.chunkOnly;
         WorldRestorer.RestoreFilter filter = new WorldRestorer.RestoreFilter(
                 this.restoreRegion, this.restoreEntities, this.restorePoi,
-                this.chunkOnly ? false : this.restoreWhole);
+                chunkMode ? false : this.restoreWhole,
+                chunkMode ? false : this.restoreDatapacks);
+        boolean deleteNew = this.deleteNewFiles && this.showDeleteNewFiles() && !chunkMode;
         ChunkSelection chunkSelection = selection;
         Runnable start = () -> {
             ClientCompat.setScreen(this.mc, null);
             SaveGitSnapshotManager.requestRestore(this.mc, this.commit,
-                    this.createSafetySnapshot, chunkSelection, filter);
+                    this.createSafetySnapshot, chunkSelection, filter, deleteNew);
         };
 
         if (this.createSafetySnapshot) {
@@ -148,6 +188,12 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         } else {
             GuiBase.openGui(new GuiConfirmNoSafetyRestore(this.commit, this, start));
         }
+    }
+
+    private static String joinMissing(List<String> missing) {
+        int limit = Math.min(5, missing.size());
+        String joined = String.join(", ", missing.subList(0, limit));
+        return missing.size() > limit ? joined + " …" : joined;
     }
 
     private Integer parseRadius() {
@@ -195,7 +241,7 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
     }
 
     private int panelStartY() {
-        return this.height / 2 - this.buildLines().size() * 6 - 92;
+        return this.height / 2 - this.buildLines().size() * 6 - 104;
     }
 
     private int panelBottom() {
@@ -214,8 +260,12 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         return this.row1Y() + ROW_GAP;
     }
 
+    private int row3Y() {
+        return this.row2Y() + ROW_GAP;
+    }
+
     private int chunkY() {
-        return this.row2Y() + 20;
+        return this.row3Y() + 20;
     }
 
     private int radiusY() {
@@ -226,8 +276,12 @@ public class GuiConfirmRestore extends GuiSaveGitScreen {
         return this.radiusY() + 24;
     }
 
+    private int deleteY() {
+        return this.safetyY() + 18;
+    }
+
     private int buttonY() {
-        return this.safetyY() + 24;
+        return (this.showDeleteNewFiles() ? this.deleteY() : this.safetyY()) + 24;
     }
 
     @Override

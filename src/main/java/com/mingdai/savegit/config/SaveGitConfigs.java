@@ -61,6 +61,20 @@ public final class SaveGitConfigs implements IConfigHandler {
         public static final ConfigBoolean SNAPSHOT_PLAYERDATA =
                 new ConfigBoolean("snapshotPlayerdata", true).apply(GENERIC_KEY);
 
+        // Beta：第三方模组世界文件与模组环境支持，默认全部关闭
+        public static final ConfigBoolean BETA_OTHER_FILES =
+                new ConfigBoolean("betaOtherFiles", false).apply(GENERIC_KEY);
+        public static final ConfigBoolean BETA_DATAPACKS =
+                new ConfigBoolean("betaDatapacks", false).apply(GENERIC_KEY);
+        public static final ConfigBoolean BETA_MOD_ENVIRONMENT =
+                new ConfigBoolean("betaModEnvironment", false).apply(GENERIC_KEY);
+        public static final ConfigBoolean BETA_DELETE_NEW_FILES =
+                new ConfigBoolean("betaDeleteNewFiles", false).apply(GENERIC_KEY);
+        public static final ConfigInteger BETA_MAX_FILE_MB =
+                new ConfigInteger("betaMaxFileMb", 64, 1, 1024, true).apply(GENERIC_KEY);
+        public static final ConfigInteger BETA_MAX_OTHER_MB =
+                new ConfigInteger("betaMaxOtherMb", 512, 1, 8192, true).apply(GENERIC_KEY);
+
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 ENABLED,
                 SCHEDULED_SNAPSHOT_ENABLED,
@@ -77,7 +91,13 @@ public final class SaveGitConfigs implements IConfigHandler {
                 SNAPSHOT_ENTITIES,
                 SNAPSHOT_POI,
                 SNAPSHOT_LEVEL_DAT,
-                SNAPSHOT_PLAYERDATA
+                SNAPSHOT_PLAYERDATA,
+                BETA_OTHER_FILES,
+                BETA_DATAPACKS,
+                BETA_MOD_ENVIRONMENT,
+                BETA_DELETE_NEW_FILES,
+                BETA_MAX_FILE_MB,
+                BETA_MAX_OTHER_MB
         );
     }
 
@@ -125,6 +145,35 @@ public final class SaveGitConfigs implements IConfigHandler {
 
     public static boolean snapshotPlayerdata() {
         return Generic.SNAPSHOT_PLAYERDATA.getBooleanValue();
+    }
+
+    public static boolean isBetaOtherFilesEnabled() {
+        return Generic.BETA_OTHER_FILES.getBooleanValue();
+    }
+
+    public static boolean isBetaDatapacksEnabled() {
+        return Generic.BETA_DATAPACKS.getBooleanValue();
+    }
+
+    /** 是否有任一 Beta 世界文件分组启用。 */
+    public static boolean hasBetaFileGroups() {
+        return isBetaOtherFilesEnabled() || isBetaDatapacksEnabled();
+    }
+
+    public static boolean isBetaModEnvironmentEnabled() {
+        return Generic.BETA_MOD_ENVIRONMENT.getBooleanValue();
+    }
+
+    public static boolean isBetaDeleteNewFilesEnabled() {
+        return Generic.BETA_DELETE_NEW_FILES.getBooleanValue();
+    }
+
+    public static long betaMaxFileBytes() {
+        return Generic.BETA_MAX_FILE_MB.getIntegerValue() * 1024L * 1024L;
+    }
+
+    public static long betaMaxOtherBytes() {
+        return Generic.BETA_MAX_OTHER_MB.getIntegerValue() * 1024L * 1024L;
     }
 
     public static int autoSnapshotIntervalTicks() {

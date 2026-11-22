@@ -1,5 +1,6 @@
 package com.mingdai.savegit.snapshot;
 
+import com.mingdai.savegit.SaveGitMod;
 import com.mingdai.savegit.mca.RawMca;
 
 import java.io.IOException;
@@ -29,7 +30,9 @@ public final class WorldSnapshotter {
 
     public record Settings(boolean region, boolean entities, boolean poi, boolean levelDat,
                            boolean playerdata, int maxSnapshots, boolean skipUnchanged,
-                           boolean protectManual, String worldName, String mcVersion) {
+                           boolean protectManual, String worldName, String mcVersion,
+                           boolean datapacks, boolean otherFiles, boolean modEnvironment,
+                           long maxFileBytes, long maxOtherBytes) {
     }
 
     /** 自动快照检测到与 HEAD 完全一致时抛出，用于跳过重复提交。 */
@@ -81,6 +84,19 @@ public final class WorldSnapshotter {
             snapshotPlayerData(manifest, worldRoot, storedWholeFiles);
         }
 
+        // Beta：第三方模组写入世界目录的其他文件与数据包
+        if (settings.datapacks() || settings.otherFiles()) {
+            snapshotExtraFiles(manifest, worldRoot, settings, storedWholeFiles);
+        }
+        // Beta：记录模组环境（不阻塞快照，失败时为空）
+        if (settings.modEnvironment()) {
+            WorldModEnvironment environment = WorldModEnvironment.capture();
+            if (!environment.isEmpty()) {
+                manifest.modEnvironment = environment.toJson();
+                manifest.modFingerprint = environment.fingerprint();
+            }
+        }
+
         repo.getBlobStore().flush();
         String manifestId = repo.saveManifest(manifest);
         String parentId = repo.readHead();
@@ -98,6 +114,7 @@ public final class WorldSnapshotter {
         Commit commit = Commit.create(parentId, manifestId, System.currentTimeMillis(),
                 message, settings.worldName(), settings.mcVersion());
         commit.durationMs = Math.max(0L, System.currentTimeMillis() - startedAt);
+        commit.environmentFingerprint = manifest.modFingerprint == null ? "" : manifest.modFingerprint;
 
         Patch patch = PatchGenerator.generate(commit.id, parentId, oldManifest, manifest);
         repo.savePatch(patch);
@@ -155,6 +172,81 @@ public final class WorldSnapshotter {
         for (Path file : files) {
             snapshotWholeFile(manifest, worldRoot, file, null, storedWholeFiles);
         }
+    }
+
+    /**
+     * Beta：把数据包与模组写入世界目录的其他文件按内容寻址整文件保存。
+     * 只搬运字节、不解析第三方格式，因此对任何模组都兼容。
+     */
+    private void snapshotExtraFiles(Manifest manifest, Path worldRoot, Settings settings,
+                                    Set<String> storedWholeFiles) throws IOException {
+        Path root = worldRoot.toAbsolutePath().normalize();
+        Path saveGitDir = SnapshotRepository.dataDir(worldRoot);
+        List<Path> files = new ArrayList<>();
+        try (java.util.stream.Stream<Path> stream = Files.walk(root)) {
+            stream.filter(Files::isRegularFile)
+                    .filter(path -> !Files.isSymbolicLink(path))
+                    .forEach(files::add);
+        }
+        files.sort(Comparator.comparing(path -> relativePath(root, path)));
+
+        long budget = Math.max(0L, settings.maxOtherBytes());
+        long used = 0L;
+        int stored = 0;
+        int skipped = 0;
+        boolean budgetReached = false;
+
+        try (WorldFileHashCache cache = WorldFileHashCache.open(saveGitDir)) {
+            for (Path file : files) {
+                String relative = relativePath(root, file);
+                String lower = relative.toLowerCase(java.util.Locale.ROOT);
+                if (lower.endsWith(".mca") || lower.endsWith(".mcc")) {
+                    continue; // 已由区块扫描或整文件回退处理
+                }
+                if (WorldFileGroups.isExcluded(relative) || storedWholeFiles.contains(relative)) {
+                    continue;
+                }
+                if (WorldFileGroups.isDatapack(relative)) {
+                    if (!settings.datapacks()) {
+                        continue;
+                    }
+                } else if (!settings.otherFiles()) {
+                    continue;
+                }
+
+                long size = Files.size(file);
+                if (settings.maxFileBytes() > 0 && size > settings.maxFileBytes()) {
+                    SaveGitMod.LOGGER.warn("跳过超过单文件上限的模组文件: {} ({} 字节)", relative, size);
+                    skipped++;
+                    continue;
+                }
+                if (budgetReached || used + size > budget) {
+                    budgetReached = true;
+                    skipped++;
+                    continue;
+                }
+
+                String hash = cache.lookup(file, relative);
+                if (hash == null) {
+                    hash = RawMca.hashFile(file);
+                }
+                repo.getBlobStore().storeWithHash(file, hash);
+                cache.remember(file, relative, hash);
+                manifest.addWholeFile(relative, null, hash);
+                used += size;
+                stored++;
+            }
+        }
+
+        if (stored > 0 || skipped > 0) {
+            SaveGitMod.LOGGER.info("Beta 世界文件快照：保存 {} 个，跳过 {} 个，共 {} 字节",
+                    stored, skipped, used);
+        }
+    }
+
+    private static String relativePath(Path root, Path file) {
+        return root.relativize(file.toAbsolutePath().normalize())
+                .toString().replace('\\', '/');
     }
 
     private void snapshotWholeFile(Manifest manifest, Path worldRoot, Path file,

@@ -74,7 +74,7 @@ public final class PreviewManager {
         this.returnScreen = returnScreen;
         this.originalCamera = client.getCameraEntity();
         this.originalCull = client.smartCull;
-        this.originalNoGravity = client.player.hasNoGravity();
+        this.originalNoGravity = client.player.isNoGravity();
         this.originalEntityId = client.player.getId();
 
         this.playerX = client.player.getX();
